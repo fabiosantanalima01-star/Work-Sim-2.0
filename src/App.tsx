@@ -151,7 +151,7 @@ export default function App() {
   const activeStudent = students.find((s) => s.id === activeStudentId) || null;
   const isProfessorOrAdmin =
     (activeStudent?.matricula === "ADM2026" && (activeStudent?.id === "adm" || activeStudent?.id === "professor")) ||
-    firebaseUser?.email === "fabiosantanalima01@gmail.com";
+    firebaseUser?.email?.toLowerCase() === "fabiosantanalima01@gmail.com";
 
   // --- OTHER STATES ---
   const [activeBroadcast, setActiveBroadcast] = useState<{ id: string, text: string } | null>(null);
@@ -616,6 +616,7 @@ export default function App() {
           } as any;
           setActiveStudentId(adminStub.id);
           setStudents(prev => prev.some(s => s.id === adminStub.id) ? prev : [...prev, adminStub]);
+          setOnboardingFinished(true);
           // Sync admin stub to Firestore
           syncSetDoc("students", adminStub.id, sanitizeForFirestore(adminStub), { merge: true }).catch(console.error);
           
@@ -632,8 +633,13 @@ export default function App() {
         }
       }
     } catch (err: any) {
-      console.error(err);
+      console.error("Firebase Login error:", err);
       setFirebaseSyncError(err.message || String(err));
+      if (err.code === "auth/unauthorized-domain") {
+         alert("ERRO DE DOMÍNIO: Este domínio não está autorizado no Firebase Console. O Professor precisa adicionar a URL do Vercel na lista de 'Authorized Domains' do Firebase Authentication.");
+      } else {
+         alert("Erro ao conectar com Google: " + (err.message || String(err)));
+      }
       playSoundEffect("failure");
     } finally {
       setIsFirebaseSyncing(false);
@@ -2304,7 +2310,7 @@ export default function App() {
       playSoundEffect("success");
     } else if (loginStep === "password" && matched) {
       // Validate password
-      if (inputPassword === matched.senha) {
+      if (inputPassword === matched.senha || (matched.matricula === "ADM2026" && firebaseUser?.email === "fabiosantanalima01@gmail.com")) {
         setActiveStudentId(matched.id);
         setSelectedPhaseId(matched.faseAtual);
         setOnboardingFinished(true);
@@ -2545,7 +2551,7 @@ export default function App() {
       alert("SINCRONIZAÇÃO COMPLETA: Todos os alunos da lista local foram enviados com sucesso para a Nuvem Firestore. Agora outros usuários logados verão a mesma lista.");
     } catch (err: any) {
       console.error(err);
-      alert("ERRO NA SINCRONIZAÇÃO: Não foi possível enviar os dados. Verifique sua conexão ou permissões.");
+      alert(`ERRO NA SINCRONIZAÇÃO (${err.code || "unknown"}): ${err.message || "Verifique sua conexão ou permissões."}`);
     } finally {
       setIsFirebaseSyncing(false);
     }
@@ -5264,7 +5270,9 @@ export default function App() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5 text-emerald-400">
                           <Database className="w-3.5 h-3.5" />
-                          <span className="font-black text-[9px] uppercase tracking-wider">Nuvem Ativa</span>
+                          <span className="font-black text-[9px] uppercase tracking-wider">
+                            {isProfessorOrAdmin ? "Nuvem: Professor" : "Nuvem: Acadêmico"}
+                          </span>
                         </div>
                         <button
                           type="button"

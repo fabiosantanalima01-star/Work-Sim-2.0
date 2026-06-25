@@ -119,7 +119,7 @@ service cloud.firestore {
     }
 
     function isProfessor() {
-      return isSignedIn() && (request.auth.token.email == "fabiosantanalima01@gmail.com");
+      return isSignedIn() && (request.auth.token.email.lower() == "fabiosantanalima01@gmail.com");
     }
 
     // Collection: logs

@@ -266,13 +266,15 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
 .theme-light span,
 .theme-light label,
 .theme-light td {
-  color: #1E3A8A !important; /* Texto secundário: Azul escuro para excelente contraste */
+  color: #0F172A !important; /* Texto secundário: Escurecido para máxima força de leitura */
+  font-weight: 500 !important; /* Letras mais fortes conforme solicitado */
 }
 
 .theme-light .text-text-secondary,
 .theme-light .text-gray-500,
 .theme-light .text-gray-600 {
-  color: #1E40AF !important;
+  color: #0F172A !important; /* Darkened for maximum visibility */
+  font-weight: 500 !important;
 }
 
 .theme-light .text-accent-primary,
@@ -421,20 +423,22 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
 
 /* 7. Contraste e Sombreamento dos Botões no Modo Diurno */
 .theme-light button {
-  border-width: 1.5px !important;
+  border-width: 2px !important; /* Linhas mais fortes */
   border-style: solid !important;
-  border-color: #BFDBFE !important; /* Borda em azul claro contrastante */
-  background-color: #F9FAFB !important; /* Cinza bem clarinho por dentro! */
-  color: #1E3A8A !important; /* Letras em azul escuro para excelente leitura */
-  box-shadow: 0 4px 6px -1px rgba(30, 58, 138, 0.08), 0 2px 4px -1px rgba(30, 58, 138, 0.04) !important; /* Lindo sombreamento sutil */
+  border-color: #1D4ED8 !important; /* Azul escuro sólido para bordas mais vivas */
+  background-color: #FFFFFF !important; /* Branco puro para brilho */
+  color: #0F172A !important; /* Letras mais fortes */
+  font-weight: 700 !important;
+  box-shadow: 0 6px 10px -2px rgba(30, 58, 138, 0.15), 0 4px 6px -1px rgba(30, 58, 138, 0.1) !important; /* Sombreamento mais vivido */
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* Hover effect with stronger shadow and slight lift for high-fidelity feeling */
 .theme-light button:hover {
-  border-color: #3B82F6 !important; /* Borda azul ativa no hover */
-  background-color: #F3F4F6 !important; /* Cinza um pouquinho mais definido */
-  box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.12), 0 4px 6px -2px rgba(30, 58, 138, 0.08) !important; /* Sombreamento mais pronunciado */
+  border-color: #1E3A8A !important; /* Borda azul marinho no hover */
+  background-color: #EFF6FF !important; /* Azul extremamente claro no hover */
+  box-shadow: 0 12px 20px -5px rgba(30, 58, 138, 0.2), 0 8px 10px -4px rgba(30, 58, 138, 0.15) !important; /* Sombreamento mais pronunciado */
+  transform: translateY(-1px); /* Leve levante para ser mais vivido */
 }
 
 /* Active pressed state */
@@ -460,11 +464,12 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
 /* Abas Ativas (Selecionadas): Mais destaque, com fundo azul/cinza muito claro e borda azul marcante */
 .theme-light header nav button[class*="text-white"],
 .theme-light header nav button[class*="bg-white/5"] {
-  background-color: #EFF6FF !important; /* Azul/cinza extremamente claro para destacar o ativo */
-  border-color: #2563EB !important; /* Borda em azul forte de alto contraste */
-  color: #1E3A8A !important; /* Letras em azul marinho forte */
-  font-weight: 800 !important;
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.15) !important;
+  background-color: #FFFFFF !important; /* Branco puro para brilhar */
+  border-color: #1D4ED8 !important; /* Borda em azul profundo de alto contraste */
+  border-width: 2.5px !important; /* Linha mais viva */
+  color: #0F172A !important; /* Letras em preto azulado forte */
+  font-weight: 900 !important;
+  box-shadow: 0 8px 16px rgba(29, 78, 216, 0.2) !important;
 }
 
 /* Se o botão for especificamente verde (como os botões de conclusão ou sucesso) */

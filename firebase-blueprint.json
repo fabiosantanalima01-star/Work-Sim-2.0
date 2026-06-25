@@ -1,0 +1,121 @@
+{
+  "entities": {
+    "Student": {
+      "title": "Student",
+      "description": "A student profile with progress, achievements, conduct, and chat logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nomeCompleto": { "type": "string" },
+        "matricula": { "type": "string" },
+        "sala": { "type": "string" },
+        "ano": { "type": "integer" },
+        "cargo": { "type": "string" },
+        "xp": { "type": "integer" },
+        "precisao": { "type": "number" },
+        "faseAtual": { "type": "integer" },
+        "status": { "type": "string" },
+        "senha": { "type": "string" },
+        "isVeterano": { "type": "boolean" },
+        "dispositivoVinculado": { "type": "string" },
+        "respostasDesafios": { "type": "object" },
+        "tempoAtivoSegundos": { "type": "integer" },
+        "tempoAcumuladoXP": { "type": "integer" },
+        "casosResolvidosNoCiclo": { "type": "integer" },
+        "focoStatus": { "type": "string" },
+        "saidasTela": { "type": "integer" },
+        "soundTheme": { "type": "string" },
+        "mensagensChat": { "type": "array" },
+        "pausasBanheiroUsadas": { "type": "integer" },
+        "pausaAtiva": { "type": "string" },
+        "pauseStartTime": { "type": "integer" },
+        "contagemDuvidasDia": { "type": "integer" },
+        "recuperadoDeBloqueio": { "type": "boolean" },
+        "streakFasesAutonomas": { "type": "integer" },
+        "duvidaPendenteTexto": { "type": "string" },
+        "duvidasHistorico": { "type": "array" },
+        "timeId": { "type": "string" },
+        "timeLider": { "type": "boolean" },
+        "timeViceLider": { "type": "boolean" },
+        "chamadaNumero": { "type": "string" },
+        "xpAntecedente": { "type": "integer" },
+        "ultimaDataAcesso": { "type": "string" },
+        "email": { "type": "string" },
+        "foto": { "type": "string" },
+        "contratoAssinado": { "type": "boolean" },
+        "tentativaFraude": { "type": "integer" },
+        "contaBloqueada": { "type": "boolean" },
+        "badges": { "type": "array" }
+      },
+      "required": ["id", "nomeCompleto", "matricula", "sala", "xp", "precisao", "faseAtual", "status"]
+    },
+    "Log": {
+      "title": "Operation Log",
+      "description": "Security and performance logs for auditing",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "type": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["studentId", "type", "action", "timestamp"]
+    },
+    "CustomChallenge": {
+      "title": "Custom Challenge",
+      "description": "A custom legal-accounting challenge created by the professor",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fase": { "type": "integer" },
+        "bloco": { "type": "string" },
+        "titulo": { "type": "string" },
+        "tipo": { "type": "string" },
+        "focoTecnico": { "type": "string" },
+        "tempoLimiteMinutos": { "type": "integer" },
+        "xpRecompensa": { "type": "integer" },
+        "queixa": { "type": "string" },
+        "empregado": { "type": "object" },
+        "gabarito": { "type": "object" },
+        "opcoes": { "type": "array" }
+      },
+      "required": ["id", "fase", "titulo", "tipo", "focoTecnico", "tempoLimiteMinutos", "xpRecompensa", "queixa", "empregado", "gabarito"]
+    },
+    "Feedback": {
+      "title": "Feedback",
+      "description": "Feedback report submitted by a veteran student",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "veteranName": { "type": "string" },
+        "veteranUser": { "type": "string" },
+        "category": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "emailTo": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "veteranName", "veteranUser", "category", "text", "timestamp", "status"]
+    }
+  },
+  "firestore": {
+    "/students/{studentId}": {
+      "schema": "Student",
+      "description": "All student e-Social simulator statistics and interactive telemetry"
+    },
+    "/logs/{logId}": {
+      "schema": "Log",
+      "description": "Security audit logs"
+    },
+    "/custom_challenges/{challengeId}": {
+      "schema": "CustomChallenge",
+      "description": "Special challenges drafted by the instructor during active sessions"
+    },
+    "/feedbacks/{feedbackId}": {
+      "schema": "Feedback",
+      "description": "Feedback reports submitted by veteran students"
+    }
+  }
+}

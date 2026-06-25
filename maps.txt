@@ -1,0 +1,68 @@
+81:      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+346:        const remoteStudents = snapshot.docs.map(doc => ({
+360:          return remoteStudents.map(remote => {
+505:        prev.map((s) => {
+689:            prev.map((s) => {
+936:    return sortedLeaderboardStudents.map((stu, index, arr) => {
+1016:      prev.map((s) => {
+1030:      prev.map((s) => {
+1058:      prev.map((s) => {
+1111:      prev.map((s) => {
+1203:  ).map(c => translateChallenge(c, appLanguage));
+1276:        maxGroupEarnedXp = Math.max(0, ...withAntecedente.map((p) => p.xp - (p.xpAntecedente || 0)));
+1280:      const maxFase = Math.max(...partners.map((p) => p.faseAtual || 0));
+1291:      const maxTempo = Math.max(...partners.map((p) => p.tempoAtivoSegundos || 0));
+1354:        const updated = prev.map((s) => {
+1455:        .map(([key, _]) => key);
+1552:    setStudents(prev => prev.map(s => s.id === activeStudent.id ? updatedStudent : s));
+1626:    setStudents(prev => prev.map(s => s.id === activeStudent.id ? { ...s, contratoAssinado: true } : s));
+1789:            setStudents(prev => prev.map(s => {
+1806:        return current.map((s) => {
+1891:        return current.map((s) => {
+1940:        return current.map((s) => {
+2039:      // Activate student mapping
+2041:        prev.map((s) => {
+2190:          prev.map((s) => {
+2266:        const deletePromises = deletableIds.map(id => deleteDoc(doc(db, "students", id)));
+2293:        const baseIds = INITIAL_STUDENTS.map(s => s.id);
+2294:        const baseMatriculas = INITIAL_STUDENTS.map(s => s.matricula);
+2346:        maxGroupEarnedXp = Math.max(0, ...withAntecedente.map((p) => p.xp - (p.xpAntecedente || 0)));
+2349:      return prev.map((s) => {
+2376:    const names = students.filter((s) => studentIds.includes(s.id)).map((s) => s.nomeCompleto).join(", ");
+2391:      return prev.map((s) => {
+2422:        maxGroupEarnedXp = Math.max(0, ...withAntecedente.map((p) => p.xp - (p.xpAntecedente || 0)));
+2425:      return prev.map((s) => {
+2442:        return prev.map((log) => {
+2502:      const updated = prevStudents.map(student => {
+2546:      prev.map((s) => {
+2569:    setStudents(prev => prev.map(s => s.id === studentId ? { ...s, ...updates } : s));
+2585:      prev.map((s) => {
+2602:      prev.map((s) => {
+2639:      prev.map((s) => {
+2697:      prev.map((s) => {
+2733:      prev.map((s) => {
+2771:      prev.map((s) => {
+2781:          const updatedHistory = (s.duvidasHistorico || []).map((d) => {
+3209:          prev.map((s) => {
+3255:          prev.map((s) => {
+3320:          prev.map((s) => {
+3370:          prev.map((s) => {
+3492:            prev.map((s) => {
+3534:            prev.map((s) => {
+3602:            prev.map((s) => {
+3644:            prev.map((s) => {
+4632:                      {rankedLeaderboardStudents.slice(0, 3).map((item, index) => {
+4661:                      {rankedLeaderboardStudents.slice(0, 5).map((item) => {
+4739:                    {rankedLeaderboardStudents.slice(0, 3).map((item) => (
+4945:                {CAREER_PHASES.map((ph) => {
+5388:                                    {activeChallenge.opcoes?.map((opt) => (
+5661:                                            {list.map((item, idx) => (
+5741:                                              const [h, m] = val.split(":").map(Number);
+5758:                                            {pointList.map((p, idx) => {
+6223:                                              {paddedList.map((row, idx) => (
+6616:                        Bem-vindo ao canal oficial de auditoria técnica. Como veterano testador, seu papel é fundamental para mapear bugs matemáticos e de layout. Registre suas observações abaixo.
+6694:                            setStudents(prev => prev.map(s => {
+6841:                        return filteredFeedbacks.map((fb: any, index: number) => {
+7549:        {openChats.map((id) => {
+7582:          {chatNotifications.map((notif) => (
+7748:                    {paddedList.map((row, idx) => (

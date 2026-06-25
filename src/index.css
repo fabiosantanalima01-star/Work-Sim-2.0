@@ -1,0 +1,793 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+:root {
+  --bg-primary: #080C14;
+  --bg-card: rgba(14, 20, 34, 0.82);
+  --accent-primary: #00E4FF;
+  --accent-error: #FF3B70;
+  --accent-warning: #FFB800;
+  --text-primary: #ECEFF4;
+  --text-secondary: #94A3B8;
+  --border-color: rgba(255, 255, 255, 0.08);
+}
+
+.theme-light {
+  --bg-primary: #ffffff;
+  --bg-card: #ffffff;
+  --accent-primary: #0000ff; /* Azul escuro/puro para links e destaque */
+  --accent-error: #990000;
+  --accent-warning: #cc5500;
+  --text-primary: #000000;
+  --text-secondary: #222222;
+  --border-color: #333333;
+}
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  /* Bind WorkSim dynamic colors to CSS variables */
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-card: var(--bg-card);
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-error: var(--accent-error);
+  --color-accent-warning: var(--accent-warning);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+}
+
+/* Global transitions and legibility improvements */
+body {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px; /* Optimized for rich DP and e-Social workstation data integrity */
+  line-height: 1.5;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
+  background-attachment: fixed;
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.15s ease;
+}
+
+/* Smooth transitions for theme switching */
+div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, select, input, textarea {
+  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.15s ease-in-out, 
+              color 0.1s ease;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
+
+/* Custom terminal scanlines and blink effects */
+.terminal-scanlines {
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.25) 50%
+  ), linear-gradient(
+    90deg, 
+    rgba(255, 0, 0, 0.03), 
+    rgba(0, 255, 0, 0.01), 
+    rgba(0, 0, 255, 0.03)
+  );
+  background-size: 100% 4px, 6px 100%;
+}
+
+@keyframes pulse-fast {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.blink-cursor {
+  animation: pulse-fast 1s infinite;
+}
+
+/* Glassmorphism utility with robust theme variables */
+.glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+}
+
+/* Mobile Performance Optimizations */
+@media (max-width: 768px) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .backdrop-blur-md, 
+  .backdrop-blur-lg, 
+  .backdrop-blur-xl {
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+  }
+
+  .glass-panel {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  .animate-pulse, 
+  .animate-bounce {
+    animation-duration: 3s !important;
+  }
+}
+
+.glass-panel-active {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--accent-primary);
+  box-shadow: 0 0 15px rgba(0, 228, 255, 0.1);
+}
+
+/* ==========================================================================
+   DAY MODE (LIGHT MODE) OVERRIDES - SENIOR UI DESIGN POLISH
+   Redefines background, text, borders, and custom cards for maximum legibility and style
+   ========================================================================== */
+.theme-light {
+  background-color: #F0FDF4 !important; /* Fundo Geral: Verde menta suave (Emerald 50) */
+  color: #0F172A !important;
+  --bg-primary: #DCFCE7 !important; /* Emerald 100 para recipientes */
+  --bg-card: #F4F9FF; /* Azul extremamente claro para cartões onde ficam as letras */
+  --accent-primary: #2563EB; /* Blue 600 */
+  --accent-error: #DC2626;
+  --accent-warning: #D97706;
+  --text-primary: #1E3A8A; /* Azul Escuro/Profundo para excelente leitura */
+  --text-secondary: #1E40AF;
+  --border-color: #BFDBFE; /* Blue 200 */
+}
+
+/* 1. Fundo geral e Painéis base */
+.theme-light .bg-slate-950,
+.theme-light .bg-slate-950\/20,
+.theme-light .bg-slate-950\/40,
+.theme-light .bg-slate-950\/50,
+.theme-light .bg-slate-950\/60,
+.theme-light .bg-slate-950\/70,
+.theme-light .bg-slate-950\/85,
+.theme-light .bg-slate-950\/90,
+.theme-light .bg-slate-950\/95,
+.theme-light .bg-slate-950\/98,
+.theme-light .bg-slate-900\/50,
+.theme-light .bg-slate-900\/70,
+.theme-light .bg-slate-900\/80,
+.theme-light .bg-slate-900\/95,
+.theme-light .bg-slate-850\/50,
+.theme-light aside,
+.theme-light .bg-slate-900,
+.theme-light .bg-slate-850,
+.theme-light .bg-slate-955,
+.theme-light .bg-slate-920,
+.theme-light .bg-black\/40 {
+  background-color: #F4F9FF !important; /* Cards e Panels em azul extremamente claro onde ficam as letras */
+}
+
+.theme-light .bg-slate-900\/80,
+.theme-light .bg-slate-900\/90,
+.theme-light .bg-black\/20,
+.theme-light .bg-black\/50 {
+  background-color: #E0F2FE !important; /* Leve distinção para recipientes secundários */
+}
+
+.theme-light aside.bg-slate-950\/40 {
+  background-color: #EFF6FF !important;
+  border-right: 1px solid #BFDBFE !important;
+}
+
+.theme-light .glass-panel {
+  background-color: #F0F7FF !important;
+  border: 1px solid #BFDBFE !important;
+  box-shadow: 0 4px 6px -1px rgba(30, 58, 138, 0.05), 0 2px 4px -2px rgba(30, 58, 138, 0.05) !important;
+}
+
+/* 2. Fundo de Cards/Banners especiais (ex: o cartão de avaliação) */
+.theme-light #phase0-exam-grade-banner,
+.theme-light [id*="grade-banner"],
+.theme-light .bg-gradient-to-r {
+  background: #E0F2FE !important; /* Azul claro refrescante */
+  border: 1px solid #93C5FD !important;
+}
+
+.theme-light .bg-cyan-950\/60,
+.theme-light .bg-indigo-950\/40 {
+  background-color: #EFF6FF !important; /* Azul muito claro */
+  border: 1px solid #BFDBFE !important;
+}
+
+/* 3. Textos Principais e Secundários */
+/* Special selection styling for Phase Buttons and other active elements */
+.theme-light .bg-accent-primary,
+.theme-light .bg-slate-800,
+.theme-light .bg-slate-700,
+.theme-light .bg-indigo-600,
+.theme-light .bg-indigo-700 {
+  background-color: #DBEAFE !important; /* Blue 100 - Azul claro para seleção como solicitado */
+  color: #1E3A8A !important; /* Azul escuro para contraste */
+  border: 1px solid #2563EB !important; /* Blue 600 border */
+}
+
+.theme-light .bg-accent-primary.text-bg-primary,
+.theme-light .bg-accent-primary .text-bg-primary,
+.theme-light .bg-slate-800 .text-white,
+.theme-light .bg-slate-700 .text-white,
+.theme-light .bg-indigo-600 .text-white {
+  color: #1E40AF !important; /* Blue 800 - Texto escuro em fundo claro */
+}
+
+.theme-light .bg-accent-primary.text-white,
+.theme-light .bg-accent-primary .text-white {
+  color: #1E3A8A !important; /* Azul muito escuro para legibilidade */
+}
+
+.theme-light .text-white,
+.theme-light .text-gray-100,
+.theme-light .text-gray-200,
+.theme-light .text-gray-300,
+.theme-light h1,
+.theme-light h2,
+.theme-light h3,
+.theme-light h4,
+.theme-light h5,
+.theme-light h6,
+.theme-light th,
+.theme-light strong,
+.theme-light .font-bold {
+  color: #0F172A !important;
+}
+
+.theme-light .text-white {
+  color: #0F172A !important;
+}
+
+.theme-light .text-gray-400,
+.theme-light .text-gray-450,
+.theme-light .text-text-secondary,
+.theme-light p,
+.theme-light span,
+.theme-light label,
+.theme-light td {
+  color: #1E3A8A !important; /* Texto secundário: Azul escuro para excelente contraste */
+}
+
+.theme-light .text-text-secondary,
+.theme-light .text-gray-500,
+.theme-light .text-gray-600 {
+  color: #1E40AF !important;
+}
+
+.theme-light .text-accent-primary,
+.theme-light .text-cyan-400 {
+  color: #2563EB !important; /* Azul legível (Blue 600) em vez de quase preto */
+}
+
+/* 4. Links com foco em excelente leitura */
+.theme-light a,
+.theme-light button.link-style,
+.theme-light .text-accent-primary.hover\:underline:hover,
+.theme-light .hover\:underline:hover {
+  color: #2563EB !important;
+  text-decoration: underline !important;
+  text-decoration-color: #2563EB !important;
+}
+
+.theme-light a:hover {
+  color: #1D4ED8 !important;
+}
+
+/* 5. Divisórias e Linhas em Cinza Médio (#D1D5DB) */
+.theme-light hr,
+.theme-light .border,
+.theme-light .border-t,
+.theme-light .border-b,
+.theme-light .border-l,
+.theme-light .border-r,
+.theme-light [class*="border-"],
+.theme-light [class*="divide-"],
+.theme-light [class*="line-"],
+.theme-light .border-white\/5,
+.theme-light .border-white\/10,
+.theme-light .border-white\/15,
+.theme-light .border-white\/20,
+.theme-light .border-white\/25,
+.theme-light .border-white\/30,
+.theme-light .border-slate-800,
+.theme-light .border-slate-900 {
+  border-color: #BFDBFE !important;
+  border-width: 1px !important;
+}
+
+.theme-light hr {
+  height: 1px !important;
+  background-color: #BFDBFE !important;
+  border: none !important;
+}
+
+/* 6. Botões de Alternância de Tema */
+/* O botão 'DIA' deve ser azul escuro sólido com texto branco */
+.theme-light [title*="Diurno"].bg-amber-500,
+.theme-light [title*="Dia"].bg-amber-500,
+.theme-light [title*="Claro"].bg-amber-500 {
+  background-color: #1D4ED8 !important; /* azul escuro sólido */
+  color: #FFFFFF !important; /* texto branco */
+  font-weight: 700 !important;
+  border: 1px solid #1D4ED8 !important;
+  box-shadow: 0 1px 3px rgba(29, 78, 216, 0.2) !important;
+}
+
+.theme-light [title*="Diurno"].bg-amber-500 svg,
+.theme-light [title*="Dia"].bg-amber-500 svg,
+.theme-light [title*="Claro"].bg-amber-500 svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+.theme-light [title*="Diurno"].bg-amber-500 span,
+.theme-light [title*="Dia"].bg-amber-500 span,
+.theme-light [title*="Claro"].bg-amber-500 span {
+  color: #FFFFFF !important;
+}
+
+/* O botão 'NOITE' deve ser cinza claro (#E5E7EB) com texto preto e borda #9CA3AF */
+.theme-light [title*="Noturno"]:not(.bg-accent-primary):not(.bg-amber-500),
+.theme-light [title*="Noite"]:not(.bg-accent-primary):not(.bg-amber-500),
+.theme-light [title*="NOT"]:not(.bg-accent-primary):not(.bg-amber-500) {
+  background-color: #E5E7EB !important; /* cinza claro */
+  color: #111827 !important; /* texto preto suave */
+  border: 1px solid #9CA3AF !important; /* borda cinza escuro/médio */
+  font-weight: 600 !important;
+  opacity: 1 !important;
+}
+
+.theme-light [title*="Noturno"]:not(.bg-accent-primary):not(.bg-amber-500) svg,
+.theme-light [title*="Noite"]:not(.bg-accent-primary):not(.bg-amber-500) svg,
+.theme-light [title*="NOT"]:not(.bg-accent-primary):not(.bg-amber-500) svg {
+  color: #111827 !important;
+  stroke: #111827 !important;
+}
+
+.theme-light [title*="Noturno"]:not(.bg-accent-primary):not(.bg-amber-500) span,
+.theme-light [title*="Noite"]:not(.bg-accent-primary):not(.bg-amber-500) span,
+.theme-light [title*="NOT"]:not(.bg-accent-primary):not(.bg-amber-500) span {
+  color: #111827 !important;
+}
+
+/* Alertas e Badges */
+.theme-light .bg-rose-950\/30,
+.theme-light .bg-rose-950\/20,
+.theme-light .bg-rose-900\/10 {
+  background-color: #FEF2F2 !important;
+  border: 1px solid #FCA5A5 !important;
+  color: #991B1B !important;
+}
+
+.theme-light .bg-emerald-950\/40,
+.theme-light .bg-emerald-950\/20,
+.theme-light .bg-emerald-900\/10 {
+  background-color: #ECFDF5 !important;
+  border: 1px solid #6EE7B7 !important;
+  color: #065F46 !important;
+}
+
+.theme-light .bg-amber-950\/20,
+.theme-light .bg-amber-900\/10,
+.theme-light .bg-amber-950\/40 {
+  background-color: #FFFBEB !important;
+  border: 1px solid #FDE68A !important;
+  color: #92400E !important;
+}
+
+.theme-light .bg-indigo-950\/10,
+.theme-light .bg-indigo-950\/20,
+.theme-light .bg-indigo-950\/40,
+.theme-light .bg-indigo-900\/10,
+.theme-light .bg-indigo-600\/5 {
+  background-color: #EFF6FF !important;
+  border: 1px solid #BFDBFE !important;
+  color: #1D4ED8 !important;
+}
+
+/* Cockpit Table Styling */
+.theme-light th {
+  background-color: #DBEAFE !important; /* Blue 100 */
+  color: #1E3A8A !important;
+  border: 1px solid #BFDBFE !important;
+}
+
+.theme-light td {
+  border: 1px solid #BFDBFE !important;
+  background-color: #F4F9FF !important; /* Azul extremamente claro */
+  color: #1E3A8A !important;
+}
+
+/* 7. Contraste e Sombreamento dos Botões no Modo Diurno */
+.theme-light button {
+  border-width: 1.5px !important;
+  border-style: solid !important;
+  border-color: #BFDBFE !important; /* Borda em azul claro contrastante */
+  background-color: #F9FAFB !important; /* Cinza bem clarinho por dentro! */
+  color: #1E3A8A !important; /* Letras em azul escuro para excelente leitura */
+  box-shadow: 0 4px 6px -1px rgba(30, 58, 138, 0.08), 0 2px 4px -1px rgba(30, 58, 138, 0.04) !important; /* Lindo sombreamento sutil */
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Hover effect with stronger shadow and slight lift for high-fidelity feeling */
+.theme-light button:hover {
+  border-color: #3B82F6 !important; /* Borda azul ativa no hover */
+  background-color: #F3F4F6 !important; /* Cinza um pouquinho mais definido */
+  box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.12), 0 4px 6px -2px rgba(30, 58, 138, 0.08) !important; /* Sombreamento mais pronunciado */
+}
+
+/* Active pressed state */
+.theme-light button:active {
+  background-color: #E5E7EB !important;
+  box-shadow: 0 1px 2px rgba(30, 58, 138, 0.08) !important;
+}
+
+/* Estilo específico para as abas de Navegação Superior (Desafios, Carreira, etc.) no modo Diurno */
+.theme-light header nav button {
+  background-color: #F3F4F6 !important; /* Cinza bem clarinho padrão para abas inativas */
+  border-color: #D1D5DB !important; /* Borda cinza suave para separar as abas */
+  color: #4B5563 !important; /* Cor cinza escura para as letras das abas inativas */
+  font-weight: 600 !important;
+}
+
+.theme-light header nav button:hover {
+  background-color: #E5E7EB !important;
+  border-color: #9CA3AF !important;
+  color: #1F2937 !important;
+}
+
+/* Abas Ativas (Selecionadas): Mais destaque, com fundo azul/cinza muito claro e borda azul marcante */
+.theme-light header nav button[class*="text-white"],
+.theme-light header nav button[class*="bg-white/5"] {
+  background-color: #EFF6FF !important; /* Azul/cinza extremamente claro para destacar o ativo */
+  border-color: #2563EB !important; /* Borda em azul forte de alto contraste */
+  color: #1E3A8A !important; /* Letras em azul marinho forte */
+  font-weight: 800 !important;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.15) !important;
+}
+
+/* Se o botão for especificamente verde (como os botões de conclusão ou sucesso) */
+.theme-light button[class*="bg-emerald"],
+.theme-light button[class*="border-emerald"] {
+  background-color: #ECFDF5 !important; /* Fundo verde bem clarinho */
+  border-color: #10B981 !important; /* Emerald 500 border */
+  color: #065F46 !important;
+  box-shadow: 0 4px 6px -1px rgba(4, 120, 87, 0.1), 0 2px 4px -1px rgba(4, 120, 87, 0.06) !important;
+}
+
+.theme-light button[class*="bg-emerald"]:hover,
+.theme-light button[class*="border-emerald"]:hover {
+  background-color: #D1FAE5 !important;
+  border-color: #059669 !important; /* Emerald 600 border */
+}
+
+/* Se o botão for vermelho/erro */
+.theme-light button[class*="bg-rose"],
+.theme-light button[class*="border-rose"],
+.theme-light button[class*="bg-red"],
+.theme-light button[class*="border-red"] {
+  background-color: #FEF2F2 !important; /* Fundo vermelho bem clarinho */
+  border-color: #F87171 !important; /* Red border */
+  color: #991B1B !important;
+  box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.1), 0 2px 4px -1px rgba(220, 38, 38, 0.06) !important;
+}
+
+.theme-light button[class*="bg-rose"]:hover,
+.theme-light button[class*="border-rose"]:hover,
+.theme-light button[class*="bg-red"]:hover,
+.theme-light button[class*="border-red"]:hover {
+  background-color: #FEE2E2 !important;
+  border-color: #EF4444 !important;
+}
+
+/* Painel DSR do Calendário Interativo: Laranja muito fraco com letras de alto contraste no modo diurno */
+.theme-light #dsr-summary-panel {
+  background-color: #FFF7ED !important; /* Laranja extremamente fraco / suave (Orange 50) */
+  border: 1.5px solid #FFEDD5 !important; /* Borda laranja bem suave (Orange 100) */
+  box-shadow: 0 4px 6px -1px rgba(251, 146, 60, 0.05), 0 2px 4px -1px rgba(251, 146, 60, 0.03) !important;
+}
+
+/* Textos e rótulos do painel DSR */
+.theme-light #dsr-summary-panel span {
+  color: #7C2D12 !important; /* Laranja queimado escuro (Orange 900) para máxima legibilidade */
+}
+
+.theme-light #dsr-summary-panel .text-white,
+.theme-light #dsr-summary-panel .font-bold {
+  color: #7C2D12 !important; /* Laranja queimado escuro (Orange 900) para valores */
+}
+
+/* Textos informativos de rodapé e equações */
+.theme-light #dsr-summary-panel {
+  color: #9A3412 !important; /* Orange 800 */
+}
+
+/* Divisórias internas */
+.theme-light #dsr-summary-panel .border-t {
+  border-color: #FED7AA !important; /* Orange 200 para divisórias */
+}
+
+/* Dias úteis (Verde contrastante) */
+.theme-light #dsr-summary-panel span[class*="text-emerald"] {
+  color: #047857 !important; /* Verde escuro legível */
+}
+
+/* Repousos (Vermelho contrastante) */
+.theme-light #dsr-summary-panel span[class*="text-rose"] {
+  color: #B91C1C !important; /* Vermelho escuro legível */
+}
+
+/* Elementos de Input */
+.theme-light input,
+.theme-light select,
+.theme-light textarea {
+  background-color: #F4F9FF !important; /* Azul extremamente claro */
+  border: 1px solid #BFDBFE !important;
+  color: #0F172A !important;
+}
+
+.theme-light input:focus,
+.theme-light select:focus,
+.theme-light textarea:focus {
+  border-color: #64748B !important;
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.1) !important;
+}
+
+.theme-light input::placeholder,
+.theme-light textarea::placeholder {
+  color: #94A3B8 !important;
+}
+
+/* Símbolos dinâmicos */
+.theme-light .bg-emerald-650 {
+  background-color: #059669 !important; /* emerald 600 */
+  color: #FFFFFF !important;
+}
+
+.theme-light .bg-emerald-650:hover {
+  background-color: #047857 !important; /* emerald 700 */
+}
+
+.theme-light .text-amber-450,
+.theme-light .text-accent-warning {
+  color: #D97706 !important;
+}
+
+.theme-light .text-emerald-450 {
+  color: #059669 !important;
+}
+
+.theme-light .border-sky-500\/20,
+.theme-light .border-sky-500\/50,
+.theme-light .bg-sky-500\/10 {
+  border-color: #BFDBFE !important;
+  background-color: #EFF6FF !important;
+  color: #1D4ED8 !important;
+}
+
+.theme-light .border-indigo-500\/20,
+.theme-light .border-indigo-500\/40,
+.theme-light .bg-indigo-500\/5 {
+  border-color: #BFDBFE !important;
+  background-color: #EFF6FF !important;
+  color: #1D4ED8 !important;
+}
+
+/* Focus Block Overlay (Manter escuro para propósitos de simulação de queda de foco) */
+.theme-light #focus-block-overlay,
+.theme-light #focus-warning-overlay {
+  background-color: rgba(0, 0, 0, 1.0) !important;
+  color-scheme: dark !important;
+}
+
+.theme-light #focus-block-overlay *,
+.theme-light #focus-warning-overlay * {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.theme-light #focus-block-overlay .bg-slate-900,
+.theme-light #focus-warning-overlay .bg-slate-900 {
+  background-color: #0f172a !important;
+}
+
+.theme-light #focus-block-overlay .bg-slate-950,
+.theme-light #focus-warning-overlay .bg-slate-950,
+.theme-light #focus-block-overlay .bg-slate-950\/90,
+.theme-light #focus-block-overlay .bg-slate-950\/95,
+.theme-light #focus-warning-overlay .bg-slate-950\/95 {
+  background-color: #020617 !important;
+}
+
+.theme-light #focus-block-overlay .text-rose-500 {
+  color: #f43f5e !important;
+}
+.theme-light #focus-block-overlay .text-rose-300,
+.theme-light #focus-block-overlay .text-rose-200 {
+  color: #fca5a5 !important;
+}
+.theme-light #focus-warning-overlay .text-amber-400 {
+  color: #f59e0b !important;
+}
+.theme-light #focus-block-overlay .text-white,
+.theme-light #focus-warning-overlay .text-white {
+  color: #ffffff !important;
+}
+.theme-light #focus-block-overlay .text-gray-100,
+.theme-light #focus-warning-overlay .text-gray-100 {
+  color: #f3f4f6 !important;
+}
+.theme-light #focus-block-overlay .text-gray-300,
+.theme-light #focus-warning-overlay .text-gray-300 {
+  color: #d1d5db !important;
+}
+.theme-light #focus-block-overlay .text-gray-400,
+.theme-light #focus-warning-overlay .text-gray-400 {
+  color: #9ca3af !important;
+}
+.theme-light #focus-block-overlay input,
+.theme-light #focus-block-overlay select {
+  background-color: #020617 !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+.theme-light .bg-rose-950\/50,
+.theme-light .bg-rose-950\/45 {
+  background-color: rgba(136, 19, 55, 0.5) !important;
+}
+
+.theme-light .terminal-scanlines {
+  background: none !important;
+}
+
+/* MCQ Feedback pulse animation */
+#mcq-result-feedback {
+  animation: pulse 2s infinite;
+}
+
+/* Custom Fire Animations for Top 3 Students */
+@keyframes flame-subtle {
+  0%, 100% {
+    text-shadow: 0 0 4px rgba(249, 115, 22, 0.4), 0 -1px 2px rgba(251, 146, 60, 0.6);
+  }
+  50% {
+    text-shadow: 0 0 8px rgba(239, 68, 68, 0.6), 0 -2px 4px rgba(249, 115, 22, 0.8);
+  }
+}
+
+@keyframes flame-medium {
+  0%, 100% {
+    text-shadow: 0 0 8px rgb(239, 68, 68), 0 -2px 4px rgb(249, 115, 22), 0 -4px 8px rgb(253, 224, 71);
+    transform: translateY(0);
+  }
+  50% {
+    text-shadow: 0 0 16px rgb(239, 68, 68), 0 -4px 8px rgb(249, 115, 22), 0 -8px 12px rgb(253, 224, 71);
+    transform: translateY(-0.5px);
+  }
+}
+
+@keyframes flame-heavy {
+  0%, 100% {
+    text-shadow: 0 0 8px rgb(220, 38, 38), 0 -4px 10px rgb(249, 115, 22), 0 -8px 18px rgb(234, 179, 8), 0 -12px 24px rgb(254, 240, 138);
+    transform: scale(1);
+  }
+  50% {
+    text-shadow: 0 0 20px rgb(220, 38, 38), 0 -8px 16px rgb(249, 115, 22), 0 -14px 24px rgb(234, 179, 8), 0 -20px 32px rgb(254, 240, 138);
+    transform: scale(1.03) rotate(0.4deg);
+  }
+}
+
+.fire-level-3 {
+  animation: flame-subtle 1.5s infinite ease-in-out;
+  color: #fdba74 !important; /* Orange 300 */
+  font-weight: 700 !important;
+}
+
+.fire-level-2 {
+  animation: flame-medium 1.1s infinite ease-in-out;
+  color: #fb923c !important; /* Orange 400 */
+  font-weight: 850 !important;
+}
+
+.fire-level-1 {
+  animation: flame-heavy 0.75s infinite ease-in-out;
+  color: #fca5a5 !important; /* Red 300 */
+  font-weight: 950 !important;
+  text-shadow: 0 0 8px rgb(239, 68, 68);
+  display: inline-block;
+}
+
+/* Soft glow and slow pulse background for currently logged-in student list item */
+@keyframes soft-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(34, 211, 238, 0.1), inset 0 0 4px rgba(34, 211, 238, 0.03);
+    border-color: rgba(34, 211, 238, 0.2);
+    background-color: rgba(6, 182, 212, 0.06);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(34, 211, 238, 0.2), inset 0 0 8px rgba(34, 211, 238, 0.08);
+    border-color: rgba(34, 211, 238, 0.45);
+    background-color: rgba(6, 182, 212, 0.12);
+  }
+}
+
+.self-student-glow {
+  animation: soft-pulse-glow 3s infinite ease-in-out;
+  transition: all 0.3s ease;
+}
+
+/* html5-qrcode UI Overrides */
+#qr-reader {
+  border: none !important;
+}
+
+#qr-reader__scan_region {
+  background: black !important;
+}
+
+#qr-reader__dashboard {
+  background: #0f172a !important;
+  color: white !important;
+  font-family: var(--font-mono) !important;
+  padding: 1rem !important;
+}
+
+#qr-reader__dashboard button {
+  background: #4f46e5 !important;
+  color: white !important;
+  border-radius: 0.75rem !important;
+  padding: 0.5rem 1rem !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  border: none !important;
+  transition: all 0.2s !important;
+}
+
+#qr-reader__dashboard button:hover {
+  background: #4338ca !important;
+  box-shadow: 0 0 15px rgba(79, 70, 229, 0.4) !important;
+}
+
+#qr-reader__status_span {
+  font-size: 10px !important;
+  color: #94a3b8 !important;
+}
+
+/* Student Copy and Selection Protection */
+.no-copy-select,
+.no-copy-select * {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+/* Custom Clip Paths for Medal Ribbons */
+.clip-path-ribbon {
+  clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 50% 85%, 0% 100%);
+}
+
+
+

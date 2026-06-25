@@ -34,7 +34,8 @@ import {
   CheckCircle,
   LayoutDashboard,
   BookOpen,
-  MessageSquare
+  MessageSquare,
+  Cloud
 } from "lucide-react";
 import {
   collection,
@@ -84,6 +85,7 @@ interface ProfessorCockpitProps {
   onAssignSquad?: (machineId: string, studentIds: string[]) => void;
   onRemoveSquad?: (machineId: string) => void;
   onDeleteAllStudents?: () => void;
+  onSyncAllStudents?: () => void;
   onDeleteStudents?: (studentIds: string[]) => void;
   chatNotifications?: {
     id: string;
@@ -114,6 +116,7 @@ export default function ProfessorCockpit({
   onAssignSquad,
   onRemoveSquad,
   onDeleteAllStudents,
+  onSyncAllStudents,
   onDeleteStudents,
   chatNotifications = [],
   appLanguage = "pt"
@@ -1781,6 +1784,15 @@ export default function ProfessorCockpit({
                   >
                     <Trash2 className="w-3 h-3" />
                     Limpar Banco (Geral)
+                  </button>
+
+                  <button
+                    onClick={onSyncAllStudents}
+                    type="button"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-slate-950 rounded-lg text-[9px] font-sans font-black uppercase transition-all border border-emerald-500/20 hover:border-emerald-500 cursor-pointer"
+                  >
+                    <Cloud className="w-3 h-3" />
+                    Sincronizar com Nuvem
                   </button>
                 </div>
 

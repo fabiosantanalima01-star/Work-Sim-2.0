@@ -594,6 +594,8 @@ export default function App() {
           // Force a sync of this student to Firestore if it's missing
           if (!students.find(s => s.id === matched.id)) {
             setStudents(prev => prev.some(s => s.id === matched.id) ? prev : [...prev, matched]);
+            // Ensure the matched student from INITIAL_STUDENTS is pushed to Firestore immediately
+            syncSetDoc("students", matched.id, sanitizeForFirestore(matched), { merge: true }).catch(console.error);
           }
         } else if (userEmail === "fabiosantanalima01@gmail.com") {
           // Special case for admin if not in list
@@ -609,6 +611,8 @@ export default function App() {
           } as any;
           setActiveStudentId(adminStub.id);
           setStudents(prev => prev.some(s => s.id === adminStub.id) ? prev : [...prev, adminStub]);
+          // Sync admin stub to Firestore
+          syncSetDoc("students", adminStub.id, sanitizeForFirestore(adminStub), { merge: true }).catch(console.error);
         }
       }
     } catch (err: any) {
@@ -2545,6 +2549,31 @@ export default function App() {
         console.error("Erro ao limpar Firestore", e);
         alert("Erro ao tentar limpar o banco de dados. Verifique o console.");
       }
+    }
+  };
+
+  const handleSyncAllStudents = async () => {
+    if (!isProfessorOrAdmin || !firebaseUser) {
+      alert("Ação não permitida: Você precisa ser Professor e estar logado via Google para sincronizar o banco de dados.");
+      return;
+    }
+    
+    setIsFirebaseSyncing(true);
+    setFirebaseSyncError(null);
+    try {
+      const syncPromises = students.map(s => 
+        syncSetDoc("students", s.id, sanitizeForFirestore(s), { merge: true })
+      );
+      await Promise.all(syncPromises);
+      alert("SINCRONIZAÇÃO COMPLETA: Todos os alunos da lista local foram enviados com sucesso para a Nuvem Firestore. Agora outros usuários logados verão a mesma lista.");
+      playSoundEffect("success");
+    } catch (err: any) {
+      console.error("Sync all error:", err);
+      setFirebaseSyncError(err.message || String(err));
+      alert("Erro na sincronização: " + (err.message || String(err)));
+      playSoundEffect("failure");
+    } finally {
+      setIsFirebaseSyncing(false);
     }
   };
 
@@ -7344,6 +7373,7 @@ export default function App() {
                 appLanguage={appLanguage}
                 onAddStudents={handleAddStudentsFromOCR}
                 onDeleteAllStudents={handleDeleteAllStudents}
+                onSyncAllStudents={handleSyncAllStudents}
                 onDeleteStudents={handleDeleteStudents}
                 onUnlockSquad={handleUnlockSquadMachine}
                 onPromoteStudent={handlePromoteStudent}

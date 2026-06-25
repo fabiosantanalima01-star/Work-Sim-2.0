@@ -822,18 +822,17 @@ Para resolver:
       }
 
       if (matched) {
-        // Direct automated logging in!
-        // QR login is ONLY automated if the account is already active AND has a password set
+        // QR login now always requires password confirmation for security
+        setInputMatricula(targetMatricula);
+        if (scannedNome) setInputNome(scannedNome);
+        
         if (matched.status === "Ativo" && matched.senha) {
-          setActiveStudentId(matched.id);
-          setSelectedPhaseId(matched.faseAtual);
-          setOnboardingFinished(true);
+          setLoginStep("password");
+          setIsActivatingNewAccount(false);
+          setLoginErrorMessage("Crachá identificado. Confirme sua senha de acesso.");
           playSoundEffect("success");
         } else {
           // If not active or no password, fall back to setting inputs and showing activation flow
-          setInputMatricula(targetMatricula);
-          if (scannedNome) setInputNome(scannedNome);
-          
           if (!matched.senha) {
             setLoginStep("activation");
             setIsActivatingNewAccount(true);
@@ -2452,7 +2451,9 @@ Para resolver:
       playSoundEffect("success");
     } else if (loginStep === "password" && matched) {
       // Validate password
-      if (inputPassword === matched.senha || (matched.matricula === "ADM2026" && firebaseUser?.email === "fabiosantanalima01@gmail.com")) {
+      const isProfessorBypass = matched.matricula === "ADM2026" && firebaseUser?.email === "fabiosantanalima01@gmail.com";
+      
+      if ((matched.senha && inputPassword === matched.senha) || isProfessorBypass) {
         setActiveStudentId(matched.id);
         setSelectedPhaseId(matched.faseAtual);
         setOnboardingFinished(true);
@@ -2552,7 +2553,7 @@ Para resolver:
         return;
       }
 
-      if (matched.senha && matched.senha !== targetSenha) {
+      if (!matched.senha || matched.senha !== targetSenha) {
         setLoginErrorMessage("Senha incorreta para esta conta de Veterano!");
         playSoundEffect("failure");
         return;
@@ -2774,7 +2775,6 @@ Para resolver:
       if (userEmail && userEmail.includes("@")) {
         // Save email to student
         const updatedStudent = { ...activeStudent, email: userEmail };
-        setActiveStudent(updatedStudent);
         setStudents(prev => prev.map(s => s.id === activeStudent.id ? updatedStudent : s));
         handleSendCheatSheetEmail(userEmail);
       } else if (userEmail) {

@@ -53,6 +53,7 @@ import {
   BookOpen,
   Search,
   Download,
+  Upload,
   Loader2,
   UserCheck,
   Bell,
@@ -347,60 +348,70 @@ export default function App() {
         });
 
         setStudents((localStudents) => {
-          // If the list is empty in Firestore, but we have data locally (like INITIAL_STUDENTS),
-          // we don't want to wipe out the local list. We only replace it if Firestore has content.
           if (remoteStudents.length === 0) {
             return localStudents;
           }
           
-          return remoteStudents.map(remote => {
-            const local = localStudents.find(s => s.id === remote.id);
-            if (!local) return remote;
+          // Merge logic: Start with local students to preserve them
+          const merged = [...localStudents];
 
-            if (remote.id !== activeStudentId) {
-              if (isProfessorOrAdmin) {
-                const remoteMsgCount = remote.mensagensChat?.length || 0;
-                const localMsgCount = local.mensagensChat?.length || 0;
-                if (remoteMsgCount > localMsgCount) {
-                  const lastMsg = remote.mensagensChat?.[remoteMsgCount - 1];
-                  if (lastMsg && lastMsg.remetente !== "Professor" && lastMsg.remetente !== "Sistema") {
-                    playSoundEffect(remote.soundTheme || "bip");
-                    if (!openChats.includes(remote.id)) {
-                      setChatNotifications((prev) => {
-                        if (prev.some(n => n.id === lastMsg.id)) return prev;
-                        return [...prev, {
-                          id: lastMsg.id || `${Date.now()}-${Math.random()}`,
-                          studentId: remote.id,
-                          studentName: remote.nomeCompleto,
-                          text: lastMsg.texto,
-                          timestamp: lastMsg.timestamp,
-                        }];
-                      });
+          remoteStudents.forEach((remote) => {
+            const localIdx = merged.findIndex((s) => s.id === remote.id);
+            if (localIdx === -1) {
+              // New student from remote
+              merged.push(remote);
+            } else {
+              // Update existing student
+              const local = merged[localIdx];
+
+              // Handle notifications/chat for others
+              if (remote.id !== activeStudentId) {
+                if (isProfessorOrAdmin) {
+                  const remoteMsgCount = remote.mensagensChat?.length || 0;
+                  const localMsgCount = local.mensagensChat?.length || 0;
+                  if (remoteMsgCount > localMsgCount) {
+                    const lastMsg = remote.mensagensChat?.[remoteMsgCount - 1];
+                    if (lastMsg && lastMsg.remetente !== "Professor" && lastMsg.remetente !== "Sistema") {
+                      playSoundEffect(remote.soundTheme || "bip");
+                      if (!openChats.includes(remote.id)) {
+                        setChatNotifications((prev) => {
+                          if (prev.some(n => n.id === lastMsg.id)) return prev;
+                          return [...prev, {
+                            id: lastMsg.id || `${Date.now()}-${Math.random()}`,
+                            studentId: remote.id,
+                            studentName: remote.nomeCompleto,
+                            text: lastMsg.texto,
+                            timestamp: lastMsg.timestamp,
+                          }];
+                        });
+                      }
                     }
                   }
                 }
-              }
-              return remote;
-            } else {
-              // Active student merging
-              const remoteMsgCount = remote.mensagensChat?.length || 0;
-              const localMsgCount = local.mensagensChat?.length || 0;
-              if (remoteMsgCount > localMsgCount) {
-                const lastRemoteMsg = (remote.mensagensChat || [])[remoteMsgCount - 1];
-                if (lastRemoteMsg && lastRemoteMsg.remetente === "Professor") {
-                  playSoundEffect("bip");
-                  if (!isStudentChatOpen) setHasUnreadStudentChat(true);
+                merged[localIdx] = remote;
+              } else {
+                // Handle chat for active student
+                const remoteMsgCount = remote.mensagensChat?.length || 0;
+                const localMsgCount = local.mensagensChat?.length || 0;
+                if (remoteMsgCount > localMsgCount) {
+                  const lastRemoteMsg = (remote.mensagensChat || [])[remoteMsgCount - 1];
+                  if (lastRemoteMsg && lastRemoteMsg.remetente === "Professor") {
+                    playSoundEffect("bip");
+                    if (!isStudentChatOpen) setHasUnreadStudentChat(true);
+                  }
                 }
+                
+                merged[localIdx] = {
+                  ...local,
+                  ...remote,
+                  xp: Math.max(local.xp, remote.xp),
+                  respostasDesafios: remote.respostasDesafios || local.respostasDesafios,
+                };
               }
-              return {
-                ...local,
-                ...remote,
-                // Preserve some local transient state if needed, but remote usually has the progress
-                xp: Math.max(local.xp, remote.xp),
-                respostasDesafios: remote.respostasDesafios || local.respostasDesafios,
-              };
             }
           });
+
+          return merged;
         });
         setIsFirebaseSyncing(false);
       },
@@ -2241,21 +2252,24 @@ export default function App() {
 
       if (matched) {
         // Activate existing student
+        const updatedStudent = {
+          ...matched,
+          nomeCompleto: targetNome,
+          senha: inputPassword,
+          status: "Ativo" as const,
+          dispositivoVinculado: "Chrome-Agent-PC04",
+          email: firebaseUser?.email || matched.email,
+        };
+
         setStudents((prev) =>
-          prev.map((s) => {
-            if (s.matricula === targetMatricula) {
-              return {
-                ...s,
-                nomeCompleto: targetNome,
-                senha: inputPassword,
-                status: "Ativo",
-                dispositivoVinculado: "Chrome-Agent-PC04",
-                email: firebaseUser?.email || s.email,
-              };
-            }
-            return s;
-          }),
+          prev.map((s) => (s.matricula === targetMatricula ? updatedStudent : s))
         );
+        
+        // Sync to Firestore if logged in
+        if (firebaseUser) {
+          syncSetDoc("students", updatedStudent.id, sanitizeForFirestore(updatedStudent), { merge: true }).catch(console.error);
+        }
+
         setActiveStudentId(matched.id);
       } else {
         // Create new Veteran student
@@ -2276,6 +2290,12 @@ export default function App() {
           respostasDesafios: {},
         };
         setStudents((prev) => [...prev, newVeteran]);
+        
+        // Sync to Firestore if logged in
+        if (firebaseUser) {
+          syncSetDoc("students", newVeteran.id, sanitizeForFirestore(newVeteran)).catch(console.error);
+        }
+
         setActiveStudentId(newVetId);
       }
       
@@ -2471,7 +2491,7 @@ export default function App() {
       // Sync to Firestore if logged in
       if (firebaseUser) {
         filteredNew.forEach((student) => {
-          syncSetDoc("students", student.id, student).catch(console.error);
+          syncSetDoc("students", student.id, sanitizeForFirestore(student)).catch(console.error);
         });
       }
 
@@ -2507,6 +2527,27 @@ export default function App() {
         console.error("Erro ao deletar estudantes do servidor", e);
         alert("Atenção: Houve um erro ao remover os dados do servidor, mas a lista local foi atualizada.");
       }
+    }
+  };
+
+  const handleManualSyncToFirestore = async () => {
+    if (!firebaseUser) {
+      handleFirebaseGoogleLogin();
+      return;
+    }
+
+    setIsFirebaseSyncing(true);
+    try {
+      const syncPromises = students.map(s => 
+        syncSetDoc("students", s.id, sanitizeForFirestore(s), { merge: true })
+      );
+      await Promise.all(syncPromises);
+      alert("SINCRONIZAÇÃO COMPLETA: Todos os alunos da lista local foram enviados com sucesso para a Nuvem Firestore. Agora outros usuários logados verão a mesma lista.");
+    } catch (err: any) {
+      console.error(err);
+      alert("ERRO NA SINCRONIZAÇÃO: Não foi possível enviar os dados. Verifique sua conexão ou permissões.");
+    } finally {
+      setIsFirebaseSyncing(false);
     }
   };
 
@@ -5206,12 +5247,17 @@ export default function App() {
                       <div className="text-[9px] text-gray-300 truncate font-sans text-left">
                         {firebaseUser.email}
                       </div>
-                      {isFirebaseSyncing && (
-                        <div className="flex items-center gap-1 text-[8px] text-emerald-500 italic mt-0.5">
-                          <RefreshCw className="w-2.5 h-2.5 animate-spin" />
-                          Sincronizando...
-                        </div>
-                      )}
+                      
+                      <button
+                        type="button"
+                        onClick={handleManualSyncToFirestore}
+                        disabled={isFirebaseSyncing}
+                        className="mt-1.5 flex items-center justify-center gap-1.5 py-1 px-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded border border-emerald-500/20 transition-all text-[9px] font-bold uppercase cursor-pointer disabled:opacity-50"
+                      >
+                        <Upload className="w-3 h-3" />
+                        {isFirebaseSyncing ? "Sincronizando..." : "Enviar Dados p/ Nuvem"}
+                      </button>
+
                       {firebaseSyncError && (
                         <div className="text-[8px] text-rose-400 mt-1 leading-relaxed text-left">
                           Aviso: {firebaseSyncError.substring(0, 40)}...

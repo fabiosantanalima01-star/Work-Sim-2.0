@@ -349,9 +349,11 @@ export default function App() {
         });
 
         setStudents((localStudents) => {
-          // If the list is empty in Firestore, but we have INITIAL_STUDENTS,
-          // we might want to keep the base ones if we haven't logged in yet, 
-          // but if we are logged in as Professor, we usually want to see exactly what's in Firestore.
+          // If the list is empty in Firestore, but we have data locally (like INITIAL_STUDENTS),
+          // we don't want to wipe out the local list. We only replace it if Firestore has content.
+          if (remoteStudents.length === 0) {
+            return localStudents;
+          }
           
           return remoteStudents.map(remote => {
             const local = localStudents.find(s => s.id === remote.id);
@@ -581,11 +583,32 @@ export default function App() {
       // Attempt to auto-login if email matches a student record
       const userEmail = result.user.email;
       if (userEmail) {
-        const matched = students.find(s => s.email === userEmail);
+        // If students list is empty or doesn't have the email, we might need to wait for sync 
+        // or check INITIAL_STUDENTS directly as a fallback
+        const matched = students.find(s => s.email === userEmail) || INITIAL_STUDENTS.find(s => s.email === userEmail);
         if (matched) {
           setActiveStudentId(matched.id);
           setSelectedPhaseId(matched.faseAtual);
           setOnboardingFinished(true);
+          
+          // Force a sync of this student to Firestore if it's missing
+          if (!students.find(s => s.id === matched.id)) {
+            setStudents(prev => prev.some(s => s.id === matched.id) ? prev : [...prev, matched]);
+          }
+        } else if (userEmail === "fabiosantanalima01@gmail.com") {
+          // Special case for admin if not in list
+          const adminStub = INITIAL_STUDENTS.find(s => s.id === "adm") || {
+             id: "adm",
+             nomeCompleto: "Professor Fábio",
+             matricula: "ADM2026",
+             email: userEmail,
+             xp: 0,
+             precisao: 100,
+             faseAtual: 8,
+             status: "Ativo"
+          } as any;
+          setActiveStudentId(adminStub.id);
+          setStudents(prev => prev.some(s => s.id === adminStub.id) ? prev : [...prev, adminStub]);
         }
       }
     } catch (err: any) {

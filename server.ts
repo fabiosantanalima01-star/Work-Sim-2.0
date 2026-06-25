@@ -135,6 +135,54 @@ Ignore cabeçalhos ou rodapés, foque na lista de nomes e números.`;
   }
 });
 
+// Translate individual CLT challenge to English on-the-fly
+app.post("/api/translate-challenge", async (req, res) => {
+  const { challenge } = req.body;
+  if (!challenge) {
+    return res.status(400).json({ error: "Challenge object is required" });
+  }
+
+  const prompt = `You are an expert legal and technical translator specializing in Brazilian Labor Law (CLT) and Department of Personnel (DP) / HR concepts.
+Translate the following CLT challenge to professional, accurate, and natural English:
+
+Challenge ID: ${challenge.id}
+Title (titulo): ${challenge.titulo}
+Complaint/Question (queixa): ${challenge.queixa}
+Technical Focus (focoTecnico): ${challenge.focoTecnico}
+Justification/Explanation (justificativa): ${challenge.gabarito?.valoresCorretos?.justificativa || ""}
+Options (opcoes):
+${JSON.stringify(challenge.opcoes || [], null, 2)}
+
+Return the translations in JSON format with exactly these fields:
+{
+  "titulo": "Translated Title",
+  "queixa": "Translated Complaint/Question",
+  "focoTecnico": "Translated Technical Focus (e.g., 'Article 3 of the CLT')",
+  "justificativa": "Translated Justification/Explanation",
+  "opcoes": [
+    { "id": "a", "texto": "Translated option a, keeping the layout of 'a) text'" },
+    ...
+  ]
+}`;
+
+  try {
+    const model = getModel("gemini-1.5-flash");
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    const responseText = result.response.text();
+    const parsed = JSON.parse(responseText);
+    res.json(parsed);
+  } catch (error: any) {
+    console.error("Error translating challenge:", error);
+    res.status(500).json({ error: "Translation failed" });
+  }
+});
+
 // Start Server with Vite Middleware
 async function start() {
   if (process.env.NODE_ENV !== "production") {

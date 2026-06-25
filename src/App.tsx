@@ -979,6 +979,67 @@ Para resolver:
     localStorage.setItem("worksim_linguajar", mode);
   };
 
+  const [translatedChallengesCache, setTranslatedChallengesCache] = useState<Record<string, any>>({});
+  const [isTranslatingChallenge, setIsTranslatingChallenge] = useState<boolean>(false);
+
+  // Dynamic AI translation hook for Phase -1 (f-1) challenges when English (gira) mode is active
+  useEffect(() => {
+    if (appLanguage !== "en" || !selectedChallengeId) return;
+    const rawChallenge = allChallenges.find((c) => c.id === selectedChallengeId);
+    if (!rawChallenge || rawChallenge.fase !== -1) return;
+
+    // Check if already in cache
+    if (translatedChallengesCache[selectedChallengeId]) return;
+
+    // Fetch translation on-the-fly
+    setIsTranslatingChallenge(true);
+    fetch("/api/translate-challenge", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ challenge: rawChallenge })
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Translation request failed");
+        return res.json();
+      })
+      .then((data) => {
+        // Construct the translated challenge structure
+        const translated = {
+          ...rawChallenge,
+          titulo: data.titulo,
+          queixa: data.queixa,
+          focoTecnico: data.focoTecnico,
+          opcoes: rawChallenge.opcoes ? rawChallenge.opcoes.map((opt) => {
+            const foundOpt = data.opcoes?.find((o: any) => o.id === opt.id);
+            return {
+              ...opt,
+              texto: foundOpt ? foundOpt.texto : opt.texto
+            };
+          }) : [],
+          gabarito: rawChallenge.gabarito ? {
+            ...rawChallenge.gabarito,
+            valoresCorretos: rawChallenge.gabarito.valoresCorretos ? {
+              ...rawChallenge.gabarito.valoresCorretos,
+              justificativa: data.justificativa || rawChallenge.gabarito.valoresCorretos.justificativa
+            } : undefined
+          } : undefined
+        };
+
+        setTranslatedChallengesCache((prev) => ({
+          ...prev,
+          [selectedChallengeId]: translated
+        }));
+      })
+      .catch((err) => {
+        console.error("Failed to translate challenge:", err);
+      })
+      .finally(() => {
+        setIsTranslatingChallenge(false);
+      });
+  }, [selectedChallengeId, appLanguage, allChallenges, translatedChallengesCache]);
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
   // Focus Mode (minimizes/collapses left navigation panel)
@@ -1375,11 +1436,18 @@ Para resolver:
 
   const phaseChallenges = allChallenges.filter(
     (c) => c.fase === selectedPhaseId,
-  ).map(c => translateChallenge(c, appLanguage));
+  ).map(c => {
+    if (appLanguage === "en" && c.fase === -1 && translatedChallengesCache[c.id]) {
+      return translatedChallengesCache[c.id];
+    }
+    return translateChallenge(c, appLanguage);
+  });
 
   const rawActiveChallenge =
     allChallenges.find((c) => c.id === selectedChallengeId) || null;
-  const activeChallenge = translateChallenge(rawActiveChallenge, appLanguage);
+  const activeChallenge = (appLanguage === "en" && rawActiveChallenge?.fase === -1 && translatedChallengesCache[selectedChallengeId])
+    ? translatedChallengesCache[selectedChallengeId]
+    : translateChallenge(rawActiveChallenge, appLanguage);
 
   // Active progression time constraints (3 min inactivity block + 10 min 10XP tracking)
   const [inactivitySeconds, setInactivitySeconds] = useState<number>(0);
@@ -5944,7 +6012,14 @@ Para resolver:
                           id="active-challenge-viewer"
                           className="glass-panel rounded-2xl border border-white/5 p-4 sm:p-6 space-y-4 sm:space-y-6 relative overflow-hidden"
                         >
-                          {/* Top row indicators */}
+                          {isTranslatingChallenge ? (
+                            <div className="space-y-6 py-12 flex flex-col items-center justify-center text-center animate-pulse">
+                              <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4" />
+                              <p className="text-sm font-mono text-gray-300">Translating challenge into English using AI...</p>
+                            </div>
+                          ) : (
+                            <>
+                              {/* Top row indicators */}
                           <div className="flex flex-col md:flex-row justify-between border-b border-white/5 pb-4 gap-2">
                             <div>
                               {activeChallenge.bloco && (
@@ -7381,8 +7456,10 @@ Para resolver:
                               </button>
                             </div>
                           </div>
-                        </div>
+                        </>
                       )}
+                    </div>
+                  )}
                     </>
                   )}
                 </div>

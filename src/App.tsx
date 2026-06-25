@@ -333,8 +333,6 @@ export default function App() {
 
   // Sync / Listen to Students from Firestore
   useEffect(() => {
-    if (!firebaseUser) return;
-
     setIsFirebaseSyncing(true);
     const unsubscribe = onSnapshot(
       collection(db, "students"),
@@ -418,8 +416,6 @@ export default function App() {
 
   // Sync / Listen to Custom Challenges from Firestore
   useEffect(() => {
-    if (!firebaseUser) return;
-
     const unsubscribe = onSnapshot(
       collection(db, "custom_challenges"),
       (snapshot) => {
@@ -453,8 +449,6 @@ export default function App() {
 
   // Sync / Listen to Feedbacks from Firestore
   useEffect(() => {
-    if (!firebaseUser) return;
-
     const unsubscribe = onSnapshot(
       collection(db, "feedbacks"),
       (snapshot) => {
@@ -1438,8 +1432,6 @@ export default function App() {
 
   // Broadcast listener
   useEffect(() => {
-    if (!firebaseUser) return;
-    
     const q = query(
       collection(db, "broadcasts"), 
       where("timestamp", ">", Date.now() - 30000)

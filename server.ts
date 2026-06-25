@@ -4,6 +4,7 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import multer from "multer";
 import dotenv from "dotenv";
+import nodemailer from "nodemailer";
 
 dotenv.config();
 
@@ -11,13 +12,56 @@ const app = express();
 const PORT = 3000;
 const upload = multer({ storage: multer.memoryStorage() });
 
+// --- Email Config ---
+const transporter = nodemailer.createTransport({
+  service: process.env.EMAIL_SERVICE || "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
 // --- Gemini Sync ---
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
-// Help TypeScript by casting if necessary, though it should work with standard SDK
 const getModel = (name: string) => (ai as any).getGenerativeModel({ model: name });
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" })); // Increase limit for PDF base64
+
+// Email Sending Endpoint
+app.post("/api/send-cheat-sheet", async (req, res) => {
+  const { email, studentName, pdfBase64, matricula } = req.body;
+
+  if (!email || !pdfBase64) {
+    return res.status(400).json({ error: "Email e PDF são obrigatórios." });
+  }
+
+  try {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      throw new Error("Configuração de email ausente no servidor.");
+    }
+
+    const mailOptions = {
+      from: `"Simulador de RH" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `Gabarito de Revisão - ${studentName}`,
+      text: `Olá ${studentName},\n\nSegue em anexo o seu Gabarito de Revisão com os desafios errados até agora.\n\nBons estudos!\nEquipe Simulador de RH`,
+      attachments: [
+        {
+          filename: `Revisao_Erros_${matricula}.pdf`,
+          content: pdfBase64.split("base64,")[1] || pdfBase64,
+          encoding: "base64",
+        },
+      ],
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.json({ success: true, message: "Email enviado com sucesso!" });
+  } catch (error: any) {
+    console.error("Erro ao enviar email:", error);
+    res.status(500).json({ error: error.message || "Erro ao enviar email." });
+  }
+});
 
 // Bulk Enrollment Endpoint
 app.post("/api/process-attendance-sheet", upload.single("attendanceSheet"), async (req, res) => {

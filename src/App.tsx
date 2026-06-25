@@ -41,7 +41,7 @@ import { BADGE_DEFINITIONS } from "./badges";
 import QRScanner from "./components/QRScanner";
 
 // Firebase Integration Client
-import { db, auth, syncSetDoc, OperationType, handleFirestoreError } from "./lib/firebase";
+import { db, auth, syncSetDoc, syncAddDoc, syncDeleteDoc, syncUpdateDoc, arrayUnion, OperationType, handleFirestoreError } from "./lib/firebase";
 import { onAuthStateChanged, signInWithPopup, signOut, GoogleAuthProvider } from "firebase/auth";
 import { collection, doc, setDoc, onSnapshot, deleteDoc, query, where, addDoc, getDocs } from "firebase/firestore";
 
@@ -103,6 +103,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import { formatBadgeName } from "./utils/nameFormatter";
+
 // Utility to strip undefined values which are not allowed by Firestore setDoc
 const sanitizeForFirestore = (data: any) => {
   if (!data) return data;
@@ -150,7 +152,7 @@ export default function App() {
 
   const activeStudent = students.find((s) => s.id === activeStudentId) || null;
   const isProfessorOrAdmin =
-    (activeStudent?.matricula === "ADM2026" && (activeStudent?.id === "adm" || activeStudent?.id === "professor")) ||
+    (activeStudent?.matricula === "ADM2026") ||
     firebaseUser?.email?.toLowerCase() === "fabiosantanalima01@gmail.com";
 
   // --- OTHER STATES ---
@@ -406,6 +408,10 @@ export default function App() {
                   ...remote,
                   xp: Math.max(local.xp, remote.xp),
                   respostasDesafios: remote.respostasDesafios || local.respostasDesafios,
+                  // Improved chat merge: preserve local messages if they are more recent/longer
+                  mensagensChat: (remote.mensagensChat?.length || 0) >= (local.mensagensChat?.length || 0)
+                    ? remote.mensagensChat
+                    : local.mensagensChat,
                 };
               }
             }
@@ -621,7 +627,6 @@ export default function App() {
           syncSetDoc("students", adminStub.id, sanitizeForFirestore(adminStub), { merge: true }).catch(console.error);
           
           // AUTO-SYNC ALL STUDENTS if it's the professor and they just logged in
-          // This ensures that students from the PDF/List are available for other accounts
           const syncAll = async () => {
              const syncPromises = students.map(s => 
                syncSetDoc("students", s.id, sanitizeForFirestore(s), { merge: true })
@@ -630,13 +635,48 @@ export default function App() {
              console.log("Professor auto-sync complete");
           };
           syncAll().catch(console.error);
+        } else {
+          // AUTO-REGISTER NEW STUDENT (Fixes black screen for unknown Google logins)
+          const newId = result.user.uid;
+          const newMatricula = `RH-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+          const newStudent: Student = {
+            id: newId,
+            nomeCompleto: result.user.displayName || "Novo Aluno(a)",
+            matricula: newMatricula,
+            email: userEmail,
+            xp: 0,
+            precisao: 0,
+            faseAtual: 0,
+            status: "Ativo",
+            sala: "Online",
+            cargo: "Estudante",
+            mensagensChat: [],
+            respostasDesafios: {},
+            badges: [],
+            ultimaDataAcesso: new Date().toISOString().split("T")[0],
+          } as any;
+          
+          setActiveStudentId(newId);
+          setStudents(prev => [...prev, newStudent]);
+          setOnboardingFinished(true);
+          syncSetDoc("students", newId, sanitizeForFirestore(newStudent), { merge: true }).catch(console.error);
+          
+          // Show Matrix Intro for new students
+          setShowMatrixIntro(true);
         }
       }
     } catch (err: any) {
       console.error("Firebase Login error:", err);
       setFirebaseSyncError(err.message || String(err));
       if (err.code === "auth/unauthorized-domain") {
-         alert("ERRO DE DOMÍNIO: Este domínio não está autorizado no Firebase Console. O Professor precisa adicionar a URL do Vercel na lista de 'Authorized Domains' do Firebase Authentication.");
+         const currentHost = window.location.hostname;
+         alert(`ERRO DE DOMÍNIO: O domínio "${currentHost}" não está autorizado no Firebase Authentication.
+         
+Para resolver:
+1. Vá ao Firebase Console (https://console.firebase.google.com)
+2. Acesse Authentication -> Settings -> Authorized Domains
+3. Adicione "${currentHost}" à lista.
+4. Tente novamente.`);
       } else {
          alert("Erro ao conectar com Google: " + (err.message || String(err)));
       }
@@ -812,7 +852,7 @@ export default function App() {
       );
       for (const fb of deleted) {
         try {
-          await deleteDoc(doc(db, "feedbacks", fb.id));
+          await syncDeleteDoc("feedbacks", fb.id);
         } catch (err) {
           console.error("Erro ao deletar feedback no Firestore:", err);
         }
@@ -1074,17 +1114,19 @@ export default function App() {
   };
   const handleSendChatMessage = (studentId: string, text: string) => {
     if (!text.trim()) return;
+    
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString("pt-BR");
+    const newMsg = {
+      id: `${Date.now()}-${Math.random()}`,
+      remetente: "Professor",
+      texto: text.trim(),
+      timestamp: timeStr,
+    };
+
     setStudents((prev) =>
       prev.map((s) => {
         if (s.id === studentId) {
-          const now = new Date();
-          const timeStr = now.toLocaleTimeString("pt-BR");
-          const newMsg = {
-            id: `${Date.now()}-${Math.random()}`,
-            remetente: "Professor",
-            texto: text.trim(),
-            timestamp: timeStr,
-          };
           return {
             ...s,
             mensagensChat: [...(s.mensagensChat || []), newMsg],
@@ -1094,6 +1136,13 @@ export default function App() {
       })
     );
     playSoundEffect("success");
+
+    // Sync via arrayUnion to Firestore
+    if (firebaseUser) {
+      syncUpdateDoc("students", studentId, {
+        mensagensChat: arrayUnion(newMsg)
+      }).catch(console.error);
+    }
   };
 
   const handleSendStudentChatMessage = (studentId: string, text: string) => {
@@ -1101,16 +1150,16 @@ export default function App() {
     const now = new Date();
     const timeStr = now.toLocaleTimeString("pt-BR");
     const mId = `${Date.now()}-${Math.random()}`;
+    const newMsg = {
+      id: mId,
+      remetente: activeStudent?.nomeCompleto || "Estudante",
+      texto: text.trim(),
+      timestamp: timeStr,
+    };
 
     setStudents((prev) =>
       prev.map((s) => {
         if (s.id === studentId) {
-          const newMsg = {
-            id: mId,
-            remetente: s.nomeCompleto,
-            texto: text.trim(),
-            timestamp: timeStr,
-          };
           return {
             ...s,
             mensagensChat: [...(s.mensagensChat || []), newMsg],
@@ -1120,6 +1169,13 @@ export default function App() {
       })
     );
     playSoundEffect("success");
+
+    // Sync via arrayUnion
+    if (firebaseUser) {
+      syncUpdateDoc("students", studentId, {
+        mensagensChat: arrayUnion(newMsg)
+      }).catch(console.error);
+    }
 
     // Add alert notification for professor
     const targetStudent = students.find(x => x.id === studentId);
@@ -1147,6 +1203,18 @@ export default function App() {
       },
       ...prevAlerts,
     ]);
+
+    // Telemetry log
+    if (activeStudent) {
+      syncAddDoc("logs", {
+        studentId: activeStudent.id,
+        studentName: activeStudent.nomeCompleto,
+        type: "chat-message",
+        from: `IntraChat: ${activeStudent.nomeCompleto}`,
+        text: `Enviou mensagem direta no Chat Online: "${text.trim().substring(0, 40)}${text.trim().length > 40 ? "..." : ""}"`,
+        timestamp: Date.now()
+      }).catch(console.error);
+    }
   };
 
   const handleTabChange = (tab: typeof currentTab) => {
@@ -1477,7 +1545,7 @@ export default function App() {
     if (onboardingFinished && activeStudent && firebaseUser && !loginBroadcastRef.current) {
       loginBroadcastRef.current = true;
       const text = `${activeStudent.nomeCompleto} (${activeStudent.cargo || "Estudante"}) acabou de entrar no Simulador! 🚀`;
-      addDoc(collection(db, "broadcasts"), {
+      syncAddDoc("broadcasts", {
         text,
         studentId: activeStudent.id,
         timestamp: Date.now()
@@ -1599,7 +1667,7 @@ export default function App() {
     
     // Log to Telemetry
     try {
-      await addDoc(collection(db, "logs"), {
+      await syncAddDoc("logs", {
         studentId: activeStudent.id,
         studentName: activeStudent.nomeCompleto,
         type: "focus-loss",
@@ -2526,7 +2594,7 @@ export default function App() {
     // 3. Delete from Firestore
     if (firebaseUser) {
       try {
-        const deletePromises = deletableIds.map(id => deleteDoc(doc(db, "students", id)));
+        const deletePromises = deletableIds.map(id => syncDeleteDoc("students", id));
         await Promise.all(deletePromises);
         console.log(`Successfully deleted ${deletableIds.length} students from Firestore.`);
       } catch (e) {
@@ -2580,7 +2648,7 @@ export default function App() {
         studentSnapshot.forEach((docSnap) => {
           const data = docSnap.data();
           if (!baseIds.includes(docSnap.id) && !baseMatriculas.includes(data.matricula)) {
-            deletePromises.push(deleteDoc(docSnap.ref));
+            deletePromises.push(syncDeleteDoc("students", docSnap.id));
           }
         });
 
@@ -2589,7 +2657,7 @@ export default function App() {
         for (const collName of otherCollections) {
           const snapshot = await getDocs(collection(db, collName));
           snapshot.forEach(docSnap => {
-            deletePromises.push(deleteDoc(docSnap.ref));
+            deletePromises.push(syncDeleteDoc(collName, docSnap.id));
           });
         }
 
@@ -2609,8 +2677,8 @@ export default function App() {
       return;
     }
 
-    if (!isProfessorOrAdmin) {
-      alert("Ação restrita: Apenas o Professor pode realizar a sincronização global do banco de dados.");
+    if (!isProfessorOrAdmin || firebaseUser.email?.toLowerCase() !== "fabiosantanalima01@gmail.com") {
+      alert(`Ação restrita: Apenas o Professor (fabiosantanalima01@gmail.com) pode realizar a sincronização global do banco de dados. Sua conta atual é: ${firebaseUser.email}`);
       return;
     }
     
@@ -2806,7 +2874,7 @@ export default function App() {
     // Push the custom challenge template to Firebase Firestore if logged in
     if (auth.currentUser) {
       try {
-        await setDoc(doc(db, "custom_challenges", finalId), sanitizeForFirestore(finalChallenge));
+        await syncSetDoc("custom_challenges", finalId, sanitizeForFirestore(finalChallenge));
       } catch (err) {
         console.error("Failed to push custom challenge to Firestore:", err);
       }
@@ -2837,7 +2905,7 @@ export default function App() {
       if (auth.currentUser) {
         updated.forEach(async (s) => {
           try {
-            await setDoc(doc(db, "students", s.id), sanitizeForFirestore(s));
+            await syncSetDoc("students", s.id, sanitizeForFirestore(s));
           } catch (err) {
             console.error("Failed to sync targeted student to Firestore during custom scenario push:", err);
           }
@@ -4611,7 +4679,7 @@ export default function App() {
                             id="sidebar-student-name"
                             className="text-xs font-bold text-gray-200 uppercase tracking-tight block truncate"
                           >
-                            {activeStudent.nomeCompleto}
+                            {formatBadgeName(activeStudent.nomeCompleto)}
                           </h3>
                           <span className="text-[10px] text-text-secondary font-mono block">
                             MAT: {activeStudent.matricula}
@@ -4698,7 +4766,9 @@ export default function App() {
                           )}
                         </div>
                         <div className="flex-1 min-w-0 space-y-1">
-                          <div className="text-[10px] font-bold text-white truncate leading-tight uppercase">{activeStudent.nomeCompleto}</div>
+                          <div className="text-[10px] font-bold text-white truncate leading-tight uppercase">
+                            {formatBadgeName(activeStudent.nomeCompleto)}
+                          </div>
                           <div className="text-[8px] text-accent-primary font-mono font-bold">{activeStudent.matricula}</div>
                           <div className="text-[7px] text-gray-400 uppercase leading-tight font-medium italic">{activeStudent.cargo || "Estagiário"}</div>
                         </div>

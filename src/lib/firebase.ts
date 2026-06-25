@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { initializeFirestore, doc, getDocFromServer, setDoc } from "firebase/firestore";
+import { initializeFirestore, doc, getDocFromServer, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import firebaseConfigInternal from "../../firebase-applet-config.json";
 
 // Prioritize environment variables for production (Vercel/Cloud Run)
@@ -27,10 +27,18 @@ export const auth = getAuth();
  */
 const STORAGE_KEY = "simulabor_sync_queue";
 
+export enum SyncActionType {
+  SET = "SET",
+  DELETE = "DELETE",
+  ADD = "ADD",
+  UPDATE = "UPDATE"
+}
+
 export interface SyncAction {
   id: string;
+  type: SyncActionType;
   collection: string;
-  docId: string;
+  docId?: string; // Optional for ADD
   data: any;
   merge?: boolean;
   timestamp: number;
@@ -54,9 +62,10 @@ export const SyncManager = {
     }
   },
 
-  enqueue(collection: string, docId: string, data: any, merge: boolean = true) {
+  enqueue(type: SyncActionType, collection: string, data: any, docId?: string, merge: boolean = true) {
     const action: SyncAction = {
       id: Math.random().toString(36).substring(2, 11),
+      type,
       collection,
       docId,
       data,
@@ -64,10 +73,16 @@ export const SyncManager = {
       timestamp: Date.now()
     };
     const queue = this.getQueue();
-    // Prevent duplicate pending updates for same doc - keep only latest
-    const filtered = queue.filter(a => !(a.collection === collection && a.docId === docId));
+    // Prevent duplicate pending updates for same doc - keep only latest for SET
+    let filtered = queue;
+    if (type === SyncActionType.SET && docId) {
+       filtered = queue.filter(a => !(a.type === SyncActionType.SET && a.collection === collection && a.docId === docId));
+    }
     filtered.push(action);
     this.saveQueue(filtered);
+    
+    // Notify user or log
+    console.log(`[Queue] Action ${type} for ${collection} enqueued due to connectivity/domain issues.`);
   },
 
   async drainQueue() {
@@ -75,39 +90,107 @@ export const SyncManager = {
     const queue = this.getQueue();
     if (queue.length === 0) return;
 
+    console.log(`[Queue] Attempting to drain ${queue.length} pending actions...`);
     const remaining: SyncAction[] = [];
     for (const action of queue) {
       try {
-        await setDoc(doc(db, action.collection, action.docId), action.data, { merge: action.merge });
-      } catch (err) {
+        if (action.type === SyncActionType.SET && action.docId) {
+          await setDoc(doc(db, action.collection, action.docId), action.data, { merge: action.merge });
+        } else if (action.type === SyncActionType.UPDATE && action.docId) {
+          await updateDoc(doc(db, action.collection, action.docId), action.data);
+        } else if (action.type === SyncActionType.DELETE && action.docId) {
+          const { deleteDoc } = await import("firebase/firestore");
+          await deleteDoc(doc(db, action.collection, action.docId));
+        } else if (action.type === SyncActionType.ADD) {
+          const { addDoc, collection } = await import("firebase/firestore");
+          await addDoc(collection(db, action.collection), action.data);
+        }
+      } catch (err: any) {
+        console.error(`[Queue] Failed to process ${action.type} for ${action.collection}:`, err.message);
         remaining.push(action);
       }
     }
     this.saveQueue(remaining);
+    if (remaining.length === 0) {
+      console.log("[Queue] All pending actions synchronized successfully.");
+    }
   }
 };
 
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => SyncManager.drainQueue());
+  // Periodic check every 30 seconds
+  setInterval(() => SyncManager.drainQueue(), 30000);
 }
+
+const isQueueableError = (err: any) => {
+  const msg = err.message?.toLowerCase() || "";
+  const code = err.code || "";
+  return !navigator.onLine || 
+         code === 'unavailable' || 
+         code === 'deadline-exceeded' ||
+         code === 'auth/unauthorized-domain' || // Explicitly requested "domain" issues
+         msg.includes('network') ||
+         msg.includes('offline') ||
+         msg.includes('domain') ||
+         msg.includes('authorized domain');
+};
 
 export async function syncSetDoc(collectionName: string, docId: string, data: any, options: { merge?: boolean } = {}) {
   try {
     await setDoc(doc(db, collectionName, docId), data, options);
     SyncManager.drainQueue().catch(() => {});
   } catch (err: any) {
-    const isNetworkError = !navigator.onLine || 
-                           err.code === 'unavailable' || 
-                           err.message?.toLowerCase().includes('network') ||
-                           err.message?.toLowerCase().includes('offline');
-
-    if (isNetworkError) {
-      SyncManager.enqueue(collectionName, docId, data, options.merge);
+    if (isQueueableError(err)) {
+      SyncManager.enqueue(SyncActionType.SET, collectionName, data, docId, options.merge);
     } else {
       throw err;
     }
   }
 }
+
+export async function syncAddDoc(collectionName: string, data: any) {
+  try {
+    const { addDoc, collection } = await import("firebase/firestore");
+    await addDoc(collection(db, collectionName), data);
+    SyncManager.drainQueue().catch(() => {});
+  } catch (err: any) {
+    if (isQueueableError(err)) {
+      SyncManager.enqueue(SyncActionType.ADD, collectionName, data);
+    } else {
+      throw err;
+    }
+  }
+}
+
+export async function syncDeleteDoc(collectionName: string, docId: string) {
+  try {
+    const { deleteDoc } = await import("firebase/firestore");
+    await deleteDoc(doc(db, collectionName, docId));
+    SyncManager.drainQueue().catch(() => {});
+  } catch (err: any) {
+    if (isQueueableError(err)) {
+      SyncManager.enqueue(SyncActionType.DELETE, collectionName, {}, docId);
+    } else {
+      throw err;
+    }
+  }
+}
+
+export async function syncUpdateDoc(collectionName: string, docId: string, data: any) {
+  try {
+    await updateDoc(doc(db, collectionName, docId), data);
+    SyncManager.drainQueue().catch(() => {});
+  } catch (err: any) {
+    if (isQueueableError(err)) {
+      SyncManager.enqueue(SyncActionType.UPDATE, collectionName, data, docId);
+    } else {
+      throw err;
+    }
+  }
+}
+
+export { arrayUnion };
 
 export enum OperationType {
   CREATE = "create",

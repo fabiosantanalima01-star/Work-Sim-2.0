@@ -6,6 +6,8 @@
 import { jsPDF } from "jspdf";
 import { Student } from "../types";
 
+import { formatBadgeName } from "./nameFormatter";
+
 /**
  * Fetches the QR code image from the high-speed API and converts it to a base64 DataURL
  * so it can be cleanly drawn into the jsPDF file.
@@ -138,8 +140,8 @@ async function drawBadgeOnDoc(
   doc.setFontSize(9);
   doc.setTextColor(17, 24, 39); // #111827 - Soft pure black
 
-  // Truncate name if it's too long
-  let displayName = student.nomeCompleto;
+  // Format name for badge
+  const displayName = formatBadgeName(student.nomeCompleto);
   
   // If there's a photo, we shift the name to the right
   const hasPhoto = !!photoBase64;

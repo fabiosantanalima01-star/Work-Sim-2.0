@@ -532,59 +532,102 @@ export default function App() {
     }
   }, [activeStudentId]);
 
-  // Push local changes of students to Firestore (excluding high-frequency timer ticks)
+  const syncQueueRef = useRef<{
+    critical: Record<string, Student>;
+    telemetry: Record<string, Student>;
+  }>({ critical: {}, telemetry: {} });
+
+  const syncTimersRef = useRef<{
+    critical: any;
+    telemetry: any;
+  }>({ critical: null, telemetry: null });
+
+  const processSyncQueue = useCallback((type: 'critical' | 'telemetry') => {
+    if (!firebaseUser) return;
+    const queue = syncQueueRef.current[type];
+    const studentIds = Object.keys(queue);
+    if (studentIds.length === 0) return;
+
+    studentIds.forEach(id => {
+      const s = queue[id];
+      lastFirestoreSyncedRef.current[s.id] = s;
+      syncSetDoc("students", s.id, sanitizeForFirestore(s), { merge: true })
+        .then(() => setFirebaseSyncError(null))
+        .catch((err: any) => {
+          if (err.code !== 'permission-denied') {
+            console.error(`Error syncing ${type} data for student:`, id, err);
+            setFirebaseSyncError(err.message || String(err));
+          }
+        });
+    });
+
+    // Clear queue after processing
+    syncQueueRef.current[type] = {};
+    syncTimersRef.current[type] = null;
+  }, [firebaseUser]);
+
+  const queueSync = useCallback((student: Student, type: 'critical' | 'telemetry') => {
+    syncQueueRef.current[type][student.id] = student;
+    const delay = type === 'critical' ? 500 : 5000;
+    
+    if (syncTimersRef.current[type]) {
+      clearTimeout(syncTimersRef.current[type]);
+    }
+    syncTimersRef.current[type] = setTimeout(() => {
+      processSyncQueue(type);
+    }, delay);
+  }, [processSyncQueue]);
+
+  // Push local changes of students to Firestore with priority debouncing
   useEffect(() => {
     if (!firebaseUser) return;
 
-    // We iterate over all students to check if any have local changes relative to the last known remote state
     students.forEach((s) => {
-      // For performance, we only sync the active student OR if we are a professor, we can sync any student we modified locally.
-      // Actually, since lastFirestoreSyncedRef is updated on every remote snapshot, any local change will trigger isDiff.
       const synced = lastFirestoreSyncedRef.current[s.id];
-      
-      const isDiff = !synced || (
+      if (!synced) {
+        // Initial sync if missing in remote cache
+        lastFirestoreSyncedRef.current[s.id] = s;
+        syncSetDoc("students", s.id, sanitizeForFirestore(s), { merge: true }).catch(console.error);
+        return;
+      }
+
+      // Check for CRITICAL changes
+      const isCriticalDiff = (
         synced.xp !== s.xp ||
-        synced.senha !== s.senha ||
         synced.faseAtual !== s.faseAtual ||
+        synced.cargo !== s.cargo ||
+        synced.senha !== s.senha ||
         synced.status !== s.status ||
         synced.precisao !== s.precisao ||
         JSON.stringify(synced.respostasDesafios || {}) !== JSON.stringify(s.respostasDesafios || {}) ||
+        synced.xpAntecedente !== s.xpAntecedente ||
+        synced.unlockedChallenges?.length !== s.unlockedChallenges?.length
+      );
+
+      // Check for TELEMETRY / NON-CRITICAL changes
+      const isTelemetryDiff = (
         JSON.stringify(synced.duvidasHistorico || []) !== JSON.stringify(s.duvidasHistorico || []) ||
         JSON.stringify(synced.mensagensChat || []) !== JSON.stringify(s.mensagensChat || []) ||
-        synced.timeId !== s.timeId ||
-        synced.timeLider !== s.timeLider ||
-        synced.timeViceLider !== s.timeViceLider ||
-        synced.xpAntecedente !== s.xpAntecedente ||
-        synced.chamadaNumero !== s.chamadaNumero ||
-        synced.cargo !== s.cargo ||
         synced.saidasTela !== s.saidasTela ||
         synced.isTyping !== s.isTyping ||
         synced.profIsTyping !== s.profIsTyping ||
+        synced.timeId !== s.timeId ||
+        synced.timeLider !== s.timeLider ||
+        synced.timeViceLider !== s.timeViceLider ||
+        synced.chamadaNumero !== s.chamadaNumero ||
         synced.streakFasesAutonomas !== s.streakFasesAutonomas
       );
 
-      if (isDiff) {
-        // If it's a student other than the active one, only allow syncing if the current user is Professor/Admin
-        // This prevents accidental broadcast of local state from other students initially loaded.
-        // Actually, initial remote load updates lastFirestoreSyncedRef, so isDiff will be false.
-        // Local state changes (like Professor sending message) will trigger isDiff.
-        
-        const isSelf = s.id === activeStudentId;
-        if (isSelf || isProfessorOrAdmin) {
-          lastFirestoreSyncedRef.current[s.id] = s;
-          
-          syncSetDoc("students", s.id, sanitizeForFirestore(s), { merge: true })
-            .then(() => setFirebaseSyncError(null))
-            .catch((err: any) => {
-              if (err.code !== 'permission-denied') {
-                console.error("Error backing up student to Firestore:", s.id, err);
-                setFirebaseSyncError(err.message || String(err));
-              }
-            });
+      const isSelf = s.id === activeStudentId;
+      if (isSelf || isProfessorOrAdmin) {
+        if (isCriticalDiff) {
+          queueSync(s, 'critical');
+        } else if (isTelemetryDiff) {
+          queueSync(s, 'telemetry');
         }
       }
     });
-  }, [students, firebaseUser, activeStudentId, isProfessorOrAdmin]);
+  }, [students, firebaseUser, activeStudentId, isProfessorOrAdmin, queueSync]);
 
   const handleFirebaseGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
@@ -1638,14 +1681,17 @@ Para resolver:
 
   // Rigorous Phase Navigation Lock for Students
   // A phase N is unlocked ONLY if Phase N-1 has been "passed" (100% completed & >= 70% accuracy for normals)
+  // Phase -1 is ALWAYS unlocked for everyone as a review tool.
   const maxAllowedPhase = activeStudent?.faseAtual ?? 0;
   const unlockedPhasesList = useMemo(() => {
+    const defaultUnlocked = [-1, 0];
+    
     // Admin profile always has everything
-    if (activeStudent?.id === "adm" || activeStudent?.matricula === "ADM2026") return [0, 1, 2, 3, 4, 5, 6, 7];
+    if (activeStudent?.id === "adm" || activeStudent?.matricula === "ADM2026") return [-1, 0, 1, 2, 3, 4, 5, 6, 7];
     
-    if (!activeStudent) return [0];
+    if (!activeStudent) return defaultUnlocked;
     
-    const unlocked = [0]; 
+    const unlocked = [-1, 0]; 
     for (let phaseId = 1; phaseId < 8; phaseId++) {
       if (checkIfPassedPhase(activeStudent, phaseId - 1)) {
         unlocked.push(phaseId);
@@ -3393,6 +3439,12 @@ Para resolver:
     wasCorrectSubmit: boolean
   ): { student: Student; sideEffects?: { type: string; payload?: any }[] } => {
     const currentPhaseId = selectedPhaseId;
+
+    // Phase -1 is a review phase, no promotions or streaks logic applies
+    if (currentPhaseId === -1) {
+      return { student: updatedStudent };
+    }
+
     const phaseChallengesList = allChallenges.filter((c) => c.fase === currentPhaseId);
     
     // Check if ALL challenges of this current phase have been answered (either correctly or incorrectly)

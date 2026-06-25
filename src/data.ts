@@ -61,6 +61,7 @@ export const CBOS_DATA: CBO[] = [
 
 // Configuration of the career track stages
 export const CAREER_PHASES: CareerPhase[] = [
+  { id: -1, cargo: "Simulado de Revisão", moduloTecnico: "Revisão Geral", focoPrincipal: "Preparação intensiva para a prova final", totalDesafios: 55, precisaoMinima: 0 },
   { id: 0, cargo: "Pré-Cadastro", moduloTecnico: "Admissão (ADM)", focoPrincipal: "Vínculo, FGTS e Noções de Direito", totalDesafios: 21, precisaoMinima: 100 },
   { id: 1, cargo: "Estagiário de RH (Primeiranista)", moduloTecnico: "Triagem e Conformidade", focoPrincipal: "Triagem, documentos básicos e regras de contratação", totalDesafios: 26, precisaoMinima: 85 },
   { id: 2, cargo: "Estagiário de RH (Segundoanista)", moduloTecnico: "Liberação de FGTS (FGTS)", focoPrincipal: "Auditoria de contas vinculadas e carimbos de saque", totalDesafios: 7, precisaoMinima: 90 },
@@ -73,6 +74,1309 @@ export const CAREER_PHASES: CareerPhase[] = [
 
 // Seed Data for All Game Challenges
 export const CHALLENGES_DATA: Challenge[] = [
+  // --- FASE -1: REVISÃO PRÉ-PROVA (55 Challenges) ---
+  {
+    id: "-1.1",
+    fase: -1,
+    titulo: "Questão 1: Elementos do Vínculo",
+    tipo: "Misto",
+    focoTecnico: "Artigo 3º da CLT",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: {
+      nome: "Simulado",
+      cbo: "N/A",
+      salarioBase: 0,
+      dataAdmissao: "01/01/2026",
+      dataFato: "01/01/2026",
+      jornada: "N/A"
+    },
+    queixa: "Para que se configure uma relação de emprego, segundo o art. 3º da CLT, é necessário, cumulativamente:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Artigo 3º da CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: {
+        justificativa: "O Art. 3º da CLT define empregado como toda pessoa física que prestar serviços de natureza não eventual a empregador, sob a dependência deste e mediante salário. Requisitos: Pessoalidade, não eventualidade (habitualidade), onerosidade, subordinação e ser pessoa física."
+      }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Subordinação, eventualidade, onerosidade e pessoa jurídica." },
+      { id: "b", texto: "b) Pessoalidade, subordinação, onerosidade, não eventualidade e pessoa física." },
+      { id: "c", texto: "c) Pessoalidade, autonomia, gratuidade e habitualidade." },
+      { id: "d", texto: "d) Subordinação, eventualidade, pessoa física e salário fixo." }
+    ]
+  },
+  {
+    id: "-1.2",
+    fase: -1,
+    titulo: "Questão 2: Divisor de Jornada",
+    tipo: "Misto",
+    focoTecnico: "Jornada de Trabalho",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: {
+      nome: "Simulado",
+      cbo: "N/A",
+      salarioBase: 0,
+      dataAdmissao: "01/01/2026",
+      dataFato: "01/01/2026",
+      jornada: "44h/semana"
+    },
+    queixa: "O divisor padrão para cálculo da hora normal de um empregado com jornada de 44 horas semanais é:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 64 da CLT",
+      respostaEsperadaId: "c",
+      valoresCorretos: {
+        justificativa: "Para uma jornada de 44 horas semanais, multiplica-se por 5 semanas mensais (em média, considerando o repouso), resultando no divisor 220. (44 / 6 dias úteis * 30 dias = 220)."
+      }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 200" },
+      { id: "b", texto: "b) 180" },
+      { id: "c", texto: "c) 220" },
+      { id: "d", texto: "d) 240" }
+    ]
+  },
+  {
+    id: "-1.3",
+    fase: -1,
+    titulo: "Questão 3: Adicional de Periculosidade",
+    tipo: "Misto",
+    focoTecnico: "Adicionais Salariais",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: {
+      nome: "Simulado",
+      cbo: "N/A",
+      salarioBase: 0,
+      dataAdmissao: "01/01/2026",
+      dataFato: "01/01/2026",
+      jornada: "N/A"
+    },
+    queixa: "O adicional de periculosidade é devido ao empregado que trabalha em condições de risco e corresponde a:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 193, §1º da CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: {
+        justificativa: "O adicional de periculosidade é de 30% sobre o salário-base do empregado, sem os acréscimos resultantes de gratificações, prêmios ou participações nos lucros da empresa."
+      }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 20% sobre o salário mínimo." },
+      { id: "b", texto: "b) 30% sobre o salário-base." },
+      { id: "c", texto: "c) 40% sobre a hora normal." },
+      { id: "d", texto: "d) 50% sobre o salário contratual." }
+    ]
+  },
+  {
+    id: "-1.4",
+    fase: -1,
+    titulo: "Questão 4: Falta Injustificada e DSR",
+    tipo: "Misto",
+    focoTecnico: "Faltas e DSR",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: {
+      nome: "Simulado",
+      cbo: "N/A",
+      salarioBase: 0,
+      dataAdmissao: "01/01/2026",
+      dataFato: "01/01/2026",
+      jornada: "N/A"
+    },
+    queixa: "Sobre a falta injustificada, assinale a opção correta:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 6º da Lei 605/49",
+      respostaEsperadaId: "b",
+      valoresCorretos: {
+        justificativa: "O empregado que falta injustificadamente perde a remuneração do dia da falta e também o direito ao Descanso Semanal Remunerado (DSR) daquela semana."
+      }
+    },
+    opcoes: [
+      { id: "a", texto: "a) O empregado perde apenas o salário do dia da falta, mas mantém o DSR." },
+      { id: "b", texto: "b) O empregado perde o salário do dia da falta e também o DSR da semana correspondente." },
+      { id: "c", texto: "c) O empregador não pode descontar o DSR, apenas a falta." },
+      { id: "d", texto: "d) A falta injustificada gera apenas advertência, sem desconto salarial." }
+    ]
+  },
+  {
+    id: "-1.5",
+    fase: -1,
+    titulo: "Questão 5: Prazo do 13º Salário",
+    tipo: "Misto",
+    focoTecnico: "13º Salário",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "O prazo para pagamento da 1ª parcela do 13º salário é:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Lei 4.090/62",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "A primeira parcela do 13º salário deve ser paga entre 1º de fevereiro e 30 de novembro de cada ano." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Até 20 de dezembro." },
+      { id: "b", texto: "b) Até 30 de novembro." },
+      { id: "c", texto: "c) Até 15 de dezembro." },
+      { id: "d", texto: "d) Até 10 de dezembro." }
+    ]
+  },
+  {
+    id: "-1.6",
+    fase: -1,
+    titulo: "Questão 6: FGTS Aprendiz",
+    tipo: "Misto",
+    focoTecnico: "FGTS",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A alíquota do FGTS para o empregado comum é de 8%, enquanto para o jovem aprendiz é de:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 428, §5º CLT",
+      respostaEsperadaId: "a",
+      valoresCorretos: { justificativa: "Para os contratos de aprendizagem, a alíquota do FGTS é reduzida para 2%." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 2%" },
+      { id: "b", texto: "b) 5%" },
+      { id: "c", texto: "c) 8% (mesma alíquota)" },
+      { id: "d", texto: "d) 10%" }
+    ]
+  },
+  {
+    id: "-1.7",
+    fase: -1,
+    titulo: "Questão 7: Adicional Noturno Urbano",
+    tipo: "Misto",
+    focoTecnico: "Adicional Noturno",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "O adicional noturno urbano tem percentual mínimo de 20% e incide sobre o trabalho prestado entre:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 73 CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "Considera-se noturno, para o trabalhador urbano, o trabalho executado entre as 22 horas de um dia e as 5 horas do dia seguinte." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 21h e 6h." },
+      { id: "b", texto: "b) 22h e 5h." },
+      { id: "c", texto: "c) 23h e 4h." },
+      { id: "d", texto: "d) 20h e 6h." }
+    ]
+  },
+  {
+    id: "-1.8",
+    fase: -1,
+    titulo: "Questão 8: Teto INSS 2024",
+    tipo: "Misto",
+    focoTecnico: "Encargos Sociais",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Na tabela do INSS 2024, o teto do salário de contribuição é:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Portaria Interministerial MPS/MF nº 2/2024",
+      respostaEsperadaId: "a",
+      valoresCorretos: { justificativa: "O teto máximo de contribuição para o INSS em 2024 é de R$ 7.786,02." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) R$ 7.786,02" },
+      { id: "b", texto: "b) R$ 8.157,41" },
+      { id: "c", texto: "c) R$ 4.664,68" },
+      { id: "d", texto: "d) R$ 7.507,49" }
+    ]
+  },
+  {
+    id: "-1.9",
+    fase: -1,
+    titulo: "Questão 9: Base de Cálculo do IRRF",
+    tipo: "Misto",
+    focoTecnico: "IRRF",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A base de cálculo do IRRF (Imposto de Renda Retido na Fonte) é:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Legislação IRPF",
+      respostaEsperadaId: "a",
+      valoresCorretos: { justificativa: "A base de cálculo do IRRF é obtida subtraindo do salário bruto o valor do INSS e a dedução por dependentes (além de outras deduções legais como pensão alimentícia)." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Salário bruto menos INSS e menos dedução por dependente." },
+      { id: "b", texto: "b) Salário bruto menos vale transporte." },
+      { id: "c", texto: "c) Salário bruto menos FGTS." },
+      { id: "d", texto: "d) Salário bruto menos adiantamento salarial." }
+    ]
+  },
+  {
+    id: "-1.10",
+    fase: -1,
+    titulo: "Questão 10: Justa Causa e Verbas",
+    tipo: "Misto",
+    focoTecnico: "Rescisão Contratual",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Sobre a dispensa por justa causa, é correto afirmar que o empregado:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 482 CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "Na justa causa, o empregado perde o direito ao aviso prévio, ao saque do FGTS e à multa de 40%, recebendo apenas saldo de salário e férias vencidas (se houver)." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Recebe aviso prévio, saca o FGTS e tem direito à multa de 40%." },
+      { id: "b", texto: "b) Perde o aviso prévio, não saca o FGTS e não recebe a multa de 40%." },
+      { id: "c", texto: "c) Recebe todas as verbas rescisórias normalmente." },
+      { id: "d", texto: "d) Perde apenas o 13º proporcional." }
+    ]
+  },
+  {
+    id: "-1.11",
+    fase: -1,
+    titulo: "Questão 11: Lei do Estágio",
+    tipo: "Misto",
+    focoTecnico: "Estágio",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "O estágio, nos termos da Lei 11.788/2008:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 3º Lei 11.788/2008",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "O estágio não cria vínculo empregatício de qualquer natureza, desde que observados os requisitos legais de acompanhamento, termo de compromisso e seguro." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Gera vínculo empregatício desde que seja remunerado." },
+      { id: "b", texto: "b) Não gera vínculo empregatício, desde que cumpridos os requisitos legais." },
+      { id: "c", texto: "c) Gera vínculo empregatício sempre, independentemente das condições." },
+      { id: "d", texto: "d) É vedado para estudantes do ensino médio." }
+    ]
+  },
+  {
+    id: "-1.12",
+    fase: -1,
+    titulo: "Questão 12: Estagiário e 13º Salário",
+    tipo: "Misto",
+    focoTecnico: "Estágio",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "O estagiário tem direito ao 13º salário?",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Lei 11.788/2008",
+      respostaEsperadaId: "c",
+      valoresCorretos: { justificativa: "O estagiário não possui os mesmos direitos de um empregado CLT, como o 13º salário, pois não há vínculo empregatício. Ele tem direito apenas ao recesso remunerado." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Sim, integralmente." },
+      { id: "b", texto: "b) Sim, proporcional." },
+      { id: "c", texto: "c) Não, pois não é empregado." },
+      { id: "d", texto: "d) Sim, mas apenas se receber bolsa-auxílio." }
+    ]
+  },
+  {
+    id: "-1.13",
+    fase: -1,
+    titulo: "Questão 13: Desconto do Vale-Transporte",
+    tipo: "Misto",
+    focoTecnico: "Benefícios",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "O desconto máximo do vale-transporte sobre o salário-base do empregado é de:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 2º Lei 7.418/85",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "O empregador pode descontar até 6% do salário-base do empregado como participação no custo do vale-transporte." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 5%" },
+      { id: "b", texto: "b) 6%" },
+      { id: "c", texto: "c) 8%" },
+      { id: "d", texto: "d) 10%" }
+    ]
+  },
+  {
+    id: "-1.14",
+    fase: -1,
+    titulo: "Questão 14: Importância da CBO",
+    tipo: "Misto",
+    focoTecnico: "CBO",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A CBO (Classificação Brasileira de Ocupações) é importante para o RH porque, entre outras funções:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "MTE / CBO",
+      respostaEsperadaId: "c",
+      valoresCorretos: { justificativa: "A CBO é essencial para o enquadramento correto do cargo, definição do piso salarial da categoria (se houver) e para evitar alegações de desvio ou acúmulo de função." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Define o valor do salário mínimo nacional." },
+      { id: "b", texto: "b) Determina a alíquota do INSS a ser aplicada." },
+      { id: "c", texto: "c) Ajuda a definir piso salarial da categoria e evita desvio de função." },
+      { id: "d", texto: "d) Estabelece o prazo para pagamento do 13º salário." }
+    ]
+  },
+  {
+    id: "-1.15",
+    fase: -1,
+    titulo: "Questão 15: Requisitos Justa Causa",
+    tipo: "Misto",
+    focoTecnico: "Rescisão Contratual",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "São requisitos para a aplicação da justa causa, EXCETO:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Doutrina e Jurisprudência",
+      respostaEsperadaId: "d",
+      valoresCorretos: { justificativa: "A prescrição bienal é o prazo que o empregado tem para entrar com uma ação na justiça após o fim do contrato, não um requisito para aplicar a justa causa." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Imediaticidade (punição logo após o fato)." },
+      { id: "b", texto: "b) Proporcionalidade (falta grave o suficiente)." },
+      { id: "c", texto: "c) Tipicidade (conduta prevista no art. 482 da CLT)." },
+      { id: "d", texto: "d) Prescrição bienal (esperar 2 anos para aplicar)." }
+    ]
+  },
+  {
+    id: "-1.16",
+    fase: -1,
+    titulo: "Questão 16: Férias em Dobro",
+    tipo: "Misto",
+    focoTecnico: "Férias",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Se o empregador não conceder as férias dentro do período concessivo (12 meses após o aquisitivo), a consequência é:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 137 CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "O empregador que não conceder férias no período legal deverá pagar o valor correspondente em dobro ao empregado." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) O empregado perde o direito às férias." },
+      { id: "b", texto: "b) As férias devem ser pagas em dobro." },
+      { id: "c", texto: "c) O empregado recebe apenas o salário, sem o 1/3." },
+      { id: "d", texto: "d) As férias são convertidas em abono pecuniário automático." }
+    ]
+  },
+  {
+    id: "-1.17",
+    fase: -1,
+    titulo: "Questão 17: Cálculo do INSS",
+    tipo: "Misto",
+    focoTecnico: "Encargos Sociais",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "No cálculo progressivo do INSS, a alíquota é aplicada:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Lei 8.212/91",
+      respostaEsperadaId: "c",
+      valoresCorretos: { justificativa: "O cálculo do INSS é progressivo, ou seja, aplica-se a alíquota correspondente a cada faixa salarial, somando os resultados." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Sobre o salário total de uma única vez." },
+      { id: "b", texto: "b) Apenas sobre o valor que excede o teto." },
+      { id: "c", texto: "c) Faixa por faixa, somando-se os valores de cada faixa." },
+      { id: "d", texto: "d) Sempre sobre o salário mínimo." }
+    ]
+  },
+  {
+    id: "-1.18",
+    fase: -1,
+    titulo: "Questão 18: FGTS e Justa Causa",
+    tipo: "Misto",
+    focoTecnico: "Rescisão Contratual",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Em relação ao FGTS na dispensa por justa causa, o empregado:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 18 Lei 8.036/90",
+      respostaEsperadaId: "c",
+      valoresCorretos: { justificativa: "Na justa causa, o empregado perde o direito de sacar o saldo da conta vinculada e não recebe a multa compensatória de 40%." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Pode sacar o saldo integral e recebe multa de 40%." },
+      { id: "b", texto: "b) Pode sacar o saldo, mas não recebe multa de 40%." },
+      { id: "c", texto: "c) Não pode sacar o saldo e não recebe multa de 40%." },
+      { id: "d", texto: "d) Recebe apenas a multa de 40%, mas não pode sacar." }
+    ]
+  },
+  {
+    id: "-1.19",
+    fase: -1,
+    titulo: "Questão 19: Jornada de Estagiário",
+    tipo: "Misto",
+    focoTecnico: "Estágio",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A jornada máxima diária permitida para um estagiário de nível superior é de:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 10 Lei 11.788/2008",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "A jornada de atividade em estágio será definida de comum acordo e não poderá ultrapassar 6 horas diárias e 30 horas semanais." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 4 horas." },
+      { id: "b", texto: "b) 6 horas." },
+      { id: "c", texto: "c) 8 horas." },
+      { id: "d", texto: "d) 10 horas." }
+    ]
+  },
+  {
+    id: "-1.20",
+    fase: -1,
+    titulo: "Questão 20: Hora Noturna Reduzida",
+    tipo: "Misto",
+    focoTecnico: "Adicional Noturno",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A hora noturna urbana, para fins de cálculo do adicional, tem duração reduzida de:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 73, §1º CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "A hora do trabalho noturno será computada como de 52 minutos e 30 segundos, o que chamamos de 'hora ficta'." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 60 minutos." },
+      { id: "b", texto: "b) 52 minutos e 30 segundos." },
+      { id: "c", texto: "c) 50 minutos." },
+      { id: "d", texto: "d) 45 minutos." }
+    ]
+  },
+  {
+    id: "-1.21",
+    fase: -1,
+    titulo: "Questão 21: Duração Hora Noturna",
+    tipo: "Misto",
+    focoTecnico: "Adicional Noturno",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A Consolidação das Leis do Trabalho (CLT) estabelece que, para efeito de cálculo da remuneração, a hora noturna do trabalhador urbano tem duração de:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 73, §1º CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "A lei estabelece que a hora noturna é computada como 52 minutos e 30 segundos." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 60 minutos." },
+      { id: "b", texto: "b) 52 minutos e 30 segundos." },
+      { id: "c", texto: "c) 55 minutos." },
+      { id: "d", texto: "d) 50 minutos." }
+    ]
+  },
+  {
+    id: "-1.22",
+    fase: -1,
+    titulo: "Questão 22: Benefício da Hora Ficta",
+    tipo: "Misto",
+    focoTecnico: "Adicional Noturno",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A 'hora ficta' ou 'hora noturna reduzida', prevista no art. 73, §1º da CLT, é um benefício ao trabalhador porque:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 73, §1º CLT",
+      respostaEsperadaId: "a",
+      valoresCorretos: { justificativa: "Como a hora é menor (52.5 min), o trabalhador recebe 1 hora integral por um período menor trabalhado, o que eleva sua remuneração horária efetiva." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) A cada 52 minutos e 30 segundos trabalhados, ele recebe como se tivesse trabalhado 1 hora, aumentando a remuneração total." },
+      { id: "b", texto: "b) Permite que ele trabalhe menos horas por dia, mantendo o salário integral." },
+      { id: "c", texto: "c) Garante um adicional de 50% sobre o valor da hora noturna." },
+      { id: "d", texto: "d) Reduz o valor do desconto do INSS sobre o salário noturno." }
+    ]
+  },
+  {
+    id: "-1.23",
+    fase: -1,
+    titulo: "Questão 23: Cálculo Noturno Real",
+    tipo: "Misto",
+    focoTecnico: "Adicional Noturno",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Em uma jornada noturna padrão, das 22h às 5h, o total de horas noturnas a serem remuneradas, considerando a duração reduzida de 52 minutos e 30 segundos, é de:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 73 CLT",
+      respostaEsperadaId: "c",
+      valoresCorretos: { justificativa: "De 22h às 5h temos 7 horas 'de relógio' (420 minutos). Dividindo 420 por 52,5, obtemos exatamente 8 horas noturnas para fins de pagamento." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 7 horas." },
+      { id: "b", texto: "b) 7 horas e 20 minutos." },
+      { id: "c", texto: "c) 8 horas." },
+      { id: "d", texto: "d) 8 horas e 30 minutos." }
+    ]
+  },
+  {
+    id: "-1.24",
+    fase: -1,
+    titulo: "Questão 24: Trabalho Noturno Urbano",
+    tipo: "Misto",
+    focoTecnico: "Adicional Noturno",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Além do adicional de 20%, o que mais caracteriza o trabalho noturno urbano, segundo a CLT, em comparação com o trabalho diurno?",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 73 CLT",
+      respostaEsperadaId: "a",
+      valoresCorretos: { justificativa: "A principal diferença técnica é a redução da hora (52,5 min vs 60 min)." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) A duração da hora de trabalho é menor para fins de cálculo da remuneração." },
+      { id: "b", texto: "b) A jornada de trabalho é obrigatoriamente mais curta." },
+      { id: "c", texto: "c) O trabalhador tem direito a um intervalo de 2 horas para descanso." },
+      { id: "d", texto: "d) O salário-base é obrigatoriamente maior." }
+    ]
+  },
+  {
+    id: "-1.25",
+    fase: -1,
+    titulo: "Questão 25: Súmula 60 do TST",
+    tipo: "Misto",
+    focoTecnico: "Jurisprudência",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A Súmula 60 do Tribunal Superior do Trabalho (TST) estabelece que o adicional noturno:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Súmula 60, I TST",
+      respostaEsperadaId: "c",
+      valoresCorretos: { justificativa: "O adicional noturno, pago com habitualidade, integra o salário do empregado para todos os efeitos (férias, 13º, FGTS, etc)." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Não se integra ao salário para cálculo de férias e 13º salário." },
+      { id: "b", texto: "b) É devido apenas se a jornada for estritamente noturna, sem prorrogação." },
+      { id: "c", texto: "c) Pago com habitualidade, integra o salário do empregado para todos os efeitos." },
+      { id: "d", texto: "d) Pode ser suprimido por convenção coletiva de trabalho." }
+    ]
+  },
+  {
+    id: "-1.26",
+    fase: -1,
+    titulo: "Questão 26: Verbas Perdidas na Justa Causa",
+    tipo: "Misto",
+    focoTecnico: "Rescisão Contratual",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Na dispensa por justa causa, o empregado perde o direito a algumas verbas rescisórias. Assinale a alternativa que apresenta APENAS verbas a que o empregado demitido por justa causa NÃO tem direito:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 482 CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "O empregado perde o aviso prévio e a multa de 40% do FGTS. Saldo de salário e férias vencidas são mantidos." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Saldo de salário e férias vencidas." },
+      { id: "b", texto: "b) Aviso prévio e multa de 40% sobre o FGTS." },
+      { id: "c", texto: "c) 13º salário proporcional e férias proporcionais." },
+      { id: "d", texto: "d) Saldo de salário e 13º salário proporcional." }
+    ]
+  },
+  {
+    id: "-1.27",
+    fase: -1,
+    titulo: "Questão 27: Requisitos da Justa Causa",
+    tipo: "Misto",
+    focoTecnico: "Rescisão Contratual",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Sobre os requisitos para a aplicação da justa causa, é correto afirmar que:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Doutrina Trabalhista",
+      respostaEsperadaId: "c",
+      valoresCorretos: { justificativa: "Devem ser observados os princípios da imediatidade (punição rápida), proporcionalidade (gravidade) e tipicidade (previsão legal)." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) A punição pode ser aplicada meses após o conhecimento do fato, para garantir a reflexão do empregado." },
+      { id: "b", texto: "b) A conduta do empregado deve se enquadrar em uma das hipóteses do art. 482 da CLT, que é um rol exemplificativo." },
+      { id: "c", texto: "c) Devem ser observados os princípios da imediatidade, proporcionalidade e tipicidade." },
+      { id: "d", texto: "d) A justa causa é uma penalidade leve, que não exige comprovação robusta por parte do empregador." }
+    ]
+  },
+  {
+    id: "-1.28",
+    fase: -1,
+    titulo: "Questão 28: Natureza do Art. 482",
+    tipo: "Misto",
+    focoTecnico: "Direito do Trabalho",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "O art. 482 da CLT, que elenca as hipóteses de justa causa, é considerado um rol:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 482 CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "O rol é taxativo (numerus clausus), ou seja, apenas as condutas expressamente previstas em lei autorizam a dispensa por justa causa." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Exemplificativo, pois o empregador pode criar novas faltas graves." },
+      { id: "b", texto: "b) Taxativo, pois somente as condutas listadas na lei podem justificar a rescisão." },
+      { id: "c", texto: "c) Aberto, pois depende da interpretação do juiz do trabalho." },
+      { id: "d", texto: "d) Indicativo, pois o empregado pode escolher se aceita ou não a justa causa." }
+    ]
+  },
+  {
+    id: "-1.29",
+    fase: -1,
+    titulo: "Questão 29: Conceito de Imediatidade",
+    tipo: "Misto",
+    focoTecnico: "Justa Causa",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "O conceito de 'imediatidade', como requisito para a aplicação da justa causa, significa que:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Doutrina",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "A falta deve ser punida assim que o empregador toma conhecimento dela. A demora injustificada pode ser interpretada como perdão tácito." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) O empregado deve ser imediatamente substituído em sua função." },
+      { id: "b", texto: "b) A rescisão deve ocorrer logo após o empregador tomar conhecimento da falta, sob pena de perdão tácito." },
+      { id: "c", texto: "c) O empregador deve pagar todas as verbas rescisórias em até 10 dias." },
+      { id: "d", texto: "d) A falta deve ser comunicada ao sindicato da categoria imediatamente." }
+    ]
+  },
+  {
+    id: "-1.30",
+    fase: -1,
+    titulo: "Questão 30: Ônus da Prova",
+    tipo: "Misto",
+    focoTecnico: "Processo do Trabalho",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Sobre o ônus da prova na justa causa, é correto afirmar que:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Súmula 212 TST",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "O ônus de provar a justa causa é do empregador, pois a dispensa motivada é exceção ao princípio da continuidade da relação de emprego." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) O empregado deve provar que não cometeu a falta." },
+      { id: "b", texto: "b) O empregador deve provar, de forma robusta e inequívoca, a falta grave cometida pelo empregado." },
+      { id: "c", texto: "c) A prova é desnecessária, pois a palavra do empregador prevalece." },
+      { id: "d", texto: "d) Apenas testemunhas podem ser usadas como prova." }
+    ]
+  },
+  {
+    id: "-1.31",
+    fase: -1,
+    titulo: "Questão 31: Fórmula do Divisor",
+    tipo: "Misto",
+    focoTecnico: "Jornada de Trabalho",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A fórmula para encontrar o divisor mensal, conforme o art. 64 da CLT, é:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 64 CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "O divisor é obtido multiplicando-se a jornada semanal por 30 (dias do mês) e dividindo por 6 (dias úteis da semana)." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) (horas semanais × 4 semanas)" },
+      { id: "b", texto: "b) (horas semanais ÷ 6) × 30" },
+      { id: "c", texto: "c) (horas semanais × 30) ÷ 7" },
+      { id: "d", texto: "d) (horas semanais × 5) + 30" }
+    ]
+  },
+  {
+    id: "-1.32",
+    fase: -1,
+    titulo: "Questão 32: Divisor 220",
+    tipo: "Misto",
+    focoTecnico: "Jornada de Trabalho",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "O divisor 220 é aplicado para empregados com jornada semanal de:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 58 CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "Empregados que trabalham 44 horas semanais utilizam o divisor 220 para o cálculo do valor da hora." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 40 horas" },
+      { id: "b", texto: "b) 44 horas" },
+      { id: "c", texto: "c) 36 horas" },
+      { id: "d", texto: "d) 30 horas" }
+    ]
+  },
+  {
+    id: "-1.33",
+    fase: -1,
+    titulo: "Questão 33: Divisor para 40h",
+    tipo: "Misto",
+    focoTecnico: "Jornada de Trabalho",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Para um empregado com jornada de 40 horas semanais, o divisor a ser utilizado é:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Súmula 431 TST",
+      respostaEsperadaId: "a",
+      valoresCorretos: { justificativa: "A jurisprudência consolidada no TST estabelece que para jornada de 40 horas semanais aplica-se o divisor 200." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 200" },
+      { id: "b", texto: "b) 220" },
+      { id: "c", texto: "c) 180" },
+      { id: "d", texto: "d) 150" }
+    ]
+  },
+  {
+    id: "-1.34",
+    fase: -1,
+    titulo: "Questão 34: Súmula 431 do TST",
+    tipo: "Misto",
+    focoTecnico: "Jornada de Trabalho",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A Súmula 431 do TST estabelece que se aplica o divisor 200 para:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Súmula 431 TST",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "A súmula é específica para empregados que cumprem jornada de 40 horas semanais." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Empregados com jornada de 44 horas semanais." },
+      { id: "b", texto: "b) Empregados com jornada de 40 horas semanais." },
+      { id: "c", texto: "c) Bancários com jornada de 6 horas diárias." },
+      { id: "d", texto: "d) Empregados com jornada de 36 horas semanais." }
+    ]
+  },
+  {
+    id: "-1.35",
+    fase: -1,
+    titulo: "Questão 35: Divisor para 36h",
+    tipo: "Misto",
+    focoTecnico: "Jornada de Trabalho",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Um empregado com jornada de 36 horas semanais tem como divisor correto:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 64 CLT",
+      respostaEsperadaId: "c",
+      valoresCorretos: { justificativa: "36 ÷ 6 * 30 = 180. O divisor para 36 horas semanais é 180." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 220" },
+      { id: "b", texto: "b) 200" },
+      { id: "c", texto: "c) 180" },
+      { id: "d", texto: "d) 160" }
+    ]
+  },
+  {
+    id: "-1.36",
+    fase: -1,
+    titulo: "Questão 36: Divisor para 30h",
+    tipo: "Misto",
+    focoTecnico: "Jornada de Trabalho",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Para uma jornada de 30 horas semanais, o divisor a ser utilizado é:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 64 CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "30 ÷ 6 * 30 = 150. O divisor para 30 horas semanais é 150." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 120" },
+      { id: "b", texto: "b) 150" },
+      { id: "c", texto: "c) 180" },
+      { id: "d", texto: "d) 200" }
+    ]
+  },
+  {
+    id: "-1.37",
+    fase: -1,
+    titulo: "Questão 37: Divisor para 42h",
+    tipo: "Misto",
+    focoTecnico: "Jornada de Trabalho",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Qual o divisor para um empregado que trabalha 42 horas semanais?",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 64 CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "42 ÷ 6 * 30 = 210. O divisor para 42 horas semanais é 210." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 200" },
+      { id: "b", texto: "b) 210" },
+      { id: "c", texto: "c) 220" },
+      { id: "d", texto: "d) 180" }
+    ]
+  },
+  {
+    id: "-1.38",
+    fase: -1,
+    titulo: "Questão 38: Divisor para 24h",
+    tipo: "Misto",
+    focoTecnico: "Jornada de Trabalho",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Um empregado com jornada de 24 horas semanais tem como divisor:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 64 CLT",
+      respostaEsperadaId: "a",
+      valoresCorretos: { justificativa: "24 ÷ 6 * 30 = 120. O divisor para 24 horas semanais é 120." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 120" },
+      { id: "b", texto: "b) 100" },
+      { id: "c", texto: "c) 140" },
+      { id: "d", texto: "d) 150" }
+    ]
+  },
+  {
+    id: "-1.39",
+    fase: -1,
+    titulo: "Questão 39: Origem do Divisor 220",
+    tipo: "Misto",
+    focoTecnico: "Jornada de Trabalho",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "O divisor 220 é resultado de qual cálculo matemático baseado na CLT?",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 64 CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "(44 horas semanais ÷ 6 dias úteis) × 30 dias mensais = 220." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 44 horas × 5 semanas" },
+      { id: "b", texto: "b) (44 ÷ 6) × 30" },
+      { id: "c", texto: "c) 44 × 4.4" },
+      { id: "d", texto: "d) (44 ÷ 7) × 30" }
+    ]
+  },
+  {
+    id: "-1.40",
+    fase: -1,
+    titulo: "Questão 40: Divisor de Bancário 40h",
+    tipo: "Misto",
+    focoTecnico: "Jornada de Trabalho",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Para um bancário ou empregado administrativo com jornada de 40 horas semanais (segunda a sexta), o divisor é:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Súmula 124 TST",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "Para a jornada de 40 horas semanais, o divisor é 200, conforme entendimento jurisprudencial dominante." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 220" },
+      { id: "b", texto: "b) 200" },
+      { id: "c", texto: "c) 180" },
+      { id: "d", texto: "d) 150" }
+    ]
+  },
+  {
+    id: "-1.41",
+    fase: -1,
+    titulo: "Questão 41: Cálculo Valor Hora 36h",
+    tipo: "Misto",
+    focoTecnico: "Cálculos Trabalhistas",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 3000.00, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "36h/semana" },
+    queixa: "Um empregado que recebe R$ 3.000,00 mensais e trabalha 36 horas semanais. Qual o valor da sua hora normal?",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 64 CLT",
+      respostaEsperadaId: "a",
+      valoresCorretos: { justificativa: "Divisor para 36h = 180. R$ 3.000,00 ÷ 180 = R$ 16,67." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) R$ 16,67" },
+      { id: "b", texto: "b) R$ 13,64" },
+      { id: "c", texto: "c) R$ 15,00" },
+      { id: "d", texto: "d) R$ 18,75" }
+    ]
+  },
+  {
+    id: "-1.42",
+    fase: -1,
+    titulo: "Questão 42: Cálculo Valor Hora 30h",
+    tipo: "Misto",
+    focoTecnico: "Cálculos Trabalhistas",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 2200.00, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "30h/semana" },
+    queixa: "Um empregado que recebe R$ 2.200,00 mensais e trabalha 30 horas semanais. Qual o valor da sua hora normal?",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 64 CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "Divisor para 30h = 150. R$ 2.200,00 ÷ 150 = R$ 14,67." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) R$ 10,00" },
+      { id: "b", texto: "b) R$ 14,67" },
+      { id: "c", texto: "c) R$ 12,22" },
+      { id: "d", texto: "d) R$ 15,71" }
+    ]
+  },
+  {
+    id: "-1.43",
+    fase: -1,
+    titulo: "Questão 43: Impacto da Súmula 431",
+    tipo: "Misto",
+    focoTecnico: "Jornada de Trabalho",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A aplicação do divisor 200 (em vez de 220) para quem trabalha 40 horas semanais tem como impacto prático:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Súmula 431 TST",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "Um divisor menor resulta em um valor de hora maior, o que aumenta o custo das horas extras para a empresa e a remuneração para o empregado." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Redução do valor da hora extra." },
+      { id: "b", texto: "b) Aumento do valor da hora normal e, consequentemente, da hora extra." },
+      { id: "c", texto: "c) Redução do salário nominal do empregado." },
+      { id: "d", texto: "d) Não há impacto financeiro, apenas administrativo." }
+    ]
+  },
+  {
+    id: "-1.44",
+    fase: -1,
+    titulo: "Questão 44: Hipóteses de Justa Causa",
+    tipo: "Misto",
+    focoTecnico: "Rescisão Contratual",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "O rol de faltas graves que autorizam a rescisão por justa causa pelo empregador está previsto no artigo:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 482 CLT",
+      respostaEsperadaId: "c",
+      valoresCorretos: { justificativa: "O Art. 482 da CLT é o dispositivo legal que elenca as hipóteses de justa causa por parte do empregado." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Art. 483 da CLT." },
+      { id: "b", texto: "b) Art. 487 da CLT." },
+      { id: "c", texto: "c) Art. 482 da CLT." },
+      { id: "d", texto: "d) Art. 500 da CLT." }
+    ]
+  },
+  {
+    id: "-1.45",
+    fase: -1,
+    titulo: "Questão 45: Improbidade",
+    tipo: "Misto",
+    focoTecnico: "Justa Causa",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A falta grave caracterizada por desonestidade, abuso de confiança ou fraude visando vantagem para si ou para outrem é denominada:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 482, 'a' CLT",
+      respostaEsperadaId: "a",
+      valoresCorretos: { justificativa: "O ato de improbidade é aquele que revela desonestidade do empregado, como furto ou adulteração de documentos." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Improbidade." },
+      { id: "b", texto: "b) Desídia." },
+      { id: "c", texto: "c) Incontinência de conduta." },
+      { id: "d", texto: "d) Indisciplina." }
+    ]
+  },
+  {
+    id: "-1.46",
+    fase: -1,
+    titulo: "Questão 46: Incontinência de Conduta",
+    tipo: "Misto",
+    focoTecnico: "Justa Causa",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A falta grave que se manifesta por excessos de natureza sexual, falta de pudor ou desrespeito moral no ambiente de trabalho é a:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 482, 'b' CLT",
+      respostaEsperadaId: "c",
+      valoresCorretos: { justificativa: "A incontinência de conduta está ligada a atos de natureza sexual ou desvios morais graves no trabalho." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Desídia." },
+      { id: "b", texto: "b) Embriaguez habitual." },
+      { id: "c", texto: "c) Incontinência de conduta." },
+      { id: "d", texto: "d) Ofensa física." }
+    ]
+  },
+  {
+    id: "-1.47",
+    fase: -1,
+    titulo: "Questão 47: Negociação Habitual",
+    tipo: "Misto",
+    focoTecnico: "Justa Causa",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Quando o empregado exerce atividade concorrente com a do empregador, sem sua permissão, prejudicando o serviço, ele comete:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 482, 'c' CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "A negociação habitual por conta própria ou alheia, sem permissão do empregador, e quando constituir ato de concorrência à empresa, é justa causa." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Desídia." },
+      { id: "b", texto: "b) Negociação habitual sem permissão do empregador." },
+      { id: "c", texto: "c) Indisciplina." },
+      { id: "d", texto: "d) Mau procedimento." }
+    ]
+  },
+  {
+    id: "-1.48",
+    fase: -1,
+    titulo: "Questão 48: Condenação Criminal",
+    tipo: "Misto",
+    focoTecnico: "Justa Causa",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A condenação criminal do empregado autoriza a justa causa somente quando:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 482, 'd' CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "A condenação criminal deve ter passado em julgado (não caber mais recurso) e não pode haver suspensão da execução da pena." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) O empregado é preso preventivamente." },
+      { id: "b", texto: "b) Houver condenação criminal passada em julgado, caso não tenha havido suspensão da execução da pena." },
+      { id: "c", texto: "c) O empregado é réu em qualquer processo criminal." },
+      { id: "d", texto: "d) O empregador simplesmente não gostar da conduta social do empregado." }
+    ]
+  },
+  {
+    id: "-1.49",
+    fase: -1,
+    titulo: "Questão 49: Desídia",
+    tipo: "Misto",
+    focoTecnico: "Justa Causa",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A falta grave que se caracteriza pela negligência, preguiça, desatenção ou desinteresse reiterado no cumprimento das obrigações é a:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 482, 'e' CLT",
+      respostaEsperadaId: "a",
+      valoresCorretos: { justificativa: "Desídia é o desleixo habitual, a falta de zelo com as tarefas do trabalho." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Desídia." },
+      { id: "b", texto: "b) Mau procedimento." },
+      { id: "c", texto: "c) Insubordinação." },
+      { id: "d", texto: "d) Improbidade." }
+    ]
+  },
+  {
+    id: "-1.50",
+    fase: -1,
+    titulo: "Questão 50: Embriaguez",
+    tipo: "Misto",
+    focoTecnico: "Justa Causa",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Sobre a embriaguez como hipótese de justa causa:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 482, 'f' CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "A lei prevê a embriaguez habitual ou em serviço como justa causa, embora a jurisprudência atual prefira o tratamento médico se for doença (alcoolismo)." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Somente se o empregado chegar bêbado todos os dias." },
+      { id: "b", texto: "b) A embriaguez habitual ou em serviço justifica a rescisão por justa causa." },
+      { id: "c", texto: "c) É proibido demitir por embriaguez em qualquer hipótese." },
+      { id: "d", texto: "d) O empregador deve pagar uma multa para demitir um empregado embriagado." }
+    ]
+  },
+  {
+    id: "-1.51",
+    fase: -1,
+    titulo: "Questão 51: Violação de Segredo",
+    tipo: "Misto",
+    focoTecnico: "Justa Causa",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A violação de segredo da empresa ocorre quando o empregado:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 482, 'g' CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "Revelar informações confidenciais, projetos ou dados técnicos a terceiros sem autorização." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Conta para a família quanto ganha de salário." },
+      { id: "b", texto: "b) Divulga informações sigilosas da empresa que podem causar prejuízo." },
+      { id: "c", texto: "c) Perde a chave do escritório." },
+      { id: "d", texto: "d) Esquece a senha do seu computador pessoal." }
+    ]
+  },
+  {
+    id: "-1.52",
+    fase: -1,
+    titulo: "Questão 52: Indisciplina vs Insubordinação",
+    tipo: "Misto",
+    focoTecnico: "Justa Causa",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Qual a diferença entre indisciplina e insubordinação?",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 482, 'h' CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "Indisciplina é o descumprimento de normas gerais da empresa; insubordinação é o descumprimento de uma ordem direta e específica dada ao empregado." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) São sinônimos perfeitos." },
+      { id: "b", texto: "b) Indisciplina refere-se a normas gerais; insubordinação refere-se a ordens diretas." },
+      { id: "c", texto: "c) Insubordinação é mais leve que a indisciplina." },
+      { id: "d", texto: "d) Indisciplina só ocorre fora do horário de trabalho." }
+    ]
+  },
+  {
+    id: "-1.53",
+    fase: -1,
+    titulo: "Questão 53: Abandono de Emprego",
+    tipo: "Misto",
+    focoTecnico: "Justa Causa",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "Para que se configure o abandono de emprego, a jurisprudência (Súmula 32 do TST) presume que o prazo de ausência injustificada deve ser de, pelo menos:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Súmula 32 TST",
+      respostaEsperadaId: "c",
+      valoresCorretos: { justificativa: "Presume-se o abandono de emprego se o trabalhador não retornar ao serviço no prazo de 30 dias após a cessação do benefício previdenciário ou ausência sem justificativa." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) 15 dias." },
+      { id: "b", texto: "b) 20 dias." },
+      { id: "c", texto: "c) 30 dias." },
+      { id: "d", texto: "d) 60 dias." }
+    ]
+  },
+  {
+    id: "-1.54",
+    fase: -1,
+    titulo: "Questão 54: Ofensas à Honra",
+    tipo: "Misto",
+    focoTecnico: "Justa Causa",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A prática de ato lesivo da honra ou da boa fama contra superiores hierárquicos constitui justa causa:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 482, 'k' CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "Ofender verbalmente ou caluniar um superior no ambiente de trabalho (ou em razão dele) é falta grave." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) Apenas se houver agressão física." },
+      { id: "b", texto: "b) Em qualquer circunstância no serviço, salvo em caso de legítima defesa." },
+      { id: "c", texto: "c) Somente se for feito por escrito." },
+      { id: "d", texto: "d) Não é justa causa, apenas advertência." }
+    ]
+  },
+  {
+    id: "-1.55",
+    fase: -1,
+    titulo: "Questão 55: Jogos de Azar",
+    tipo: "Misto",
+    focoTecnico: "Justa Causa",
+    tempoLimiteMinutos: 5,
+    xpRecompensa: 10,
+    empregado: { nome: "Simulado", cbo: "N/A", salarioBase: 0, dataAdmissao: "01/01/2026", dataFato: "01/01/2026", jornada: "N/A" },
+    queixa: "A prática constante de jogos de azar no ambiente de trabalho:",
+    gabarito: {
+      tipoAcao: "Apenas Explicar",
+      artigoLegal: "Art. 482, 'l' CLT",
+      respostaEsperadaId: "b",
+      valoresCorretos: { justificativa: "A prática constante de jogos de azar é uma das hipóteses taxativas de justa causa previstas na CLT." }
+    },
+    opcoes: [
+      { id: "a", texto: "a) É permitida se não atrapalhar o serviço." },
+      { id: "b", texto: "b) Constitui justa causa para a rescisão do contrato de trabalho." },
+      { id: "c", texto: "c) Gera apenas suspensão de 1 dia." },
+      { id: "d", texto: "d) É considerada lazer e incentivada por algumas empresas." }
+    ]
+  },
+
   // --- FASE 0: PRÉ-CADASTRO (21 Challenges - Módulo Admissão ADM) ---
   {
     id: "0.1",

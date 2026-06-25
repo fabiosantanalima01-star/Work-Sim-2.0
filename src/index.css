@@ -418,7 +418,8 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
 .theme-light td {
   border: 1px solid #BFDBFE !important;
   background-color: #F4F9FF !important; /* Azul extremamente claro */
-  color: #1E3A8A !important;
+  color: #0F172A !important;
+  font-weight: 500 !important;
 }
 
 /* 7. Contraste e Sombreamento dos Botões no Modo Diurno */
@@ -428,23 +429,24 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
   border-color: #1D4ED8 !important; /* Azul escuro sólido para bordas mais vivas */
   background-color: #FFFFFF !important; /* Branco puro para brilho */
   color: #0F172A !important; /* Letras mais fortes */
-  font-weight: 700 !important;
-  box-shadow: 0 6px 10px -2px rgba(30, 58, 138, 0.15), 0 4px 6px -1px rgba(30, 58, 138, 0.1) !important; /* Sombreamento mais vivido */
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 0px #BFDBFE, 0 8px 15px -3px rgba(30, 58, 138, 0.2) !important; /* Sombreamento 3D mais vivido */
+  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* Hover effect with stronger shadow and slight lift for high-fidelity feeling */
-.theme-light button:hover {
+.theme-light button:hover:not(:disabled) {
   border-color: #1E3A8A !important; /* Borda azul marinho no hover */
   background-color: #EFF6FF !important; /* Azul extremamente claro no hover */
-  box-shadow: 0 12px 20px -5px rgba(30, 58, 138, 0.2), 0 8px 10px -4px rgba(30, 58, 138, 0.15) !important; /* Sombreamento mais pronunciado */
-  transform: translateY(-1px); /* Leve levante para ser mais vivido */
+  box-shadow: 0 6px 0px #BFDBFE, 0 12px 20px -5px rgba(30, 58, 138, 0.3) !important; /* Sombreamento mais pronunciado */
+  transform: translateY(-2px); /* Leve levante para ser mais vivido */
 }
 
 /* Active pressed state */
-.theme-light button:active {
-  background-color: #E5E7EB !important;
-  box-shadow: 0 1px 2px rgba(30, 58, 138, 0.08) !important;
+.theme-light button:active:not(:disabled) {
+  background-color: #DBEAFE !important;
+  box-shadow: 0 1px 0px #BFDBFE !important;
+  transform: translateY(2px);
 }
 
 /* Estilo específico para as abas de Navegação Superior (Desafios, Carreira, etc.) no modo Diurno */

@@ -171,7 +171,7 @@ export default function App() {
 
   // --- Reset Admin Stats logic as requested via prompt ---
   useEffect(() => {
-    const hasBeenReset = localStorage.getItem("worksim_admin_reset_2026_06_14_v2");
+    const hasBeenReset = localStorage.getItem("worksim_admin_reset_2026_06_24_v3");
     if (!hasBeenReset && isProfessorOrAdmin) {
       const admStudentIndex = students.findIndex(s => s.id === "adm" || s.matricula === "ADM2026");
       if (admStudentIndex !== -1) {
@@ -183,17 +183,18 @@ export default function App() {
           faseAtual: 0,
           respostasDesafios: {},
           saidasTela: 0,
-          badges: []
+          badges: [],
+          senha: "" // Clear old password to force Google sync or fresh setup
         };
         setStudents(resetStudents);
-        localStorage.setItem("worksim_admin_reset_2026_06_14_v2", "true");
+        localStorage.setItem("worksim_admin_reset_2026_06_24_v3", "true");
         // Also ensure Firestore is updated if syncing
         if (firebaseUser) {
           syncSetDoc("students", resetStudents[admStudentIndex].id, sanitizeForFirestore(resetStudents[admStudentIndex]), { merge: true }).catch(console.error);
         }
       }
     }
-  }, [isProfessorOrAdmin, students, setStudents]);
+  }, [isProfessorOrAdmin, students, setStudents, firebaseUser]);
 
   const [squadLogs, setSquadLogs] = useState<SquadLog[]>(() => {
     const cached = localStorage.getItem("worksim_squad_logs");
@@ -408,6 +409,8 @@ export default function App() {
                   ...remote,
                   xp: Math.max(local.xp, remote.xp),
                   respostasDesafios: remote.respostasDesafios || local.respostasDesafios,
+                  // Synchronize password: if remote has it (even if empty), use it; otherwise keep local
+                  senha: remote.hasOwnProperty("senha") ? remote.senha : local.senha,
                   // Improved chat merge: preserve local messages if they are more recent/longer
                   mensagensChat: (remote.mensagensChat?.length || 0) >= (local.mensagensChat?.length || 0)
                     ? remote.mensagensChat
@@ -618,10 +621,19 @@ export default function App() {
              xp: 0,
              precisao: 100,
              faseAtual: 8,
-             status: "Ativo"
+             status: "Ativo",
+             senha: "" // Ensure no password for Google admin
           } as any;
+          
           setActiveStudentId(adminStub.id);
-          setStudents(prev => prev.some(s => s.id === adminStub.id) ? prev : [...prev, adminStub]);
+          setStudents(prev => {
+             // Explicitly clear password for admin in state to fix local persistence issue
+             const updated = prev.map(s => (s.id === "adm" || s.matricula === "ADM2026") ? { ...s, senha: "", email: userEmail } : s);
+             if (!updated.some(s => s.id === adminStub.id)) {
+                return [...updated, adminStub];
+             }
+             return updated;
+          });
           setOnboardingFinished(true);
           // Sync admin stub to Firestore
           syncSetDoc("students", adminStub.id, sanitizeForFirestore(adminStub), { merge: true }).catch(console.error);
@@ -691,6 +703,8 @@ Para resolver:
     try {
       await signOut(auth);
       playSoundEffect("success");
+      // Also trigger local logout to clear session states and avoid ghost local data
+      handleLogout();
     } catch (err: any) {
       console.error(err);
       setFirebaseSyncError(err.message || String(err));
@@ -2300,6 +2314,17 @@ Para resolver:
 
     // Step logic
     if (loginStep === "matricula") {
+      // Bypass password for the Professor if logged into Google correctly
+      if (targetMatricula === "ADM2026" && firebaseUser?.email === "fabiosantanalima01@gmail.com") {
+        if (matched) {
+          setActiveStudentId(matched.id);
+          setSelectedPhaseId(matched.faseAtual);
+          setOnboardingFinished(true);
+          playSoundEffect("success");
+          return;
+        }
+      }
+
       if (matched && !matched.senha) {
         setLoginStep("activation");
         setIsActivatingNewAccount(true);

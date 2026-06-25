@@ -49,6 +49,7 @@ service cloud.firestore {
              (data.get('isVeterano', null) == null || data.isVeterano is bool) &&
              (data.get('dispositivoVinculado', null) == null || (data.dispositivoVinculado is string)) &&
              (data.get('respostasDesafios', null) == null || data.respostasDesafios is map) &&
+             (data.get('temposRespostas', null) == null || data.temposRespostas is map) &&
              (data.get('tempoAtivoSegundos', null) == null || data.tempoAtivoSegundos is int) &&
              (data.get('tempoAcumuladoXP', null) == null || data.tempoAcumuladoXP is int) &&
              (data.get('casosResolvidosNoCiclo', null) == null || data.casosResolvidosNoCiclo is int) &&
@@ -70,57 +71,55 @@ service cloud.firestore {
              (data.get('chamadaNumero', null) == null || (data.chamadaNumero is string)) &&
              (data.get('xpAntecedente', null) == null || data.xpAntecedente is int) &&
              (data.get('ultimaDataAcesso', null) == null || (data.ultimaDataAcesso is string)) &&
-             (data.get('foto', null) == null || (data.foto is string && data.foto.size() <= 1000000)) &&
+             (data.get('foto', null) == null || (data.foto is string && data.foto.size() <= 1048576)) &&
              (data.get('email', null) == null || (data.email is string)) &&
              (data.get('contratoAssinado', null) == null || data.contratoAssinado is bool) &&
              (data.get('tentativaFraude', null) == null || data.tentativaFraude is int) &&
              (data.get('contaBloqueada', null) == null || data.contaBloqueada is bool) &&
+             (data.get('isTyping', null) == null || data.isTyping is bool) &&
+             (data.get('profIsTyping', null) == null || data.profIsTyping is bool) &&
              (data.get('badges', null) == null || data.badges is list);
     }
 
     // Log Validation Helper
     function isValidLog(data) {
-      return data.studentId is string && data.studentId.size() <= 64 &&
-             data.type is string && data.type.size() <= 64 &&
-             data.action is string && data.action.size() <= 128 &&
-             data.timestamp is string && data.timestamp.size() <= 128;
+      return data.get('studentId', '') is string && 
+             data.get('type', '') is string && 
+             data.get('action', '') is string && 
+             data.get('timestamp', '') is string;
     }
 
     // Custom Challenge Validation Helper
     function isValidCustomChallenge(data) {
-      return data.id is string && data.id.size() <= 128 &&
-             data.fase is int && data.fase >= 0 && data.fase <= 8 &&
-             data.titulo is string && data.titulo.size() <= 256 &&
-             data.tipo is string &&
-             data.focoTecnico is string &&
-             data.tempoLimiteMinutos is int && data.tempoLimiteMinutos > 0 &&
-             data.xpRecompensa is int && data.xpRecompensa >= 0 &&
-             data.queixa is string &&
-             (data.bloco == null || data.bloco is string) &&
-             (data.empregado == null || data.empregado is map) &&
-             (data.gabarito == null || data.gabarito is map) &&
-             (data.opcoes == null || data.opcoes is list);
+      return data.get('id', '') is string &&
+             data.get('fase', 0) is int &&
+             data.get('titulo', '') is string &&
+             data.get('tipo', '') is string &&
+             data.get('focoTecnico', '') is string &&
+             data.get('tempoLimiteMinutos', 0) is int &&
+             data.get('xpRecompensa', 0) is int &&
+             data.get('queixa', '') is string;
     }
 
     // Feedback Validation Helper
     function isValidFeedback(data) {
-      return data.id is string && data.id.size() <= 64 &&
-             data.veteranName is string && data.veteranName.size() <= 200 &&
-             data.veteranUser is string && data.veteranUser.size() <= 64 &&
-             data.category is string && data.category.size() <= 256 &&
-             data.text is string && data.text.size() <= 5000 &&
-             data.timestamp is string && data.timestamp.size() <= 128 &&
-             data.status is string && (data.status == 'Não Lido' || data.status == 'Lido' || data.status == 'Resolvido') &&
-             (data.emailTo == null || data.emailTo is string);
+      return data.get('id', '') is string &&
+             data.get('veteranName', '') is string &&
+             data.get('veteranUser', '') is string &&
+             data.get('category', '') is string &&
+             data.get('text', '') is string &&
+             data.get('timestamp', '') is string &&
+             data.get('status', '') is string;
     }
 
     // Collection: students
     match /students/{studentId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming());
-      allow update: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming());
-      allow delete: if isSignedIn() && isValidId(studentId);
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (isProfessor() || (incoming().get('email', '') == request.auth.token.email) || (existing().get('email', '') == request.auth.token.email));
+    }
+
+    function isProfessor() {
+      return isSignedIn() && (request.auth.token.email == "fabiosantanalima01@gmail.com");
     }
 
     // Collection: logs

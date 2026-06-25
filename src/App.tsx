@@ -613,6 +613,17 @@ export default function App() {
           setStudents(prev => prev.some(s => s.id === adminStub.id) ? prev : [...prev, adminStub]);
           // Sync admin stub to Firestore
           syncSetDoc("students", adminStub.id, sanitizeForFirestore(adminStub), { merge: true }).catch(console.error);
+          
+          // AUTO-SYNC ALL STUDENTS if it's the professor and they just logged in
+          // This ensures that students from the PDF/List are available for other accounts
+          const syncAll = async () => {
+             const syncPromises = students.map(s => 
+               syncSetDoc("students", s.id, sanitizeForFirestore(s), { merge: true })
+             );
+             await Promise.all(syncPromises);
+             console.log("Professor auto-sync complete");
+          };
+          syncAll().catch(console.error);
         }
       }
     } catch (err: any) {

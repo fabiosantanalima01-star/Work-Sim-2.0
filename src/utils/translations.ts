@@ -616,6 +616,386 @@ export const CHALLENGE_TRANSLATIONS: Record<string, {
     focoTecnico: "Night Shift Rules",
     opcoes: ["a) 1 full hour (60 minutes).", "b) 45 minutes.", "c) 30 minutes.", "d) 50 minutes."],
     gabaritoExplicacao: "According to Art. 73, §1º of the CLT, the urban night hour is reduced: 52 minutes and 30 seconds correspond to 1 legal hour."
+  },
+  "-1.21": {
+    titulo: "Question 21: Night Hour Duration",
+    queixa: "The CLT establishes that, for salary calculation purposes, the urban night hour has a duration of:",
+    focoTecnico: "Night Shift Rules",
+    opcoes: ["a) 60 minutes.", "b) 52 minutes and 30 seconds.", "c) 55 minutes.", "d) 50 minutes."],
+    gabaritoExplicacao: "The law establishes that the night hour is computed as 52 minutes and 30 seconds."
+  },
+  "-1.22": {
+    titulo: "Question 22: Benefit of Fictitious Hour",
+    queixa: "The 'hora ficta' or 'reduced night hour', provided for in art. 73, §1º of the CLT, is a benefit to the worker because:",
+    focoTecnico: "Night Shift Rules",
+    opcoes: [
+      "a) Every 52 minutes and 30 seconds worked, they receive as if they had worked 1 hour, increasing total pay.",
+      "b) It allows them to work fewer hours per day while maintaining the full salary.",
+      "c) It guarantees a 50% premium on the night hour value.",
+      "d) It reduces the INSS deduction on the night salary."
+    ],
+    gabaritoExplicacao: "Since the hour is shorter (52.5 min), the worker receives 1 full hour for a shorter period worked, which raises their effective hourly pay."
+  },
+  "-1.23": {
+    titulo: "Question 23: Real Night Calculation",
+    queixa: "In a standard night shift from 10 PM to 5 AM, the total night hours to be paid, considering the reduced duration, is:",
+    focoTecnico: "Night Shift Rules",
+    opcoes: ["a) 7 hours.", "b) 7 hours and 20 minutes.", "c) 8 hours.", "d) 8 hours and 30 minutes."],
+    gabaritoExplicacao: "From 10 PM to 5 AM we have 7 'clock' hours (420 minutes). Dividing 420 by 52.5, we get exactly 8 night hours for payment purposes."
+  },
+  "-1.24": {
+    titulo: "Question 24: Urban Night Work",
+    queixa: "Besides the 20% premium, what else characterizes urban night work compared to day work?",
+    focoTecnico: "Night Shift Rules",
+    opcoes: [
+      "a) The duration of the work hour is shorter for salary calculation purposes.",
+      "b) The workday is mandatory shorter.",
+      "c) The worker is entitled to a 2-hour rest break.",
+      "d) The base salary is mandatory higher."
+    ],
+    gabaritoExplicacao: "The main technical difference is the hour reduction (52.5 min vs 60 min)."
+  },
+  "-1.25": {
+    titulo: "Question 25: TST Precedent 60",
+    queixa: "Precedent (Súmula) 60 of the TST establishes that the night shift premium:",
+    focoTecnico: "Labor Jurisprudence",
+    opcoes: [
+      "a) Does not integrate into the salary for calculation of vacations and 13th salary.",
+      "b) Is due only if the shift is strictly nocturnal, without extension.",
+      "c) Paid with habituality, integrates the employee's salary for all effects.",
+      "d) Can be suppressed by a collective bargaining agreement."
+    ],
+    gabaritoExplicacao: "The night premium, paid habitually, integrates the employee's salary for all effects (vacations, 13th, FGTS, etc.)."
+  },
+  "-1.26": {
+    titulo: "Question 26: Lost Monies in Just Cause",
+    queixa: "In a termination for just cause, the employee loses the right to some severance pay. Select the alternative that presents ONLY items the employee does NOT have the right to:",
+    focoTecnico: "Severance Pay",
+    opcoes: [
+      "a) Salary balance and overdue vacations.",
+      "b) Notice period (aviso prévio) and 40% FGTS fine.",
+      "c) Proportional 13th salary and proportional vacations.",
+      "d) Salary balance and proportional 13th salary."
+    ],
+    gabaritoExplicacao: "The employee loses the notice period and the 40% FGTS fine. Salary balance and overdue vacations are maintained."
+  },
+  "-1.27": {
+    titulo: "Question 27: Just Cause Requirements",
+    queixa: "Regarding the requirements for applying just cause, it is correct to state that:",
+    focoTecnico: "Termination Rules",
+    opcoes: [
+      "a) Punishment can be applied months after the fact is known to ensure reflection.",
+      "b) The employee's conduct must fit into one of the hypotheses of Art. 482, which is an exemplary list.",
+      "c) Principles of immediacy, proportionality, and tipicidade (legal matching) must be observed.",
+      "d) Just cause is a light penalty that does not require robust proof from the employer."
+    ],
+    gabaritoExplicacao: "Principles of immediacy (quick punishment), proportionality (gravity), and tipicidade (legal provision) must be observed."
+  },
+  "-1.28": {
+    titulo: "Question 28: Nature of Art. 482",
+    queixa: "Art. 482 of the CLT, which lists just cause hypotheses, is considered a list that is:",
+    focoTecnico: "Labor Law",
+    opcoes: [
+      "a) Exemplary, as the employer can create new serious faults.",
+      "b) Taxativo (Exhaustive), as only conducts listed in the law can justify termination.",
+      "c) Open, as it depends on the labor judge's interpretation.",
+      "d) Indicative, as the employee can choose to accept it or not."
+    ],
+    gabaritoExplicacao: "The list is exhaustive (numerus clausus), meaning only conducts expressly provided in law authorize dismissal for just cause."
+  },
+  "-1.29": {
+    titulo: "Question 29: Concept of Immediacy",
+    queixa: "The concept of 'immediacy' as a requirement for applying just cause means:",
+    focoTecnico: "Just Cause Rules",
+    opcoes: [
+      "a) The employee must be immediately replaced in their function.",
+      "b) Termination must occur shortly after the employer learns of the fault, otherwise it's tacit forgiveness.",
+      "c) The employer must pay all severance in up to 10 days.",
+      "d) The fault must be communicated to the union immediately."
+    ],
+    gabaritoExplicacao: "The fault must be punished as soon as the employer becomes aware of it. Unjustified delay can be interpreted as tacit forgiveness."
+  },
+  "-1.30": {
+    titulo: "Question 30: Burden of Proof",
+    queixa: "Regarding the burden of proof in just cause, it is correct to state that:",
+    focoTecnico: "Labor Process",
+    opcoes: [
+      "a) The employee must prove they did not commit the fault.",
+      "b) The employer must prove, in a robust and unequivocal way, the serious fault committed by the employee.",
+      "c) Proof is unnecessary, as the employer's word prevails.",
+      "d) Only witnesses can be used as proof."
+    ],
+    gabaritoExplicacao: "The burden of proving just cause lies with the employer, as motivated dismissal is an exception to the principle of continuity of the employment relationship."
+  },
+  "-1.31": {
+    titulo: "Question 31: Divisor Formula",
+    queixa: "The formula to find the monthly divisor, according to Art. 64 of the CLT, is:",
+    focoTecnico: "Workday Rules",
+    opcoes: [
+      "a) (weekly hours × 4 weeks)",
+      "b) (weekly hours ÷ 6) × 30",
+      "c) (weekly hours × 30) ÷ 7",
+      "d) (weekly hours × 5) + 30"
+    ],
+    gabaritoExplicacao: "The divisor is obtained by multiplying the weekly hours by 30 (month days) and dividing by 6 (business days of the week)."
+  },
+  "-1.32": {
+    titulo: "Question 32: Divisor 220",
+    queixa: "The divisor 220 is applied for employees with a weekly shift of:",
+    focoTecnico: "Workday Rules",
+    opcoes: ["a) 40 hours", "b) 44 hours", "c) 36 hours", "d) 30 hours"],
+    gabaritoExplicacao: "Employees who work 44 hours a week use the 220 divisor for calculating the hourly rate."
+  },
+  "-1.33": {
+    titulo: "Question 33: Divisor for 40h",
+    queixa: "For an employee with a 40-hour weekly shift, the divisor to be used is:",
+    focoTecnico: "Workday Rules",
+    opcoes: ["a) 200", "b) 220", "c) 180", "d) 150"],
+    gabaritoExplicacao: "Consolidated jurisprudence in the TST establishes that for a 40-hour weekly shift, the 200 divisor applies."
+  },
+  "-1.34": {
+    titulo: "Question 34: TST Precedent 431",
+    queixa: "Precedent (Súmula) 431 of the TST establishes that the 200 divisor applies to:",
+    focoTecnico: "Workday Rules",
+    opcoes: [
+      "a) Employees with a 44-hour weekly shift.",
+      "b) Employees with a 40-hour weekly shift.",
+      "c) Bank employees with a 6-hour daily shift.",
+      "d) Employees with a 36-hour weekly shift."
+    ],
+    gabaritoExplicacao: "The precedent is specific for employees who fulfill a 40-hour weekly shift."
+  },
+  "-1.35": {
+    titulo: "Question 35: Divisor for 36h",
+    queixa: "An employee with a 36-hour weekly shift has as their correct divisor:",
+    focoTecnico: "Workday Rules",
+    opcoes: ["a) 220", "b) 200", "c) 180", "d) 160"],
+    gabaritoExplicacao: "36 ÷ 6 * 30 = 180. The divisor for 36 weekly hours is 180."
+  },
+  "-1.36": {
+    titulo: "Question 36: Divisor for 30h",
+    queixa: "For a 30-hour weekly shift, the divisor to be used is:",
+    focoTecnico: "Workday Rules",
+    opcoes: ["a) 120", "b) 150", "c) 180", "d) 200"],
+    gabaritoExplicacao: "30 ÷ 6 * 30 = 150. The divisor for 30 weekly hours is 150."
+  },
+  "-1.37": {
+    titulo: "Question 37: Divisor for 42h",
+    queixa: "What is the divisor for an employee who works 42 hours a week?",
+    focoTecnico: "Workday Rules",
+    opcoes: ["a) 200", "b) 210", "c) 220", "d) 180"],
+    gabaritoExplicacao: "42 ÷ 6 * 30 = 210. The divisor for 42 weekly hours is 210."
+  },
+  "-1.38": {
+    titulo: "Question 38: Divisor for 24h",
+    queixa: "An employee with a 24-hour weekly shift has as their divisor:",
+    focoTecnico: "Workday Rules",
+    opcoes: ["a) 120", "b) 100", "c) 140", "d) 150"],
+    gabaritoExplicacao: "24 ÷ 6 * 30 = 120. The divisor for 24 weekly hours is 120."
+  },
+  "-1.39": {
+    titulo: "Question 39: Origin of Divisor 220",
+    queixa: "The 220 divisor is the result of which mathematical calculation based on the CLT?",
+    focoTecnico: "Labor Math",
+    opcoes: ["a) 44 hours × 5 weeks", "b) (44 ÷ 6) × 30", "c) 44 × 4.4", "d) (44 ÷ 7) × 30"],
+    gabaritoExplicacao: "(44 weekly hours ÷ 6 business days) × 30 monthly days = 220."
+  },
+  "-1.40": {
+    titulo: "Question 40: Bank Employee Divisor 40h",
+    queixa: "For a bank employee or administrative employee with a 40-hour weekly shift (Mon-Fri), the divisor is:",
+    focoTecnico: "Workday Rules",
+    opcoes: ["a) 220", "b) 200", "c) 180", "d) 150"],
+    gabaritoExplicacao: "For the 40-hour weekly shift, the divisor is 200, as per dominant jurisdictional understanding."
+  },
+  "-1.41": {
+    titulo: "Question 41: Concept of Salary",
+    queixa: "Salary is defined as the fixed compensation paid by the employer to the employee. According to the CLT, what else is integrated into the salary?",
+    focoTecnico: "Salary and Remuneration",
+    opcoes: [
+      "a) Only the fixed base value.",
+      "b) Gratifications, commissions, and bonuses paid habitually.",
+      "c) Transportation voucher and medical assistance.",
+      "d) Only the profit sharing (PLR)."
+    ],
+    gabaritoExplicacao: "According to Art. 457 of the CLT, commissions, percentages, and legal gratifications integrate the salary."
+  },
+  "-1.42": {
+    titulo: "Question 42: Difference between Salary and Remuneration",
+    queixa: "Remuneration is a broader concept than salary. It includes, besides the base salary:",
+    focoTecnico: "Remuneration",
+    opcoes: [
+      "a) Only the 13th salary.",
+      "b) Tips (gorjetas) and other values paid by third parties.",
+      "c) Only the FGTS.",
+      "d) Values that do not have a nature of compensation."
+    ],
+    gabaritoExplicacao: "Remuneration includes the salary paid by the employer plus tips received by the employee (Art. 457 CLT)."
+  },
+  "-1.43": {
+    titulo: "Question 43: In Natura Salary (Utility Salary)",
+    queixa: "In natura salary is the portion of compensation provided in goods or services. What can NEVER be considered utility salary?",
+    focoTecnico: "Utility Salary",
+    opcoes: ["a) Housing.", "b) Food.", "c) Alcoholic beverages or harmful drugs.", "d) Education."],
+    gabaritoExplicacao: "Art. 458 of the CLT prohibits alcoholic beverages and harmful drugs from being considered part of the salary."
+  },
+  "-1.44": {
+    titulo: "Question 44: Salary Irreducibility",
+    queixa: "The Federal Constitution establishes the principle of salary irreducibility, except in the case of:",
+    focoTecnico: "Constitutional Rights",
+    opcoes: [
+      "a) Crisis in the company.",
+      "b) Collective bargaining agreement or convention.",
+      "c) Unexcused absences.",
+      "d) Employer's will."
+    ],
+    gabaritoExplicacao: "Salary reduction is only allowed through a Collective Bargaining Agreement (ACT) or Collective Convention (CCT)."
+  },
+  "-1.45": {
+    titulo: "Question 45: Equal Pay Requirements",
+    queixa: "For salary equalization (equiparação salarial), the time difference in the same function between the two employees cannot exceed:",
+    focoTecnico: "Salary Equalization",
+    opcoes: ["a) 1 year.", "b) 2 years.", "c) 4 years.", "d) 5 years."],
+    gabaritoExplicacao: "Art. 461 of the CLT requires that the service time difference in the same function is not greater than 2 years."
+  },
+  "-1.46": {
+    titulo: "Question 46: Salary Equalization - Time in Company",
+    queixa: "Besides the 2 years in the function, for equalization, the total time difference in the same company cannot exceed:",
+    focoTecnico: "Salary Equalization",
+    opcoes: ["a) 2 years.", "b) 3 years.", "c) 4 years.", "d) 10 years."],
+    gabaritoExplicacao: "The 2017 Labor Reform added that the time difference in the company between the two employees cannot exceed 4 years."
+  },
+  "-1.47": {
+    titulo: "Question 47: Work in Competing Activity",
+    queixa: "If an employee starts working in a competing activity with their employer, causing harm, they may be dismissed for:",
+    focoTecnico: "Just Cause",
+    opcoes: [
+      "a) Incontinência de conduta.",
+      "b) Ato de improbidade.",
+      "c) Negociação habitual (Competing Activity).",
+      "d) Desídia."
+    ],
+    gabaritoExplicacao: "Art. 482, 'c' of the CLT provides for just cause for habitual negotiation on one's own or another's behalf without permission, if it competes with the company."
+  },
+  "-1.48": {
+    titulo: "Question 48: Desídia Definition",
+    queixa: "The just cause known as 'Desídia' is characterized by:",
+    focoTecnico: "Just Cause",
+    opcoes: [
+      "a) Physical assault on a colleague.",
+      "b) Negligence, laziness, and constant lack of interest in fulfilling duties.",
+      "c) Stealing products from the company.",
+      "d) Disobeying a specific order."
+    ],
+    gabaritoExplicacao: "Desídia is the repeated lack of zeal, negligence, or disinterest in performing work tasks."
+  },
+  "-1.49": {
+    titulo: "Question 49: Indiscipline vs. Insubordination",
+    queixa: "What is the difference between 'Indiscipline' and 'Insubordination' in just cause?",
+    focoTecnico: "Just Cause",
+    opcoes: [
+      "a) There is no difference, both are the same.",
+      "b) Indiscipline is breaking general rules; Insubordination is disobeying a direct and personal order.",
+      "c) Indiscipline is physical; Insubordination is verbal.",
+      "d) Insubordination applies only to managers."
+    ],
+    gabaritoExplicacao: "Indiscipline refers to general rules of the company. Insubordination is the direct refusal of a specific order given to the employee."
+  },
+  "-1.50": {
+    titulo: "Question 50: Job Abandonment Timeframe",
+    queixa: "Jurisprudence (Súmula 32 TST) understands that job abandonment is presumed after a continuous absence of:",
+    focoTecnico: "Just Cause",
+    opcoes: ["a) 15 days.", "b) 30 days.", "c) 45 days.", "d) 60 days."],
+    gabaritoExplicacao: "An unexcused absence of more than 30 consecutive days characterizes the intention of job abandonment."
+  },
+  "-1.51": {
+    titulo: "Question 51: Probationary Contract Extension",
+    queixa: "The maximum duration of a probationary contract (contrato de experiência) is 90 days. It can be extended:",
+    focoTecnico: "Employment Contract",
+    opcoes: [
+      "a) Multiple times, as long as it doesn't exceed 90 days.",
+      "b) Only once, as long as the total doesn't exceed 90 days.",
+      "c) It cannot be extended.",
+      "d) For another 90 days."
+    ],
+    gabaritoExplicacao: "Art. 445 and 451 of the CLT allow a single extension within the maximum limit of 90 days."
+  },
+  "-1.52": {
+    titulo: "Question 52: Intermittent Work Definition",
+    queixa: "Intermittent work is characterized by the provision of services with:",
+    focoTecnico: "Labor Reform",
+    opcoes: [
+      "a) Mandatory fixed hours every day.",
+      "b) Alternation of periods of service and inactivity, in hours, days, or months.",
+      "c) Prohibition of working for other employers.",
+      "d) Payment of salary only at the end of the year."
+    ],
+    gabaritoExplicacao: "In intermittent work (Art. 443, §3º CLT), there is no continuity, and periods of inactivity are not paid."
+  },
+  "-1.53": {
+    titulo: "Question 53: Termination by Agreement (Art. 484-A)",
+    queixa: "In the termination by mutual agreement (Acordo), the FGTS fine is paid by the employer at the rate of:",
+    focoTecnico: "Labor Reform",
+    opcoes: ["a) 40%", "b) 20%", "c) 10%", "d) 0%"],
+    gabaritoExplicacao: "In the consensual agreement of Art. 484-A, the FGTS fine is halved, resulting in 20%."
+  },
+  "-1.54": {
+    titulo: "Question 54: Home Office Control",
+    queixa: "According to the Labor Reform, employees in telework (home office) using the production/task regime:",
+    focoTecnico: "Telework",
+    opcoes: [
+      "a) Are entitled to overtime normally.",
+      "b) Are excluded from the working hours control regime (Art. 62, III CLT).",
+      "c) Must have a fixed shift from 8 AM to 6 PM.",
+      "d) Cannot work at night."
+    ],
+    gabaritoExplicacao: "Employees in telework who provide services by production or task are excluded from hours control rules."
+  },
+  "-1.55": {
+    titulo: "Question 55: Maximum Overtime",
+    queixa: "According to the CLT, the daily workday can be increased by overtime, through written agreement, in the maximum amount of:",
+    focoTecnico: "Overtime Rules",
+    opcoes: ["a) 1 hour.", "b) 2 hours.", "c) 4 hours.", "d) 6 hours."],
+    gabaritoExplicacao: "Art. 59 of the CLT allows up to 2 extra hours per day."
+  },
+  "-1.56": {
+    titulo: "Question 56: Minimum Meal Break",
+    queixa: "For work shifts exceeding 6 hours, the minimum mandatory meal and rest break (intrajornada) is:",
+    focoTecnico: "Rest Breaks",
+    opcoes: ["a) 15 minutes.", "b) 30 minutes.", "c) 1 hour.", "d) 2 hours."],
+    gabaritoExplicacao: "Art. 71 of the CLT requires a minimum interval of 1 hour for shifts longer than 6 hours."
+  },
+  "-1.57": {
+    titulo: "Question 57: Break for Shifts between 4h and 6h",
+    queixa: "For a shift between 4 and 6 hours daily, the mandatory rest break is:",
+    focoTecnico: "Rest Breaks",
+    opcoes: ["a) 5 minutes.", "b) 10 minutes.", "c) 15 minutes.", "d) 30 minutes."],
+    gabaritoExplicacao: "For shifts from 4 to 6 hours, the legal interval is 15 minutes."
+  },
+  "-1.58": {
+    titulo: "Question 58: Inter-workday Rest (Interjornada)",
+    queixa: "Between two work shifts, there must be a minimum period of rest of:",
+    focoTecnico: "Rest Breaks",
+    opcoes: ["a) 8 hours.", "b) 11 hours.", "c) 12 hours.", "d) 24 hours."],
+    gabaritoExplicacao: "Art. 66 of the CLT establishes a minimum rest of 11 consecutive hours between two shifts."
+  },
+  "-1.59": {
+    titulo: "Question 59: Night Shift Definition (Urban)",
+    queixa: "In urban work, the period considered as night work for legal purposes is between:",
+    focoTecnico: "Night Shift",
+    opcoes: [
+      "a) 6 PM and 6 AM.",
+      "b) 10 PM and 5 AM.",
+      "c) 8 PM and 4 AM.",
+      "d) 9 PM and 6 AM."
+    ],
+    gabaritoExplicacao: "Art. 73, §2º of the CLT defines urban night work as that performed between 10 PM and 5 AM of the following day."
+  },
+  "-1.60": {
+    titulo: "Question 60: Weekly Paid Rest (DSR)",
+    queixa: "The DSR (Descanso Semanal Remunerado) should preferably occur on:",
+    focoTecnico: "Rest Breaks",
+    opcoes: ["a) Saturdays.", "b) Sundays.", "c) Mondays.", "d) Any day of the week."],
+    gabaritoExplicacao: "Both the Constitution and the CLT establish that the weekly rest should preferably be on Sundays."
   }
 };
 
@@ -958,6 +1338,68 @@ export function translateTextToEnglish(text: string): string {
     ["Lei ", "Law "],
     ["Lei nº ", "Law No. "],
     ["Súmula ", "Precedent / Súmula "],
+    ["Tribunal Superior do Trabalho", "Superior Labor Court"],
+    ["TST", "TST (Superior Labor Court)"],
+    ["Consolidação das Leis do Trabalho", "Consolidation of Labor Laws (CLT)"],
+    ["Justiça do Trabalho", "Labor Justice / Court"],
+    ["Ministério do Trabalho", "Ministry of Labor"],
+    ["e-Social", "e-Social"],
+    ["jornada noturna", "night shift / night work"],
+    ["adicional noturno", "night shift premium"],
+    ["hora ficta", "fictitious hour (hora ficta)"],
+    ["hora noturna reduzida", "reduced night hour"],
+    ["trabalho urbano", "urban work"],
+    ["trabalhador urbano", "urban worker"],
+    ["ônus da prova", "burden of proof"],
+    ["rol taxativo", "exhaustive list / rol taxativo"],
+    ["rol exemplificativo", "exemplary list / rol exemplificativo"],
+    ["perdão tácito", "tacit forgiveness"],
+    ["falta grave", "serious fault / misconduct"],
+    ["dispensa motivada", "dismissal for cause"],
+    ["princípio da continuidade", "principle of continuity"],
+    ["relação de emprego", "employment relationship"],
+    ["divisor mensal", "monthly divisor"],
+    ["jornada semanal", "weekly hours / shift"],
+    ["bancário", "bank employee"],
+    ["valor da hora normal", "normal hourly rate"],
+    ["ato de improbidade", "act of dishonesty / improbidade"],
+    ["incontinência de conduta", "incontinence of conduct"],
+    ["negociação habitual", "habitual negotiation"],
+    ["atividade concorrente", "competing activity"],
+    ["gratificações", "gratifications / bonuses"],
+    ["comissões", "commissions"],
+    ["prêmios pagos habitualmente", "habitual bonuses"],
+    ["integram o salário", "integrate the salary"],
+    ["gorjetas", "tips / gorjetas"],
+    ["parcelas pagas por terceiros", "amounts paid by third parties"],
+    ["salário in natura", "in-kind salary / utility salary"],
+    ["salário utilidade", "utility salary"],
+    ["bebidas alcoólicas", "alcoholic beverages"],
+    ["drogas nocivas", "harmful drugs"],
+    ["irredutibilidade salarial", "salary irreducibility"],
+    ["convenção coletiva", "collective bargaining agreement"],
+    ["acordo coletivo", "collective agreement"],
+    ["mesma função", "same function"],
+    ["tempo de serviço", "length of service"],
+    ["trabalho concorrente", "competing work"],
+    ["prejuízo à empresa", "harm to the company"],
+    ["indisciplina", "indiscipline"],
+    ["insubordinação", "insubordination"],
+    ["ordem direta e pessoal", "direct and personal order"],
+    ["abandono de emprego", "job abandonment"],
+    ["contrato de experiência", "probationary contract"],
+    ["prorrogação", "extension"],
+    ["trabalho intermitente", "intermittent work"],
+    ["períodos de inatividade", "inactivity periods"],
+    ["acordo mútuo", "mutual agreement"],
+    ["teletrabalho", "telework / home office"],
+    ["regime de produção", "production regime"],
+    ["regime de tarefa", "task regime"],
+    ["horas extraordinárias", "overtime hours"],
+    ["intervalo intrajornada", "meal/rest break (intrajornada)"],
+    ["intervalo interjornada", "inter-shift break (interjornada)"],
+    ["repouso semanal remunerado", "paid weekly rest (DSR)"],
+    ["preferencialmente aos domingos", "preferably on Sundays"],
     ["jornada de trabalho", "workday / work shift"],
     ["adicional de periculosidade", "danger premium (periculosidade)"],
     ["adicional de insalubridade", "health hazard premium (insalubridade)"],
@@ -1130,20 +1572,27 @@ export function translateChallenge(challenge: any, lang: "pt" | "en"): any {
   // 2. Overlay static translated texts if available in CHALLENGE_TRANSLATIONS dictionary (Phase 0/some parts)
   const translation = CHALLENGE_TRANSLATIONS[challenge.id];
   if (translation) {
-    translated.titulo = translation.titulo;
+    translated.titulo = (translation.titulo || "").toUpperCase(); // Versal (All Caps)
     translated.queixa = translation.queixa;
-    translated.focoTecnico = translation.focoTecnico;
+    translated.focoTecnico = (translation.focoTecnico || "").toUpperCase(); // Versal (All Caps)
     if (challenge.opcoes && translation.opcoes) {
       translated.opcoes = challenge.opcoes.map((opt: any, index: number) => ({
         ...opt,
         texto: translation.opcoes[index] || opt.texto
       }));
     }
+    // Also translate gabarito if it exists in translation
+    if (challenge.gabarito && translation.gabaritoExplicacao) {
+      translated.gabarito = {
+        ...challenge.gabarito,
+        explicacao: translation.gabaritoExplicacao
+      };
+    }
   } else {
     // 3. Dynamic glossary & automated translation overlays for title, focus, and complaint
-    translated.titulo = ALL_CHALLENGE_TITLES_EN[challenge.id] || translateTextToEnglish(challenge.titulo);
+    translated.titulo = (ALL_CHALLENGE_TITLES_EN[challenge.id] || translateTextToEnglish(challenge.titulo)).toUpperCase(); // Versal
     translated.queixa = ALL_CHALLENGE_QUEIXAS_EN[challenge.id] || translateTextToEnglish(challenge.queixa);
-    translated.focoTecnico = ALL_TECHNICAL_FOCUSES_EN[challenge.focoTecnico] || translateTextToEnglish(challenge.focoTecnico);
+    translated.focoTecnico = (ALL_TECHNICAL_FOCUSES_EN[challenge.focoTecnico] || translateTextToEnglish(challenge.focoTecnico)).toUpperCase(); // Versal
     
     if (challenge.opcoes) {
       translated.opcoes = challenge.opcoes.map((opt: any) => ({

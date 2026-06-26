@@ -33,7 +33,7 @@ import ProfileProgressRing from "./components/ProfileProgressRing";
 import WorkContractModal from "./components/WorkContractModal";
 import NavigationTop from "./components/NavigationTop";
 import { gerarCartaoPonto, getPointParamsForChallenge, getFichaFinanceiraDataForChallenge } from "./utils/timecard";
-import { t, translateChallenge, translateModuleName } from "./utils/translations";
+import { t, translateChallenge, translateModuleName, CHALLENGE_TRANSLATIONS } from "./utils/translations";
 import { exportTRCTToPDF } from "./utils/pdfExport";
 import { MatrixRain } from "./components/MatrixRain";
 import { BADGE_DEFINITIONS } from "./badges";
@@ -1456,20 +1456,51 @@ Para resolver:
     "caso" | "contrato" | "remuneracao" | "holerite" | "ponto" | "atestados"
   >("caso");
 
-  const phaseChallenges = allChallenges.filter(
-    (c) => c.fase === selectedPhaseId,
-  ).map(c => {
-    if (appLanguage === "en" && c.fase === -1 && translatedChallengesCache[c.id]) {
-      return translatedChallengesCache[c.id];
-    }
-    return translateChallenge(c, appLanguage);
-  });
+  const phaseChallenges = useMemo(() => {
+    return allChallenges
+      .filter((c) => c.fase === selectedPhaseId)
+      .map((c) => {
+        if (appLanguage === "en" && c.fase === -1) {
+          const hasDictionary = !!CHALLENGE_TRANSLATIONS[c.id];
+          if (!hasDictionary && translatedChallengesCache[c.id]) {
+            const cached = translatedChallengesCache[c.id];
+            return {
+              ...cached,
+              titulo: (cached.titulo || "").toUpperCase(),
+              focoTecnico: (cached.focoTecnico || "").toUpperCase(),
+            };
+          }
+        }
+        return translateChallenge(c, appLanguage);
+      });
+  }, [allChallenges, selectedPhaseId, appLanguage, translatedChallengesCache]);
 
   const rawActiveChallenge =
     allChallenges.find((c) => c.id === selectedChallengeId) || null;
-  const activeChallenge = (appLanguage === "en" && rawActiveChallenge?.fase === -1 && translatedChallengesCache[selectedChallengeId])
-    ? translatedChallengesCache[selectedChallengeId]
-    : translateChallenge(rawActiveChallenge, appLanguage);
+  
+  const activeChallenge = useMemo(() => {
+    if (!rawActiveChallenge) return null;
+    
+    // 1. Get dictionary translation
+    const dictTranslated = translateChallenge(rawActiveChallenge, appLanguage);
+    
+    // 2. For Phase -1, if English is active but not in dictionary, allow AI cache
+    if (appLanguage === "en" && rawActiveChallenge.fase === -1) {
+      // If we have an AI translation in cache, and it's not already in the hardcoded dictionary
+      // (Dictionary is always preferred for precision)
+      const hasDictionary = !!CHALLENGE_TRANSLATIONS[rawActiveChallenge.id];
+      if (!hasDictionary && translatedChallengesCache[rawActiveChallenge.id]) {
+        const cached = translatedChallengesCache[rawActiveChallenge.id];
+        return {
+          ...cached,
+          titulo: (cached.titulo || "").toUpperCase(),
+          focoTecnico: (cached.focoTecnico || "").toUpperCase(),
+        };
+      }
+    }
+    
+    return dictTranslated;
+  }, [rawActiveChallenge, appLanguage, translatedChallengesCache]);
 
   // Active progression time constraints (3 min inactivity block + 10 min 10XP tracking)
   const [inactivitySeconds, setInactivitySeconds] = useState<number>(0);

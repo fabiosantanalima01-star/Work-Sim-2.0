@@ -2521,6 +2521,14 @@ Para resolver:
     }
 
     if (loginStep === "activation") {
+      if (matched && matched.senha) {
+        setLoginErrorMessage("Esta matrícula já foi ativada. Por favor, entre com sua senha ou solicite reset ao Professor.");
+        setLoginStep("password");
+        setIsActivatingNewAccount(false);
+        playSoundEffect("failure");
+        return;
+      }
+
       if (!targetNome) {
         setLoginErrorMessage(
           "Por favor, preencha o seu nome completo para validação cadastral.",
@@ -2536,6 +2544,12 @@ Para resolver:
 
       if (matched) {
         // Activate existing student
+        if (matched.senha) {
+          setLoginErrorMessage("Segurança: Esta conta já possui senha. Use o login padrão.");
+          setLoginStep("password");
+          return;
+        }
+
         const updatedStudent = {
           ...matched,
           nomeCompleto: targetNome,
@@ -2555,6 +2569,14 @@ Para resolver:
         setActiveStudentId(matched.id);
       } else {
         // Create new Veteran student
+        // Final check for duplicate matricula in current list
+        const isDuplicate = students.some(s => s.matricula === targetMatricula);
+        if (isDuplicate) {
+          setLoginErrorMessage("Erro: Esta matrícula já está em uso no sistema.");
+          setLoginStep("matricula");
+          return;
+        }
+
         const newVetId = `vet-${Date.now()}`;
         const newVeteran: Student = {
           id: newVetId,
@@ -5060,7 +5082,7 @@ Para resolver:
             {/* Isolated Highlighted Version (Only Login Gate) */}
             <div className="pt-4 flex justify-center">
               <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
-                Versão v6.23.2026
+                Versão v6.25.2026
               </span>
             </div>
           </div>

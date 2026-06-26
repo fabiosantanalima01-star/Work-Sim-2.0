@@ -259,7 +259,10 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
   color: #0F172A !important;
 }
 
-.theme-light .text-gray-400,
+.theme-light .text-gray-400 {
+  color: #374151 !important; /* Cinza escuro (Gray 700) para máxima legibilidade */
+}
+
 .theme-light .text-gray-450,
 .theme-light .text-text-secondary,
 .theme-light p,

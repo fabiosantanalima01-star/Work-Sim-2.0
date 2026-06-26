@@ -2583,6 +2583,21 @@ Para resolver:
     };
   }, [activeStudentId, isScreenBlocked, isProfessorOrAdmin, selectedPhaseId]);
 
+  // Heartbeat to signal that the active student is actually online
+  useEffect(() => {
+    if (!activeStudentId) return;
+
+    const sendHeartbeat = () => {
+      syncSetDoc("students", activeStudentId, { lastSeen: Date.now() }, { merge: true }).catch(console.error);
+    };
+
+    // Send immediately on mount or login
+    sendHeartbeat();
+
+    const interval = setInterval(sendHeartbeat, 15000);
+    return () => clearInterval(interval);
+  }, [activeStudentId]);
+
   // Student Activation workflow
   const handleActivationOrLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -5880,38 +5895,42 @@ Para resolver:
                       </span>
                     </div>
                     <span className="text-[8px] font-mono text-gray-600">
-                      {students.filter(s => s.focoStatus === "Ativo").length} Ativos
+                      {students.filter(s => s.id !== 'adm' && s.id !== 'professor' && s.focoStatus === "Ativo" && s.lastSeen && (Date.now() - s.lastSeen) < 35000).length} Online
                     </span>
                   </div>
                   <div className="space-y-1.5 max-h-[140px] overflow-y-auto px-1 custom-scrollbar">
                     {students
                       .filter(s => s.id !== activeStudentId && s.id !== 'adm' && s.id !== 'professor')
                       .sort((a, b) => {
-                        // Priority: Active students first, then by XP
-                        if (a.focoStatus === "Ativo" && b.focoStatus !== "Ativo") return -1;
-                        if (b.focoStatus === "Ativo" && a.focoStatus !== "Ativo") return 1;
+                        const aOnline = a.focoStatus === "Ativo" && a.lastSeen && (Date.now() - a.lastSeen) < 35000;
+                        const bOnline = b.focoStatus === "Ativo" && b.lastSeen && (Date.now() - b.lastSeen) < 35000;
+                        if (aOnline && !bOnline) return -1;
+                        if (!aOnline && bOnline) return 1;
                         return (b.xp || 0) - (a.xp || 0);
                       })
                       .slice(0, 4)
-                      .map(s => (
-                        <div key={s.id} className="bg-slate-950/40 p-2 rounded-lg border border-white/5 flex flex-col gap-1 hover:border-indigo-500/30 transition-all">
-                          <div className="flex justify-between items-center gap-2">
-                            <div className="flex items-center gap-1.5 truncate">
-                              <div className={`w-1 h-1 rounded-full ${s.focoStatus === 'Ativo' ? 'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]' : 'bg-gray-700'}`}></div>
-                              <span className="text-[10px] text-gray-200 font-bold truncate">{s.nomeCompleto.split(' ')[0]}</span>
+                      .map(s => {
+                        const isOnline = s.focoStatus === "Ativo" && s.lastSeen && (Date.now() - s.lastSeen) < 35000;
+                        return (
+                          <div key={s.id} className="bg-slate-950/40 p-2 rounded-lg border border-white/5 flex flex-col gap-1 hover:border-indigo-500/30 transition-all">
+                            <div className="flex justify-between items-center gap-2">
+                              <div className="flex items-center gap-1.5 truncate">
+                                <div className={`w-1 h-1 rounded-full ${isOnline ? 'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]' : 'bg-gray-700'}`}></div>
+                                <span className="text-[10px] text-gray-200 font-bold truncate">{s.nomeCompleto.split(' ')[0]}</span>
+                              </div>
+                              <span className="text-[9px] text-amber-400 font-mono font-bold shrink-0">{s.xp} XP</span>
                             </div>
-                            <span className="text-[9px] text-amber-400 font-mono font-bold shrink-0">{s.xp} XP</span>
+                            <div className="flex justify-between items-center">
+                              <span className="text-[8px] text-gray-500 font-mono uppercase tracking-tighter">
+                                Fase {s.faseAtual} • {s.sala}
+                              </span>
+                              <span className={`text-[8px] font-mono ${isOnline ? 'text-emerald-500 font-bold' : 'text-gray-600'}`}>
+                                {isOnline ? 'ONLINE' : 'AUSENTE'}
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-[8px] text-gray-500 font-mono uppercase tracking-tighter">
-                              Fase {s.faseAtual} • {s.sala}
-                            </span>
-                            <span className={`text-[8px] font-mono ${s.focoStatus === 'Ativo' ? 'text-emerald-500' : 'text-gray-600'}`}>
-                              {s.focoStatus === 'Ativo' ? 'ONLINE' : 'AUSENTE'}
-                            </span>
-                          </div>
-                        </div>
-                      ))
+                        );
+                      })
                     }
                     {students.filter(s => s.id !== activeStudentId && s.id !== 'adm' && s.id !== 'professor').length === 0 && (
                       <p className="text-[9px] text-gray-600 font-mono text-center py-2 italic">Aguardando conexões...</p>

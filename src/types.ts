@@ -64,6 +64,7 @@ export interface Student {
   badges?: string[]; // IDs das insígnias conquistadas
   isTyping?: boolean; // Se o usuário está digitando no chat
   profIsTyping?: boolean; // Se o professor está digitando resposta para este aluno
+  lastSeen?: number; // Milliseconds timestamp of last heartbeat
 }
 
 export interface Challenge {

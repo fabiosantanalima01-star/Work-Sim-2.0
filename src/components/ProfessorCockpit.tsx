@@ -2448,12 +2448,22 @@ export default function ProfessorCockpit({
                           </div>
 
                           <div className="space-y-0.5 max-w-[140px]">
-                            <button
-                              onClick={() => onOpenChat(student)}
-                              className="text-gray-200 block truncate font-sans font-medium hover:text-accent-primary transition-colors text-left"
-                            >
-                              {student.nomeCompleto}
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              <div 
+                                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                  student.lastSeen && (Date.now() - student.lastSeen) < 35000
+                                    ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)] animate-pulse"
+                                    : "bg-gray-700"
+                                }`} 
+                                title={student.lastSeen && (Date.now() - student.lastSeen) < 35000 ? "Online" : "Offline / Ausente"}
+                              />
+                              <button
+                                onClick={() => onOpenChat(student)}
+                                className="text-gray-200 block truncate font-sans font-medium hover:text-accent-primary transition-colors text-left"
+                              >
+                                {student.nomeCompleto}
+                              </button>
+                            </div>
                             <span className="text-[10px] text-text-secondary block">
                               MAT: {student.matricula}
                             </span>
@@ -3268,6 +3278,14 @@ export default function ProfessorCockpit({
                       <tr key={student.id} className="border-b border-white/5 hover:bg-slate-900/40 hover:text-white transition-colors">
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2">
+                            <div 
+                              className={`w-2 h-2 rounded-full shrink-0 ${
+                                student.lastSeen && (Date.now() - student.lastSeen) < 35000
+                                  ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)] animate-pulse"
+                                  : "bg-gray-700"
+                              }`} 
+                              title={student.lastSeen && (Date.now() - student.lastSeen) < 35000 ? "Online" : "Offline / Ausente"}
+                            />
                             <span className="font-sans font-semibold text-gray-100 block">{student.nomeCompleto}</span>
                             {(student.tentativaFraude || 0) > 0 && (
                               <span className="bg-red-500/20 text-red-500 text-[8px] px-1.5 py-0.5 rounded-full border border-red-500/30 animate-pulse font-bold uppercase">

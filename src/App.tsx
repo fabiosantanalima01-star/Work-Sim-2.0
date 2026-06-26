@@ -749,7 +749,10 @@ export default function App() {
     } catch (err: any) {
       console.error("Firebase Login error:", err);
       setFirebaseSyncError(err.message || String(err));
-      if (err.code === "auth/unauthorized-domain") {
+      
+      if (err.code === "auth/popup-closed-by-user") {
+        setLoginErrorMessage("A janela de login do Google foi fechada antes de completar o processo. No Edge/Safari, certifique-se de que popups são permitidos e o bloqueio de rastreamento não está no 'Estrito'.");
+      } else if (err.code === "auth/unauthorized-domain") {
          const currentHost = window.location.hostname;
          alert(`ERRO DE DOMÍNIO: O domínio "${currentHost}" não está autorizado no Firebase Authentication.
          
@@ -759,6 +762,7 @@ Para resolver:
 3. Adicione "${currentHost}" à lista.
 4. Tente novamente.`);
       } else {
+         setLoginErrorMessage("Erro ao conectar com Google: " + (err.message || String(err)));
          alert("Erro ao conectar com Google: " + (err.message || String(err)));
       }
       playSoundEffect("failure");
@@ -2445,6 +2449,12 @@ Para resolver:
   const handleActivationOrLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginErrorMessage("");
+
+    if (inputMatricula.includes("@")) {
+      setLoginErrorMessage("Matrícula inválida. Para entrar com seu e-mail, clique no botão 'Sincronizar Conta Google' acima.");
+      playSoundEffect("failure");
+      return;
+    }
 
     const targetMatriculaStr = inputMatricula.trim().toUpperCase();
     const targetMatricula =
@@ -4564,6 +4574,9 @@ Para resolver:
           console.warn("Session integrity lost: Active student not found. Returning to login.");
           setOnboardingFinished(false);
           setActiveStudentId(null);
+          if (firebaseUser) {
+            signOut(auth).catch(console.error);
+          }
         }
       }, 1000);
       return () => clearTimeout(timeout);
@@ -4711,8 +4724,14 @@ Para resolver:
 
             {/* NEW: Google Login option on Login Gate */}
             {!firebaseUser && (
-              <button
-                type="button"
+              <div className="space-y-3">
+                <div className="text-center">
+                  <p className="text-[9px] text-gray-500 font-mono uppercase tracking-tighter mb-1">
+                    Já tem conta vinculada ou é Professor?
+                  </p>
+                </div>
+                <button
+                  type="button"
                 onClick={handleFirebaseGoogleLogin}
                 disabled={isFirebaseSyncing}
                 className="w-full flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 py-3 rounded-xl transition-all group cursor-pointer"
@@ -4731,6 +4750,7 @@ Para resolver:
                 </div>
                 {isFirebaseSyncing && <RefreshCw className="w-3.5 h-3.5 animate-spin text-accent-primary ml-auto mr-2" />}
               </button>
+              </div>
             )}
 
             {/* Main Tabs Selection on Login Gate */}
@@ -4784,6 +4804,11 @@ Para resolver:
                     onClose={() => setShowQRScanner(false)} 
                   />
                 )}
+                <div className="text-center mb-2">
+                   <p className="text-[9px] text-gray-500 font-mono uppercase tracking-tighter">
+                     Acesso via Matrícula (Novos Alunos)
+                   </p>
+                </div>
                 <form onSubmit={handleActivationOrLogin} className="space-y-4">
                   {/* Matrix registration ID field */}
                   <div className={`space-y-1 ${loginStep !== "matricula" ? "opacity-60 pointer-events-none" : ""}`}>
@@ -4805,7 +4830,7 @@ Para resolver:
                     <input
                       id="login-matricula-input"
                       name="username"
-                      autocomplete="username"
+                      autoComplete="username"
                       type="text"
                       required
                       readOnly={loginStep !== "matricula"}
@@ -4842,7 +4867,7 @@ Para resolver:
                       <input
                         id="login-password-input"
                         name="password"
-                        autocomplete={loginStep === "activation" ? "new-password" : "current-password"}
+                        autoComplete={loginStep === "activation" ? "new-password" : "current-password"}
                         type="password"
                         required
                         value={inputPassword}
@@ -5909,7 +5934,7 @@ Para resolver:
                       isOpen: true,
                       title: "Desconectar Conta",
                       description: "Tem certeza de que deseja se desconectar? Qualquer progresso não salvo/testado nesta sessão poderá ser perdido.",
-                      onConfirm: handleLogout
+                      onConfirm: firebaseUser ? handleFirebaseLogout : handleLogout
                     });
                   }}
                   className="w-full text-left text-xs text-accent-error hover:text-white transition-colors flex items-center gap-2 cursor-pointer"
@@ -5926,7 +5951,7 @@ Para resolver:
                         isOpen: true,
                         title: "Desconectar Conta",
                         description: "Tem certeza de que deseja se desconectar? Qualquer progresso não salvo/testado nesta sessão poderá ser perdido.",
-                        onConfirm: handleLogout
+                        onConfirm: firebaseUser ? handleFirebaseLogout : handleLogout
                       });
                     }}
                     className="p-1.5 rounded hover:bg-rose-500/15 text-accent-error hover:text-white transition-all cursor-pointer"

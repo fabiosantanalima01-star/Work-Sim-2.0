@@ -8168,6 +8168,12 @@ Para resolver:
               <TournamentTab
                 localStudents={students}
                 appLanguage={appLanguage}
+                onSelectChallenge={(challengeId, phaseId) => {
+                  setSelectedPhaseId(phaseId);
+                  setSelectedChallengeId(challengeId);
+                  setCurrentTab("challenges");
+                  playSoundEffect("bip");
+                }}
               />
             )}
 

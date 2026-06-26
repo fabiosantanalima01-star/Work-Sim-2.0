@@ -67,8 +67,8 @@ export default function TopNavbar({
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full glass-panel border-b border-white/10 backdrop-blur-md px-3 sm:px-6 py-2.5 flex items-center justify-between">
-        <div className="flex items-center gap-2 sm:gap-6 min-w-0">
+      <header className="sticky top-0 z-50 w-full glass-panel border-b border-white/10 backdrop-blur-md px-3 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 sm:gap-6 min-w-0 flex-1">
           {/* Desktop Sidebar Toggle */}
           <button
             onClick={onToggleSidebar}
@@ -131,19 +131,20 @@ export default function TopNavbar({
             </div>
           </div>
 
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden xl:flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className={`relative px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 group cursor-pointer ${
+                className={`relative px-3 sm:px-4 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all flex items-center gap-2 group cursor-pointer shrink-0 ${
                   currentTab === tab.id 
                     ? "text-white bg-white/5 border border-white/10" 
                     : "text-text-secondary hover:text-white hover:bg-white/5"
                 }`}
               >
-                <tab.icon className={`w-4 h-4 ${tab.color} group-hover:scale-110 transition-transform`} />
-                <span>{tab.label}</span>
+                <tab.icon className={`w-3.5 h-3.5 sm:w-4 h-4 ${tab.color} group-hover:scale-110 transition-transform`} />
+                <span className="hidden 2xl:inline">{tab.label}</span>
+                <span className="2xl:hidden">{tab.label.split(" ")[0]}</span>
                 {currentTab === tab.id && (
                   <motion.div
                     layoutId="top-nav-active"
@@ -158,24 +159,26 @@ export default function TopNavbar({
             {(isProfessorOrAdmin || maxAllowedPhase >= 2) && (
               <button
                 onClick={() => onTabChange("sandbox")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                className={`px-3 sm:px-4 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
                   currentTab === "sandbox" ? "text-white bg-white/5 border border-white/10" : "text-text-secondary hover:text-white hover:bg-white/5"
                 }`}
               >
-                <SlidersHorizontal className="w-4 h-4 text-accent-primary" />
-                <span>{appLanguage === "en" ? "Tech Lab" : "Laboratório Técnico"}</span>
+                <SlidersHorizontal className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-primary" />
+                <span className="hidden 2xl:inline">{appLanguage === "en" ? "Tech Lab" : "Laboratório Técnico"}</span>
+                <span className="2xl:hidden">Lab</span>
               </button>
             )}
 
             {isProfessorOrAdmin && (
               <button
                 onClick={() => onTabChange("professor")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                className={`px-3 sm:px-4 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
                   currentTab === "professor" ? "text-white bg-white/5 border border-white/10" : "text-text-secondary hover:text-white hover:bg-white/5"
                 }`}
               >
-                <Terminal className="w-4 h-4 text-accent-warning" />
-                <span>{appLanguage === "en" ? "Cockpit" : "Professor"}</span>
+                <Terminal className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-warning" />
+                <span className="hidden 2xl:inline">{appLanguage === "en" ? "Cockpit" : "Professor"}</span>
+                <span className="2xl:hidden">Profe</span>
               </button>
             )}
           </nav>

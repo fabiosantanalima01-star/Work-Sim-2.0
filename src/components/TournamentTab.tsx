@@ -6,13 +6,15 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Student } from "../types";
 import { db } from "../lib/firebase";
-import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
-import { Globe, Trophy, Users, Award, Star, TrendingUp, Zap, Target, ShieldCheck, RefreshCw } from "lucide-react";
+import { collection, onSnapshot, query, orderBy, limit, where } from "firebase/firestore";
+import { Globe, Trophy, Users, Award, Star, TrendingUp, Zap, Target, ShieldCheck, RefreshCw, Rocket, Target as TargetIcon } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { Challenge } from "../types";
 
 interface TournamentTabProps {
   localStudents: Student[];
   appLanguage: "pt" | "en";
+  onSelectChallenge?: (challengeId: string, phaseId: number) => void;
 }
 
 interface ClassRanking {
@@ -23,8 +25,9 @@ interface ClassRanking {
   topStudent: string;
 }
 
-export default function TournamentTab({ localStudents, appLanguage }: TournamentTabProps) {
+export default function TournamentTab({ localStudents, appLanguage, onSelectChallenge }: TournamentTabProps) {
   const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [globalChallenges, setGlobalChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Sync All Students from Firestore for accurate class totals
@@ -46,6 +49,27 @@ export default function TournamentTab({ localStudents, appLanguage }: Tournament
     }, (error) => {
       console.error("Error fetching global ranking:", error);
       setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Sync Global Challenges (Custom Challenges assigned to ALL)
+  useEffect(() => {
+    const q = query(
+      collection(db, "custom_challenges"),
+      orderBy("id", "desc"),
+      limit(5)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const challenges: Challenge[] = [];
+      snapshot.forEach((doc) => {
+        challenges.push(doc.data() as Challenge);
+      });
+      setGlobalChallenges(challenges);
+    }, (error) => {
+      console.error("Error fetching global challenges:", error);
     });
 
     return () => unsubscribe();
@@ -169,6 +193,63 @@ export default function TournamentTab({ localStudents, appLanguage }: Tournament
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         
+        {/* ACTIVE GLOBAL CHALLENGES (DESAFIO GLOBAL) */}
+        {globalChallenges.length > 0 && (
+          <section className="col-span-1 xl:col-span-2 space-y-4 animate-in slide-in-from-bottom duration-700">
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                  <Rocket className="w-4 h-4 text-amber-400" />
+                </div>
+                <h2 className="text-lg font-black text-white uppercase tracking-tight">Desafios Globais Ativos</h2>
+              </div>
+              <span className="text-[10px] font-mono text-amber-500/80 uppercase font-bold tracking-widest animate-pulse">
+                Missões em Tempo Real
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {globalChallenges.map((challenge, idx) => (
+                <motion.div
+                  key={challenge.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="glass-panel p-5 rounded-2xl border border-amber-500/20 bg-gradient-to-br from-slate-900/60 to-amber-950/20 relative overflow-hidden group hover:border-amber-500/40 transition-all cursor-default"
+                >
+                  <div className="absolute top-0 right-0 bg-amber-500/10 px-3 py-1 text-[9px] rounded-bl text-amber-400 uppercase font-bold font-mono">
+                    Fase {challenge.fase}
+                  </div>
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 text-amber-400 shrink-0 group-hover:scale-110 transition-transform">
+                      <TargetIcon className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1 min-w-0">
+                      <h4 className="text-sm font-black text-white uppercase truncate">{challenge.titulo}</h4>
+                      <p className="text-[10px] text-gray-400 font-mono uppercase tracking-tight truncate">{challenge.focoTecnico}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-amber-400 font-mono">+{challenge.xpRecompensa} <span className="text-[10px] opacity-60 text-gray-400">XP</span></span>
+                    </div>
+                    {onSelectChallenge && (
+                      <button 
+                        onClick={() => onSelectChallenge(challenge.id, challenge.fase)}
+                        className="px-3 py-1 rounded-lg bg-amber-500 text-slate-950 text-[10px] font-black uppercase hover:bg-amber-400 transition-all cursor-pointer shadow-lg shadow-amber-500/20"
+                      >
+                        Aceitar Desafio
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* INTERCLASSES RANKING */}
         <section className="space-y-4">
           <div className="flex items-center justify-between px-2">

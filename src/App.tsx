@@ -338,6 +338,23 @@ export default function App() {
     return unsubscribe;
   }, []);
 
+  // Auto-login when firebaseUser is authenticated and matches a student record
+  useEffect(() => {
+    if (firebaseUser && firebaseUser.email && !activeStudentId) {
+      const userEmail = firebaseUser.email.toLowerCase();
+      const matched = students.find(s => s.email?.toLowerCase() === userEmail) || 
+                      INITIAL_STUDENTS.find(s => s.email?.toLowerCase() === userEmail);
+      if (matched) {
+        setActiveStudentId(matched.id);
+        setSelectedPhaseId(matched.faseAtual);
+        setOnboardingFinished(true);
+      } else if (userEmail === "fabiosantanalima01@gmail.com") {
+        setActiveStudentId("adm");
+        setOnboardingFinished(true);
+      }
+    }
+  }, [firebaseUser, students, activeStudentId]);
+
   // Sync / Listen to Students from Firestore
   useEffect(() => {
     setIsFirebaseSyncing(true);
@@ -546,7 +563,7 @@ export default function App() {
   }>({ critical: null, telemetry: null });
 
   const processSyncQueue = useCallback((type: 'critical' | 'telemetry') => {
-    if (!firebaseUser) return;
+    if (!firebaseUser && !activeStudentId) return;
     const queue = syncQueueRef.current[type];
     const studentIds = Object.keys(queue);
     if (studentIds.length === 0) return;
@@ -567,7 +584,7 @@ export default function App() {
     // Clear queue after processing
     syncQueueRef.current[type] = {};
     syncTimersRef.current[type] = null;
-  }, [firebaseUser]);
+  }, [firebaseUser, activeStudentId]);
 
   const queueSync = useCallback((student: Student, type: 'critical' | 'telemetry') => {
     syncQueueRef.current[type][student.id] = student;
@@ -583,7 +600,7 @@ export default function App() {
 
   // Push local changes of students to Firestore with priority debouncing
   useEffect(() => {
-    if (!firebaseUser) return;
+    if (!firebaseUser && !activeStudentId) return;
 
     students.forEach((s) => {
       const synced = lastFirestoreSyncedRef.current[s.id];
@@ -1033,7 +1050,12 @@ Para resolver:
         }));
       })
       .catch((err) => {
-        console.error("Failed to translate challenge:", err);
+        console.error("Failed to translate challenge, using local fallback:", err);
+        const fallback = translateChallenge(rawChallenge, "en");
+        setTranslatedChallengesCache((prev) => ({
+          ...prev,
+          [selectedChallengeId]: fallback
+        }));
       })
       .finally(() => {
         setIsTranslatingChallenge(false);
@@ -2480,10 +2502,8 @@ Para resolver:
           prev.map((s) => (s.matricula === targetMatricula ? updatedStudent : s))
         );
         
-        // Sync to Firestore if logged in
-        if (firebaseUser) {
-          syncSetDoc("students", updatedStudent.id, sanitizeForFirestore(updatedStudent), { merge: true }).catch(console.error);
-        }
+        // Sync to Firestore universally
+        syncSetDoc("students", updatedStudent.id, sanitizeForFirestore(updatedStudent), { merge: true }).catch(console.error);
 
         setActiveStudentId(matched.id);
       } else {
@@ -2506,10 +2526,8 @@ Para resolver:
         };
         setStudents((prev) => [...prev, newVeteran]);
         
-        // Sync to Firestore if logged in
-        if (firebaseUser) {
-          syncSetDoc("students", newVeteran.id, sanitizeForFirestore(newVeteran)).catch(console.error);
-        }
+        // Sync to Firestore universally
+        syncSetDoc("students", newVeteran.id, sanitizeForFirestore(newVeteran)).catch(console.error);
 
         setActiveStudentId(newVetId);
       }
@@ -2773,17 +2791,32 @@ Para resolver:
 
     const doc = new jsPDF();
     const studentName = activeStudent.nomeCompleto || "Estudante";
-    const dateStr = new Date().toLocaleDateString("pt-BR");
+    const isEn = appLanguage === "en";
+    const dateStr = new Date().toLocaleDateString(isEn ? "en-US" : "pt-BR");
 
     // Header
     doc.setFontSize(18);
     doc.setTextColor(0, 51, 102);
-    doc.text("Gabarito de Revisão - Desafios Errados", 14, 20);
+    doc.text(
+      isEn ? "Review Answer Key - Incorrect Challenges" : "Gabarito de Revisão - Desafios Errados",
+      14,
+      20
+    );
     
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text(`Aluno: ${studentName} | Matrícula: ${activeStudent.matricula}`, 14, 28);
-    doc.text(`Data de Emissão: ${dateStr}`, 14, 33);
+    doc.text(
+      isEn
+        ? `Student: ${studentName} | ID: ${activeStudent.matricula}`
+        : `Aluno: ${studentName} | Matrícula: ${activeStudent.matricula}`,
+      14,
+      28
+    );
+    doc.text(
+      isEn ? `Issue Date: ${dateStr}` : `Data de Emissão: ${dateStr}`,
+      14,
+      33
+    );
     
     doc.setDrawColor(200, 200, 200);
     doc.line(14, 36, 196, 36);
@@ -2796,27 +2829,55 @@ Para resolver:
     if (incorrectChallengeIds.length === 0) {
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
-      doc.text("Parabéns! Você não possui erros registrados até o momento.", 14, 45);
+      doc.text(
+        isEn
+          ? "Congratulations! You have no recorded errors so far."
+          : "Parabéns! Você não possui erros registrados até o momento.",
+        14,
+        45
+      );
     } else {
       const dataRows: any[] = [];
       
       incorrectChallengeIds.forEach((id) => {
         const challenge = CHALLENGES_DATA.find(c => c.id === id);
         if (challenge) {
+          const ch = isEn
+            ? ((challenge.fase === -1 && translatedChallengesCache[challenge.id])
+                ? translatedChallengesCache[challenge.id]
+                : translateChallenge(challenge, "en"))
+            : challenge;
+
           const fase = CAREER_PHASES.find(p => p.id === challenge.fase);
-          const faseNome = fase ? fase.cargo : `Fase ${challenge.fase}`;
+          let faseNome = "";
+          if (isEn) {
+            if (challenge.fase === -1) {
+              faseNome = "Review Simulation";
+            } else {
+              const moduloName = translateModuleName(challenge.fase, fase?.moduloTecnico || "", "en");
+              faseNome = `Phase ${challenge.fase}: ${moduloName}`;
+            }
+          } else {
+            faseNome = fase ? fase.cargo : `Fase ${challenge.fase}`;
+          }
           
+          const titleText = ch.titulo || challenge.titulo;
+          const queixaText = ch.queixa || challenge.queixa;
+          const justificativaText = ch.gabarito?.valoresCorretos?.justificativa || challenge.gabarito?.valoresCorretos?.justificativa || (isEn ? "See manual." : "Consulte o manual para mais detalhes.");
+
           dataRows.push([
-            { content: `${challenge.titulo}\n(${faseNome})`, styles: { fontStyle: 'bold' } },
-            challenge.queixa,
-            challenge.gabarito.valoresCorretos.justificativa || "Consulte o manual para mais detalhes."
+            { content: `${titleText}\n(${faseNome})`, styles: { fontStyle: 'bold' } },
+            queixaText,
+            justificativaText
           ]);
         }
       });
 
       autoTable(doc, {
         startY: 40,
-        head: [['Desafio / Fase', 'Questão / Queixa', 'Gabarito Explicativo']],
+        head: isEn
+          ? [['Challenge / Phase', 'Question / Complaint', 'Official Answer / Explanation']]
+          : [['Desafio / Fase', 'Questão / Queixa', 'Gabarito Explicativo']],
         body: dataRows,
         theme: 'grid',
         headStyles: { fillColor: [0, 51, 102], textColor: [255, 255, 255], fontStyle: 'bold' },
@@ -2829,7 +2890,7 @@ Para resolver:
       });
     }
 
-    doc.save(`Revisao_Erros_${activeStudent.matricula}.pdf`);
+    doc.save(isEn ? `Review_Errors_${activeStudent.matricula}.pdf` : `Revisao_Erros_${activeStudent.matricula}.pdf`);
     playSoundEffect("success");
   };
 
@@ -2837,16 +2898,21 @@ Para resolver:
     if (!activeStudent) return;
     
     const email = providedEmail || activeStudent.email;
+    const isEn = appLanguage === "en";
     
     if (!email) {
-      const userEmail = prompt("Informe seu email para backup do gabarito:");
+      const userEmail = prompt(
+        isEn
+          ? "Enter your email for the answer key backup:"
+          : "Informe seu email para backup do gabarito:"
+      );
       if (userEmail && userEmail.includes("@")) {
         // Save email to student
         const updatedStudent = { ...activeStudent, email: userEmail };
         setStudents(prev => prev.map(s => s.id === activeStudent.id ? updatedStudent : s));
         handleSendCheatSheetEmail(userEmail);
       } else if (userEmail) {
-        alert("Email inválido.");
+        alert(isEn ? "Invalid email." : "Email inválido.");
       }
       return;
     }
@@ -2854,15 +2920,29 @@ Para resolver:
     // Generate PDF as data URL
     const doc = new jsPDF();
     const studentName = activeStudent.nomeCompleto || "Estudante";
-    const dateStr = new Date().toLocaleDateString("pt-BR");
+    const dateStr = new Date().toLocaleDateString(isEn ? "en-US" : "pt-BR");
 
     doc.setFontSize(18);
     doc.setTextColor(0, 51, 102);
-    doc.text("Gabarito de Revisão - Desafios Errados", 14, 20);
+    doc.text(
+      isEn ? "Review Answer Key - Incorrect Challenges" : "Gabarito de Revisão - Desafios Errados",
+      14,
+      20
+    );
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text(`Aluno: ${studentName} | Matrícula: ${activeStudent.matricula}`, 14, 28);
-    doc.text(`Data de Emissão: ${dateStr}`, 14, 33);
+    doc.text(
+      isEn
+        ? `Student: ${studentName} | ID: ${activeStudent.matricula}`
+        : `Aluno: ${studentName} | Matrícula: ${activeStudent.matricula}`,
+      14,
+      28
+    );
+    doc.text(
+      isEn ? `Issue Date: ${dateStr}` : `Data de Emissão: ${dateStr}`,
+      14,
+      33
+    );
     doc.setDrawColor(200, 200, 200);
     doc.line(14, 36, 196, 36);
 
@@ -2870,7 +2950,11 @@ Para resolver:
     const incorrectChallengeIds = Object.keys(respuestas).filter(id => respuestas[id] === false);
 
     if (incorrectChallengeIds.length === 0) {
-      alert("Você não possui erros registrados para enviar.");
+      alert(
+        isEn
+          ? "You have no recorded errors to send."
+          : "Você não possui erros registrados para enviar."
+      );
       return;
     }
 
@@ -2878,19 +2962,42 @@ Para resolver:
     incorrectChallengeIds.forEach((id) => {
       const challenge = CHALLENGES_DATA.find(c => c.id === id);
       if (challenge) {
+        const ch = isEn
+          ? ((challenge.fase === -1 && translatedChallengesCache[challenge.id])
+              ? translatedChallengesCache[challenge.id]
+              : translateChallenge(challenge, "en"))
+          : challenge;
+
         const fase = CAREER_PHASES.find(p => p.id === challenge.fase);
-        const faseNome = fase ? fase.cargo : `Fase ${challenge.fase}`;
+        let faseNome = "";
+        if (isEn) {
+          if (challenge.fase === -1) {
+            faseNome = "Review Simulation";
+          } else {
+            const moduloName = translateModuleName(challenge.fase, fase?.moduloTecnico || "", "en");
+            faseNome = `Phase ${challenge.fase}: ${moduloName}`;
+          }
+        } else {
+          faseNome = fase ? fase.cargo : `Fase ${challenge.fase}`;
+        }
+
+        const titleText = ch.titulo || challenge.titulo;
+        const queixaText = ch.queixa || challenge.queixa;
+        const justificativaText = ch.gabarito?.valoresCorretos?.justificativa || challenge.gabarito?.valoresCorretos?.justificativa || (isEn ? "See manual." : "Consulte o manual.");
+
         dataRows.push([
-          { content: `${challenge.titulo}\n(${faseNome})`, styles: { fontStyle: 'bold' } },
-          challenge.queixa,
-          challenge.gabarito.valoresCorretos?.justificativa || "Consulte o manual."
+          { content: `${titleText}\n(${faseNome})`, styles: { fontStyle: 'bold' } },
+          queixaText,
+          justificativaText
         ]);
       }
     });
 
     autoTable(doc, {
       startY: 40,
-      head: [['Desafio / Fase', 'Questão / Queixa', 'Gabarito Explicativo']],
+      head: isEn
+        ? [['Challenge / Phase', 'Question / Complaint', 'Official Answer / Explanation']]
+        : [['Desafio / Fase', 'Questão / Queixa', 'Gabarito Explicativo']],
       body: dataRows,
       theme: 'grid',
       headStyles: { fillColor: [0, 51, 102], textColor: [255, 255, 255] },
@@ -2907,23 +3014,30 @@ Para resolver:
           email,
           studentName: activeStudent.nomeCompleto,
           pdfBase64,
-          matricula: activeStudent.matricula
+          matricula: activeStudent.matricula,
+          lang: appLanguage
         })
       });
 
       if (response.ok) {
         const toast = document.createElement("div");
         toast.className = "fixed bottom-5 right-5 z-[20000] bg-emerald-500 text-slate-950 p-4 rounded-xl shadow-2xl flex items-center gap-3 animate-bounce font-sans font-black border border-emerald-400 text-xs";
-        toast.innerHTML = `<span>✓ Gabarito enviado para ${email}!</span>`;
+        toast.innerHTML = isEn
+          ? `<span>✓ Answer key sent to ${email}!</span>`
+          : `<span>✓ Gabarito enviado para ${email}!</span>`;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 4000);
         playSoundEffect("success");
       } else {
         const error = await response.json();
-        alert(`Erro: ${error.error}`);
+        alert(isEn ? `Error: ${error.error}` : `Erro: ${error.error}`);
       }
     } catch (err) {
-      alert("Erro ao conectar com o servidor de email.");
+      alert(
+        isEn
+          ? "Error connecting to the email server."
+          : "Erro ao conectar com o servidor de email."
+      );
     }
   };
 
@@ -5331,20 +5445,20 @@ Para resolver:
                         type="button"
                         onClick={handleDownloadCheatSheet}
                         className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl transition-all cursor-pointer font-bold text-[10px] group"
-                        title="Baixar Gabarito Explicativo dos Desafios Errados (PDF)"
+                        title={appLanguage === "en" ? "Download Explanatory Answer Key for Incorrect Challenges (PDF)" : "Baixar Gabarito Explicativo dos Desafios Errados (PDF)"}
                       >
                         <FileDown className="w-3.5 h-3.5 group-hover:animate-bounce" />
-                        <span>SISTEMA DE COLA (PDF)</span>
+                        <span>{appLanguage === "en" ? "CHEAT SHEET (PDF)" : "SISTEMA DE COLA (PDF)"}</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleSendCheatSheetEmail()}
                         className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl transition-all cursor-pointer font-bold text-[10px] group"
-                        title="Enviar Gabarito Explicativo por Email"
+                        title={appLanguage === "en" ? "Send Explanatory Answer Key by Email" : "Enviar Gabarito Explicativo por Email"}
                       >
                         <Mail className="w-3.5 h-3.5 group-hover:scale-110" />
-                        <span>ENVIAR PARA EMAIL</span>
+                        <span>{appLanguage === "en" ? "SEND TO EMAIL" : "ENVIAR PARA EMAIL"}</span>
                       </button>
                     </div>
                   </div>
@@ -8218,20 +8332,20 @@ Para resolver:
                 type="button"
                 onClick={handleDownloadCheatSheet}
                 className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl transition-all cursor-pointer font-bold text-xs group"
-                title="Baixar Gabarito Explicativo de todos os seus erros até agora (PDF)"
+                title={appLanguage === "en" ? "Download Explanatory Answer Key of all your errors so far (PDF)" : "Baixar Gabarito Explicativo de todos os seus erros até agora (PDF)"}
               >
                 <FileDown className="w-4 h-4 group-hover:animate-bounce" />
-                <span>REVISAR ERROS GERAIS (PDF)</span>
+                <span>{appLanguage === "en" ? "REVIEW GENERAL ERRORS (PDF)" : "REVISAR ERROS GERAIS (PDF)"}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleSendCheatSheetEmail()}
                 className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl transition-all cursor-pointer font-bold text-xs group"
-                title="Receber gabarito explicativo dos erros no seu email"
+                title={appLanguage === "en" ? "Receive explanatory answer key of errors in your email" : "Receber gabarito explicativo dos erros no seu email"}
               >
                 <Mail className="w-4 h-4 group-hover:scale-110" />
-                <span>ENVIAR REVISÃO PARA EMAIL</span>
+                <span>{appLanguage === "en" ? "SEND REVIEW TO EMAIL" : "ENVIAR REVISÃO PARA EMAIL"}</span>
               </button>
 
               <button

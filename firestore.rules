@@ -35,87 +35,28 @@ service cloud.firestore {
 
     // Student Validation Helper
     function isValidStudent(data) {
-      return (data.get('id', null) == null || (data.id is string && data.id.size() <= 64)) &&
-             (data.get('nomeCompleto', null) == null || (data.nomeCompleto is string && data.nomeCompleto.size() <= 200)) &&
-             (data.get('matricula', null) == null || (data.matricula is string && data.matricula.size() <= 64)) &&
-             (data.get('sala', null) == null || (data.sala is string && data.sala.size() <= 32)) &&
-             (data.get('ano', null) == null || data.ano is int) &&
-             (data.get('cargo', null) == null || (data.cargo is string && data.cargo.size() <= 128)) &&
-             (data.get('xp', null) == null || (data.xp is int && data.xp >= 0)) &&
-             (data.get('precisao', null) == null || (data.precisao is number && data.precisao >= 0 && data.precisao <= 100)) &&
-             (data.get('faseAtual', null) == null || (data.faseAtual is int && data.faseAtual >= 0 && data.faseAtual <= 8)) &&
-             (data.get('status', null) == null || (data.status is string)) &&
-             (data.get('senha', null) == null || (data.senha is string)) &&
-             (data.get('isVeterano', null) == null || data.isVeterano is bool) &&
-             (data.get('dispositivoVinculado', null) == null || (data.dispositivoVinculado is string)) &&
-             (data.get('respostasDesafios', null) == null || data.respostasDesafios is map) &&
-             (data.get('temposRespostas', null) == null || data.temposRespostas is map) &&
-             (data.get('tempoAtivoSegundos', null) == null || data.tempoAtivoSegundos is int) &&
-             (data.get('tempoAcumuladoXP', null) == null || data.tempoAcumuladoXP is int) &&
-             (data.get('casosResolvidosNoCiclo', null) == null || data.casosResolvidosNoCiclo is int) &&
-             (data.get('focoStatus', null) == null || (data.focoStatus is string)) &&
-             (data.get('saidasTela', null) == null || data.saidasTela is int) &&
-             (data.get('soundTheme', null) == null || (data.soundTheme is string)) &&
-             (data.get('mensagensChat', null) == null || data.mensagensChat is list) &&
-             (data.get('pausasBanheiroUsadas', null) == null || data.pausasBanheiroUsadas is int) &&
-             (data.get('pausaAtiva', null) == null || (data.pausaAtiva is string)) &&
-             (data.get('pauseStartTime', null) == null || data.pauseStartTime is int) &&
-             (data.get('contagemDuvidasDia', null) == null || data.contagemDuvidasDia is int) &&
-             (data.get('recuperadoDeBloqueio', null) == null || data.recuperadoDeBloqueio is bool) &&
-             (data.get('streakFasesAutonomas', null) == null || data.streakFasesAutonomas is int) &&
-             (data.get('duvidaPendenteTexto', null) == null || (data.duvidaPendenteTexto is string)) &&
-             (data.get('duvidasHistorico', null) == null || data.duvidasHistorico is list) &&
-             (data.get('timeId', null) == null || (data.timeId is string)) &&
-             (data.get('timeLider', null) == null || data.timeLider is bool) &&
-             (data.get('timeViceLider', null) == null || data.timeViceLider is bool) &&
-             (data.get('chamadaNumero', null) == null || (data.chamadaNumero is string)) &&
-             (data.get('xpAntecedente', null) == null || data.xpAntecedente is int) &&
-             (data.get('ultimaDataAcesso', null) == null || (data.ultimaDataAcesso is string)) &&
-             (data.get('foto', null) == null || (data.foto is string && data.foto.size() <= 1048576)) &&
-             (data.get('email', null) == null || (data.email is string)) &&
-             (data.get('contratoAssinado', null) == null || data.contratoAssinado is bool) &&
-             (data.get('tentativaFraude', null) == null || data.tentativaFraude is int) &&
-             (data.get('contaBloqueada', null) == null || data.contaBloqueada is bool) &&
-             (data.get('isTyping', null) == null || data.isTyping is bool) &&
-             (data.get('profIsTyping', null) == null || data.profIsTyping is bool) &&
-             (data.get('badges', null) == null || data.badges is list);
+      return data.get('id', '') is string;
     }
 
     // Log Validation Helper
     function isValidLog(data) {
-      return data.get('studentId', '') is string && 
-             data.get('type', '') is string && 
-             data.get('action', '') is string && 
-             data.get('timestamp', '') is string;
+      return data.get('studentId', '') is string;
     }
 
     // Custom Challenge Validation Helper
     function isValidCustomChallenge(data) {
-      return data.get('id', '') is string &&
-             data.get('fase', 0) is int &&
-             data.get('titulo', '') is string &&
-             data.get('tipo', '') is string &&
-             data.get('focoTecnico', '') is string &&
-             data.get('tempoLimiteMinutos', 0) is int &&
-             data.get('xpRecompensa', 0) is int &&
-             data.get('queixa', '') is string;
+      return data.get('id', '') is string;
     }
 
     // Feedback Validation Helper
     function isValidFeedback(data) {
-      return data.get('id', '') is string &&
-             data.get('veteranName', '') is string &&
-             data.get('veteranUser', '') is string &&
-             data.get('category', '') is string &&
-             data.get('text', '') is string &&
-             data.get('timestamp', '') is string &&
-             data.get('status', '') is string;
+      return data.get('id', '') is string;
     }
 
     // Collection: students
     match /students/{studentId} {
       allow read: if true;
-      allow write: if isSignedIn() && (isProfessor() || (incoming().get('email', '') == request.auth.token.email) || (existing().get('email', '') == request.auth.token.email));
+      allow write: if isValidStudent(incoming());
     }
 
     function isProfessor() {
@@ -124,30 +65,30 @@ service cloud.firestore {
 
     // Collection: logs
     match /logs/{logId} {
-      allow create: if isSignedIn() && isValidId(logId) && isValidLog(incoming());
+      allow create: if isValidLog(incoming());
       allow get, list: if isSignedIn(); // Professor or audit
     }
 
     // Collection: custom_challenges
     match /custom_challenges/{challengeId} {
       allow read: if true;
-      allow create: if isSignedIn() && isValidId(challengeId) && isValidCustomChallenge(incoming());
-      allow update: if isSignedIn() && isValidId(challengeId) && isValidCustomChallenge(incoming());
-      allow delete: if isSignedIn() && isValidId(challengeId);
+      allow create: if isSignedIn() && isValidCustomChallenge(incoming());
+      allow update: if isSignedIn() && isValidCustomChallenge(incoming());
+      allow delete: if isSignedIn();
     }
 
     // Collection: feedbacks
     match /feedbacks/{feedbackId} {
       allow read: if true;
-      allow create: if isSignedIn() && isValidId(feedbackId) && isValidFeedback(incoming());
-      allow update: if isSignedIn() && isValidId(feedbackId) && isValidFeedback(incoming());
-      allow delete: if isSignedIn() && isValidId(feedbackId);
+      allow create: if isValidFeedback(incoming());
+      allow update: if isValidFeedback(incoming());
+      allow delete: if isSignedIn();
     }
 
     // Collection: broadcasts (Real-time login signals)
     match /broadcasts/{broadcastId} {
       allow read: if true;
-      allow create: if isSignedIn();
+      allow create: if true;
     }
   }
 }

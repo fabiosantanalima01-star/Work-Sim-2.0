@@ -405,6 +405,217 @@ export const CHALLENGE_TRANSLATIONS: Record<string, {
       "The employer must pay for all 18 days of sickness leave out of pocket, without government help.",
       "The government (INSS) pays for the entire 18 days starting from day 1, leaving zero cost for the company."
     ]
+  },
+  // Phase -1: Review Simulation (Simulado de Revisão)
+  "-1.1": {
+    titulo: "Question 1: Elements of the Employment Relationship",
+    queixa: "For an employment relationship to be configured, according to Art. 3 of the CLT, it is necessary, cumulatively:",
+    focoTecnico: "Article 3 of the CLT",
+    opcoes: [
+      "a) Subordination, eventuality, onerousness, and legal entity.",
+      "b) Pessoalidade (Personality), subordination, onerosidade (onerousness), não eventualidade (habituality), and being an individual person.",
+      "c) Personality, autonomy, gratuity, and habituality.",
+      "d) Subordination, eventuality, individual person, and fixed salary."
+    ],
+    gabaritoExplicacao: "Art. 3 of the CLT defines an employee as any individual person who provides services of a non-eventual nature to an employer, under their dependency and for a salary. Requirements: Personality, non-eventuality, onerousness, subordination, and being an individual person."
+  },
+  "-1.2": {
+    titulo: "Question 2: Workday Divisor",
+    queixa: "The standard divisor for calculating the normal hourly rate for an employee with a 44-hour workweek is:",
+    focoTecnico: "Workday / Shift",
+    opcoes: ["a) 200", "b) 180", "c) 220", "d) 240"],
+    gabaritoExplicacao: "For a 44-hour workweek, we multiply by 5 monthly weeks (on average, considering rest), resulting in the 220 divisor. (44 / 6 workdays * 30 days = 220)."
+  },
+  "-1.3": {
+    titulo: "Question 3: Danger Premium",
+    queixa: "The danger premium (adicional de periculosidade) is due to employees working in risky conditions and corresponds to:",
+    focoTecnico: "Salary Premiums",
+    opcoes: [
+      "a) 20% on the minimum wage.",
+      "b) 30% on the base salary.",
+      "c) 40% on the normal hour.",
+      "d) 50% on the contractual salary."
+    ],
+    gabaritoExplicacao: "The danger premium is 30% on the employee's base salary, without the additions resulting from bonuses, awards, or profit sharing."
+  },
+  "-1.4": {
+    titulo: "Question 4: Unexcused Absence & DSR",
+    queixa: "Regarding unexcused absence, select the correct option:",
+    focoTecnico: "Absences and DSR",
+    opcoes: [
+      "a) The employee loses only the salary for the day of the absence but keeps the DSR.",
+      "b) The employee loses the payment for the day of absence and also the DSR for that week.",
+      "c) The employee only loses the DSR if they have 3 absences in the same month.",
+      "d) Unexcused absence does not generate any financial deduction, only a warning."
+    ],
+    gabaritoExplicacao: "The employee who is absent without excuse loses the payment for the day of the absence and also the right to the Paid Weekly Rest (DSR) of that week."
+  },
+  "-1.5": {
+    titulo: "Question 5: 13th Salary Deadline",
+    queixa: "The deadline for payment of the 1st installment of the 13th salary (gratificação natalina) is:",
+    focoTecnico: "13th Salary",
+    opcoes: [
+      "a) Between February 1st and November 30th.",
+      "b) Always in the employee's birthday month.",
+      "c) Up to December 20th.",
+      "d) At the employer's discretion, at any time of the year."
+    ],
+    gabaritoExplicacao: "The 1st installment of the 13th salary must be paid between February 1st and November 30th of each year."
+  },
+  "-1.6": {
+    titulo: "Question 6: Young Apprentice FGTS",
+    queixa: "The FGTS deposit rate for a Young Apprentice (Jovem Apprentice) contract is:",
+    focoTecnico: "Young Apprentice",
+    opcoes: ["a) 8%", "b) 11%", "c) 2%", "d) 4%"],
+    gabaritoExplicacao: "In the Young Apprentice contract (Law 10.097/2000), the FGTS rate is reduced to 2%."
+  },
+  "-1.7": {
+    titulo: "Question 7: Urban Night Shift Differential",
+    queixa: "The night shift premium (adicional noturno) for urban workers corresponds to at least:",
+    focoTecnico: "Urban Night Shift",
+    opcoes: [
+      "a) 10% on the normal hour.",
+      "b) 20% on the normal hour.",
+      "c) 25% on the normal hour.",
+      "d) 50% on the normal hour."
+    ],
+    gabaritoExplicacao: "For urban workers, the night shift premium is 20% on the value of the daytime hour."
+  },
+  "-1.8": {
+    titulo: "Question 8: INSS Ceiling",
+    queixa: "The ceiling (teto) for the contribution salary to the INSS in 2024 is approximately:",
+    focoTecnico: "Social Security (INSS)",
+    opcoes: ["a) R$ 1,412.00", "b) R$ 5,000.00", "c) R$ 7,786.02", "d) R$ 10,000.00"],
+    gabaritoExplicacao: "The INSS ceiling for 2024 is R$ 7,786.02."
+  },
+  "-1.9": {
+    titulo: "Question 9: IRRF Tax Calculation Base",
+    queixa: "To calculate the Income Tax (IRRF) base, which of the following is deducted from the gross salary?",
+    focoTecnico: "Withholding Tax (IRRF)",
+    opcoes: [
+      "a) Only the FGTS.",
+      "b) The INSS contribution and dependent allowances.",
+      "c) Nothing is deducted from the gross salary.",
+      "d) Only the union contribution."
+    ],
+    gabaritoExplicacao: "The calculation base for IRRF is the gross salary minus the INSS contribution and the fixed deduction per dependent."
+  },
+  "-1.10": {
+    titulo: "Question 10: Just Cause and Severance",
+    queixa: "In a termination for Just Cause (Justa Causa), the employee is only entitled to receive:",
+    focoTecnico: "Just Cause Termination",
+    opcoes: [
+      "a) Salary balance and overdue vacations + 1/3.",
+      "b) Salary balance, 13th salary, and vacations.",
+      "c) Only the 40% FGTS fine.",
+      "d) Nothing, all rights are forfeited."
+    ],
+    gabaritoExplicacao: "In Just Cause, the employee only receives the salary balance (days worked) and any overdue vacations + 1/3 (if they have completed a full year). They lose 13th salary, proportional vacations, and the right to FGTS withdrawal/fine."
+  },
+  "-1.11": {
+    titulo: "Question 11: Internship Act Compliance",
+    queixa: "The Internship Law (Law 11.788/08) establishes that the internship relationship:",
+    focoTecnico: "Internship Law",
+    opcoes: [
+      "a) Creates an employment relationship (vínculo de emprego) automatically.",
+      "b) Does NOT create an employment relationship with the granting company.",
+      "c) Requires the payment of the 40% FGTS fine.",
+      "d) Gives the right to unemployment insurance."
+    ],
+    gabaritoExplicacao: "Art. 3 of Law 11.788/2008 expressly states that the internship does not create an employment relationship of any nature between the student and the granting company."
+  },
+  "-1.12": {
+    titulo: "Question 12: Interns and 13th Salary",
+    queixa: "According to Law 11.788/08, is the intern entitled to the 13th salary (gratificação natalina)?",
+    focoTecnico: "Internship Rights",
+    opcoes: [
+      "a) Yes, after 6 months of internship.",
+      "b) No, the law does not provide for 13th salary for interns, only a paid recess.",
+      "c) Yes, but only 50% of the value.",
+      "d) Only if the internship is non-mandatory."
+    ],
+    gabaritoExplicacao: "The Internship Law does not provide for the 13th salary. It only guarantees a paid recess of 30 days for every 1 year of internship (or proportional)."
+  },
+  "-1.13": {
+    titulo: "Question 13: Transportation Voucher Deduction",
+    queixa: "The maximum percentage that the employer can deduct from the employee's base salary for providing Vale-Transporte is:",
+    focoTecnico: "Transportation Voucher",
+    opcoes: ["a) 3%", "b) 10%", "c) 6%", "d) 8%"],
+    gabaritoExplicacao: "According to Law 7.418/85, the employer can deduct up to 6% of the employee's base salary for the Vale-Transporte cost."
+  },
+  "-1.14": {
+    titulo: "Question 14: Importance of CBO",
+    queixa: "What is the primary function of the CBO (Brazilian Classification of Occupations) in the employment contract?",
+    focoTecnico: "Job Classification (CBO)",
+    opcoes: [
+      "a) Defining the employee's monthly salary.",
+      "b) Identifying and standardizing the occupation for administrative and statistical purposes.",
+      "c) Replacing the job description in the contract.",
+      "d) Calculating the amount of Income Tax."
+    ],
+    gabaritoExplicacao: "The CBO identifies and standardizes occupations in the labor market, being mandatory for registration in the Work Booklet (CTPS) and e-Social."
+  },
+  "-1.15": {
+    titulo: "Question 15: Just Cause Requirements",
+    queixa: "For the application of Just Cause, the employer must respect the principle of:",
+    focoTecnico: "Labor Law Principles",
+    opcoes: [
+      "a) Optionality (it can be applied whenever desired).",
+      "b) Immediacy (applying the penalty as soon as the fault is known).",
+      "c) Retroactivity (punishing old facts).",
+      "d) Uncertainty (not explaining the reason)."
+    ],
+    gabaritoExplicacao: "The application of Just Cause requires Immediacy, Proportionality, and the absence of Double Punishment (Non bis in idem)."
+  },
+  "-1.16": {
+    titulo: "Question 16: Double Vacation Pay",
+    queixa: "Vacations paid 'in double' (férias em dobro) occur when:",
+    focoTecnico: "Vacation Compliance",
+    opcoes: [
+      "a) The employee works during vacations.",
+      "b) The employer grants vacations after the concessive period has ended.",
+      "c) The employee resigns before taking vacations.",
+      "d) The employee has more than 5 absences."
+    ],
+    gabaritoExplicacao: "If the employer fails to grant vacations within the 12 months following the acquisition period, they must pay them in double (Art. 137 CLT)."
+  },
+  "-1.17": {
+    titulo: "Question 17: INSS Calculation",
+    queixa: "The INSS contribution of the employee is calculated based on:",
+    focoTecnico: "Social Security Taxes",
+    opcoes: [
+      "a) Fixed progressive rates on the contribution salary.",
+      "b) A single 20% rate for everyone.",
+      "c) Only on the minimum wage.",
+      "d) Only on the net salary."
+    ],
+    gabaritoExplicacao: "INSS uses progressive rates (7.5%, 9%, 12%, 14%) applied to each salary bracket, up to the social security ceiling."
+  },
+  "-1.18": {
+    titulo: "Question 18: FGTS and Just Cause",
+    queixa: "In a termination for Just Cause, what happens to the FGTS account?",
+    focoTecnico: "FGTS Rules",
+    opcoes: [
+      "a) The employee can withdraw the balance and receive a 40% fine.",
+      "b) The employee CANNOT withdraw the balance and does not receive the 40% fine.",
+      "c) The balance is returned to the employer.",
+      "d) The government confiscates the balance."
+    ],
+    gabaritoExplicacao: "In Just Cause, the right to withdraw the FGTS and the 40% fine are forfeited by the employee."
+  },
+  "-1.19": {
+    titulo: "Question 19: Intern Working Hours",
+    queixa: "The maximum daily working hours for an intern in higher education is:",
+    focoTecnico: "Internship Hours",
+    opcoes: ["a) 4 hours", "b) 8 hours", "c) 6 hours", "d) 10 hours"],
+    gabaritoExplicacao: "For students in higher education or secondary vocational education, the daily limit is 6 hours (30 hours weekly)."
+  },
+  "-1.20": {
+    titulo: "Question 20: Reduced Night Hour Conversion",
+    queixa: "In urban night work, 52 minutes and 30 seconds are counted as:",
+    focoTecnico: "Night Shift Rules",
+    opcoes: ["a) 1 full hour (60 minutes).", "b) 45 minutes.", "c) 30 minutes.", "d) 50 minutes."],
+    gabaritoExplicacao: "According to Art. 73, §1º of the CLT, the urban night hour is reduced: 52 minutes and 30 seconds correspond to 1 legal hour."
   }
 };
 
@@ -434,6 +645,63 @@ export function translateModuleName(id: number, name: string, lang: "pt" | "en")
 }
 
 export const ALL_CHALLENGE_TITLES_EN: Record<string, string> = {
+  // Fase -1: Simulado de Revisão
+  "-1.1": "Question 1: Elements of the Employment Relationship",
+  "-1.2": "Question 2: Workday Divisor",
+  "-1.3": "Question 3: Danger Premium / Hazard Pay",
+  "-1.4": "Question 4: Unexcused Absence & DSR",
+  "-1.5": "Question 5: 13th Salary Deadline",
+  "-1.6": "Question 6: Apprentice FGTS",
+  "-1.7": "Question 7: Urban Night Shift Differential",
+  "-1.8": "Question 8: 2024 INSS Ceiling",
+  "-1.9": "Question 9: IRRF Tax Calculation Base",
+  "-1.10": "Question 10: Just Cause and Severance Payments",
+  "-1.11": "Question 11: Internship Act Compliance",
+  "-1.12": "Question 12: Interns and 13th Salary Rights",
+  "-1.13": "Question 13: Transportation Voucher Deduction Limit",
+  "-1.14": "Question 14: Importance of CBO",
+  "-1.15": "Question 15: Just Cause Requirements",
+  "-1.16": "Question 16: Double Vacation Pay",
+  "-1.17": "Question 17: INSS Calculation",
+  "-1.18": "Question 18: FGTS and Just Cause",
+  "-1.19": "Question 19: Intern Working Hours",
+  "-1.20": "Question 20: Reduced Night Hour Conversion",
+  "-1.21": "Question 21: Reduced Night Hour Duration",
+  "-1.22": "Question 22: Fictional Hour Benefit",
+  "-1.23": "Question 23: Real Night Pay Calculation",
+  "-1.24": "Question 24: Urban Night Labor Rules",
+  "-1.25": "Question 25: TST Precedent 60 (Súmula 60)",
+  "-1.26": "Question 26: Forfeited Rights in Just Cause",
+  "-1.27": "Question 27: Criteria for Just Cause",
+  "-1.28": "Question 28: Nature of Article 482",
+  "-1.29": "Question 29: Concept of Immediacy",
+  "-1.30": "Question 30: Burden of Proof",
+  "-1.31": "Question 31: Divisor Formula",
+  "-1.32": "Question 32: Divisor 220 Basis",
+  "-1.33": "Question 33: Divisor for 40h workweek",
+  "-1.34": "Question 34: TST Precedent 431 (Súmula 431)",
+  "-1.35": "Question 35: Divisor for 36h workweek",
+  "-1.36": "Question 36: Divisor for 30h workweek",
+  "-1.37": "Question 37: Divisor for 42h workweek",
+  "-1.38": "Question 38: Divisor for 24h workweek",
+  "-1.39": "Question 39: Origin of the 220 Divisor",
+  "-1.40": "Question 40: Bank Worker 40h Divisor",
+  "-1.41": "Question 41: Hourly Rate Calculation for 36h",
+  "-1.42": "Question 42: Hourly Rate Calculation for 30h",
+  "-1.43": "Question 43: Impact of Precedent 431",
+  "-1.44": "Question 44: Just Cause Scenarios",
+  "-1.45": "Question 45: Improbity",
+  "-1.46": "Question 46: Incontinence of Conduct",
+  "-1.47": "Question 47: Habitual Commercial Trade",
+  "-1.48": "Question 48: Criminal Conviction",
+  "-1.49": "Question 49: Slothfulness / Desídia",
+  "-1.50": "Question 50: Inebriation / Drunkenness",
+  "-1.51": "Question 51: Violation of Corporate Secrecy",
+  "-1.52": "Question 52: Indiscipline vs Insubordination",
+  "-1.53": "Question 53: Job Abandonment",
+  "-1.54": "Question 54: Honor and Physical Offenses",
+  "-1.55": "Question 55: Gambling Games",
+
   // Fase 0
   "0.1": "The Elements of the Employment Relationship",
   "0.2": "Hiring and the Nature of FGTS",
@@ -670,6 +938,143 @@ export function translateTextToEnglish(text: string): string {
 
   // General dictionary replacement of labor law terms
   const terms: [string, string][] = [
+    ["Questão ", "Question "],
+    ["Questao ", "Question "],
+    ["divisor padrão", "standard divisor"],
+    ["divisor de jornada", "workday divisor"],
+    ["divisor geral", "general divisor"],
+    ["é necessário", "is required"],
+    ["não se aplica", "does not apply"],
+    ["corresponde a", "corresponds to"],
+    ["assinale a opção", "select the option"],
+    ["qual o ", "what is the "],
+    ["com base na", "based on the"],
+    ["segundo a", "according to the"],
+    ["de acordo com", "according to"],
+    ["nos termos do", "under the terms of"],
+    ["conforme o", "as per the"],
+    ["Artigo ", "Article "],
+    ["Art. ", "Art. "],
+    ["Lei ", "Law "],
+    ["Lei nº ", "Law No. "],
+    ["Súmula ", "Precedent / Súmula "],
+    ["jornada de trabalho", "workday / work shift"],
+    ["adicional de periculosidade", "danger premium (periculosidade)"],
+    ["adicional de insalubridade", "health hazard premium (insalubridade)"],
+    ["sobre o salário-base", "on base salary"],
+    ["sobre o salário mínimo", "on minimum wage"],
+    ["falta injustificada", "unexcused absence"],
+    ["faltas injustificadas", "unexcused absences"],
+    ["perde a remuneração", "forfeits payment"],
+    ["DSR daquela semana", "DSR of that week"],
+    ["prazo para pagamento", "payment deadline"],
+    ["1ª parcela", "1st installment"],
+    ["2ª parcela", "2nd installment"],
+    ["jovem aprendiz", "young apprentice"],
+    ["alíquota do FGTS", "FGTS rate"],
+    ["trabalho prestado entre", "work performed between"],
+    ["tabela do INSS", "INSS table"],
+    ["teto do salário de contribuição", "contribution salary ceiling"],
+    ["alíquotas do INSS", "INSS rates"],
+    ["base de cálculo", "calculation base"],
+    ["Imposto de Renda", "Income Tax"],
+    ["IRRF", "IRRF (Withholding Tax)"],
+    ["pedido de demissão", "resignation request"],
+    ["aviso prévio", "notice period / prior notice"],
+    ["aviso prévio indenizado", "indemnified prior notice"],
+    ["aviso prévio trabalhado", "worked prior notice"],
+    ["estabilidade provisória", "provisional stability"],
+    ["gestante", "pregnant employee"],
+    ["desde a confirmação da gravidez", "from pregnancy confirmation"],
+    ["até 5 meses após o parto", "until 5 months after childbirth"],
+    ["acidente de trabalho", "workplace accident"],
+    ["CIPA", "CIPA (Internal Accident Prevention Commission)"],
+    ["membro eleito", "elected member"],
+    ["membro indicado", "appointed member"],
+    ["trabalho intermitente", "intermittent work"],
+    ["contrato de experiência", "probationary contract"],
+    ["limite de dias", "day limit"],
+    ["horas extras", "overtime hours"],
+    ["banco de horas", "hours bank"],
+    ["acordo individual escrito", "written individual agreement"],
+    ["acordo coletivo", "collective agreement"],
+    ["convenção coletiva", "collective bargaining agreement"],
+    ["intervalo intrajornada", "meal/rest break (intrajornada)"],
+    ["intervalo interjornada", "inter-workday rest break (interjornada)"],
+    ["mínimo de 11 horas", "minimum of 11 hours"],
+    ["mínimo de 1 hora", "minimum of 1 hour"],
+    ["controle de ponto", "time-tracking / clock-in"],
+    ["obrigatório para estabelecimentos com mais de", "mandatory for establishments with more than"],
+    ["20 trabalhadores", "20 workers"],
+    ["atestado médico", "medical certificate / doctor note"],
+    ["justificar a ausência", "excuse the absence"],
+    ["prazo de entrega", "submission deadline"],
+    ["abono de faltas", "absence excuses / abono"],
+    ["licença-maternidade", "maternity leave"],
+    ["120 dias", "120 days"],
+    ["licença-paternidade", "paternity leave"],
+    ["5 dias", "5 days"],
+    ["licença nojo", "bereavement leave (licença nojo)"],
+    ["falecimento de cônjuge", "death of spouse"],
+    ["licença gala", "marriage leave (licença gala)"],
+    ["casamento do empregado", "employee marriage"],
+    ["3 dias consecutivos", "3 consecutive days"],
+    ["vale-transporte", "transportation voucher"],
+    ["desconto máximo", "maximum deduction"],
+    ["6% do salário-base", "6% of base salary"],
+    ["salário-família", "family allowance (salário-família)"],
+    ["filho com até", "child up to"],
+    ["14 anos de idade", "14 years of age"],
+    ["equiparar salários", "equalize salaries / equal pay"],
+    ["mesma produtividade", "same productivity"],
+    ["mesma perfeição técnica", "same technical perfection"],
+    ["diferença de tempo de serviço", "service time difference"],
+    ["não superior a 2 anos", "not exceeding 2 years"],
+    ["desídia", "desídia (negligence / slackness)"],
+    ["embriaguez em serviço", "drunkenness on duty"],
+    ["ato de improbidade", "act of dishonesty / improbidade"],
+    ["incontinência de conduta", "incontinence of conduct"],
+    ["mau procedimento", "bad behavior / mau procedimento"],
+    ["ofensas físicas", "physical assaults"],
+    ["abandono de emprego", "job abandonment"],
+    ["ausência injustificada por mais de", "unexcused absence for more than"],
+    ["30 dias", "30 days"],
+    ["rescisão indireta", "indirect resignation / constructive dismissal"],
+    ["falta grave do empregador", "severe employer default"],
+    ["culpa recíproca", "reciprocal fault"],
+    ["ambas as partes", "both parties"],
+    ["cometem falta grave", "commit a serious default"],
+    ["acordo comum", "mutual agreement (Art. 484-A)"],
+    ["demissão por acordo", "termination by mutual agreement"],
+    ["multa do FGTS", "FGTS fine"],
+    ["reduzida para 20%", "reduced to 20%"],
+    ["reduzida pela metade", "reduced by half / halved"],
+    ["saque do FGTS", "FGTS withdrawal"],
+    ["limitado a 80%", "limited to 80%"],
+    ["seguro-desemprego", "unemployment insurance"],
+    ["não tem direito", "not entitled / no right"],
+    ["metade do aviso prévio", "half of notice period"],
+    ["férias vencidas", "overdue/expired vacations"],
+    ["férias proporcionais", "proportional vacations"],
+    ["13º proporcional", "proportional 13th salary"],
+    ["saldo de salário", "salary balance"],
+    ["empregado doméstico", "domestic worker"],
+    ["trabalho temporário", "temporary work"],
+    ["estagiário", "intern"],
+    ["não rege pela CLT", "not governed by CLT"],
+    ["lei própria", "own federal law"],
+    ["recesso remunerado", "paid recess / recess"],
+    ["vale-refeição", "meal voucher"],
+    ["vale-alimentação", "grocery voucher"],
+    ["patrono", "employer"],
+    ["empregador", "employer"],
+    ["trabalhador", "worker"],
+    ["colaborador", "employee / worker"],
+    ["convenção coletiva de trabalho", "collective bargaining agreement (CCT)"],
+    ["acordo coletivo de trabalho", "collective agreement (ACT)"],
+    ["Consolidação das Leis do Trabalho", "Consolidation of Labor Laws (CLT)"],
+    ["Ministério do Trabalho", "Ministry of Labor"],
+    ["Justiça do Trabalho", "Labor Court / Justice"],
     ["SAQUE LIBERADO — Direito reconhecido", "WITHDRAWAL RELEASED — Right recognized"],
     ["SAQUE BLOQUEADO — Direito negado", "WITHDRAWAL BLOCKED — Benefit denied"],
     ["SAQUE PARCIAL (80%) — Acordo consensual (Art. 484-A)", "PARTIAL WITHDRAWAL (80%) — Mutual agreement (Art. 484-A)"],

@@ -22,15 +22,20 @@ const transporter = nodemailer.createTransport({
 });
 
 // --- Gemini Sync ---
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-
-const getModel = (name: string) => (ai as any).getGenerativeModel({ model: name });
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY || "",
+  httpOptions: {
+    headers: {
+      "User-Agent": "aistudio-build",
+    },
+  },
+});
 
 app.use(express.json({ limit: "10mb" })); // Increase limit for PDF base64
 
 // Email Sending Endpoint
 app.post("/api/send-cheat-sheet", async (req, res) => {
-  const { email, studentName, pdfBase64, matricula } = req.body;
+  const { email, studentName, pdfBase64, matricula, lang } = req.body;
 
   if (!email || !pdfBase64) {
     return res.status(400).json({ error: "Email e PDF são obrigatórios." });
@@ -41,14 +46,18 @@ app.post("/api/send-cheat-sheet", async (req, res) => {
       throw new Error("Configuração de email ausente no servidor.");
     }
 
+    const isEn = lang === "en";
+
     const mailOptions = {
-      from: `"Simulador de RH" <${process.env.EMAIL_USER}>`,
+      from: isEn ? `"HR Simulator" <${process.env.EMAIL_USER}>` : `"Simulador de RH" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: `Gabarito de Revisão - ${studentName}`,
-      text: `Olá ${studentName},\n\nSegue em anexo o seu Gabarito de Revisão com os desafios errados até agora.\n\nBons estudos!\nEquipe Simulador de RH`,
+      subject: isEn ? `Review Answer Key - ${studentName}` : `Gabarito de Revisão - ${studentName}`,
+      text: isEn
+        ? `Hello ${studentName},\n\nAttached is your Review Answer Key (Cheat-sheet) with the incorrect challenges so far.\n\nHappy studying!\nHR Simulator Team`
+        : `Olá ${studentName},\n\nSegue em anexo o seu Gabarito de Revisão com os desafios errados até agora.\n\nBons estudos!\nEquipe Simulador de RH`,
       attachments: [
         {
-          filename: `Revisao_Erros_${matricula}.pdf`,
+          filename: isEn ? `Review_Errors_${matricula}.pdf` : `Revisao_Erros_${matricula}.pdf`,
           content: pdfBase64.split("base64,")[1] || pdfBase64,
           encoding: "base64",
         },
@@ -56,7 +65,7 @@ app.post("/api/send-cheat-sheet", async (req, res) => {
     };
 
     await transporter.sendMail(mailOptions);
-    res.json({ success: true, message: "Email enviado com sucesso!" });
+    res.json({ success: true, message: isEn ? "Email sent successfully!" : "Email enviado com sucesso!" });
   } catch (error: any) {
     console.error("Erro ao enviar email:", error);
     res.status(500).json({ error: error.message || "Erro ao enviar email." });
@@ -89,8 +98,8 @@ Retorne um JSON no formato:
 Importante: O número deve ser sempre com 2 dígitos (ex: 01, 12).
 Ignore cabeçalhos ou rodapés, foque na lista de nomes e números.`;
 
-    const model = getModel("gemini-1.5-flash");
-    const result = await model.generateContent({
+    const result = await ai.models.generateContent({
+      model: "gemini-1.5-flash",
       contents: [
         {
           role: "user",
@@ -100,13 +109,12 @@ Ignore cabeçalhos ou rodapés, foque na lista de nomes e números.`;
           ]
         }
       ],
-      generationConfig: {
+      config: {
         responseMimeType: "application/json"
       }
     });
 
-    const response = result.response;
-    const text = response.text();
+    const text = result.text || "{}";
     const parsedResult = JSON.parse(text);
     const currentYear = new Date().getFullYear();
 
@@ -166,15 +174,15 @@ Return the translations in JSON format with exactly these fields:
 }`;
 
   try {
-    const model = getModel("gemini-1.5-flash");
-    const result = await model.generateContent({
+    const result = await ai.models.generateContent({
+      model: "gemini-1.5-flash",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
+      config: {
         responseMimeType: "application/json"
       }
     });
 
-    const responseText = result.response.text();
+    const responseText = result.text || "{}";
     const parsed = JSON.parse(responseText);
     res.json(parsed);
   } catch (error: any) {

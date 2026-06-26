@@ -18,19 +18,19 @@
 }
 
 .theme-light {
-  --bg-primary: #DCFCE7;
-  --bg-card: #F3F4F6;
-  --accent-primary: #4B5563;
+  --bg-primary: #B2FF59;
+  --bg-card: #FFFFFF;
+  --accent-primary: #2E7D32;
   --accent-error: #DC2626;
   --accent-warning: #D97706;
-  --text-primary: #111827;
-  --text-secondary: #1F2937;
-  --border-color: #D1D5DB;
+  --text-primary: #212121;
+  --text-secondary: #212121;
+  --border-color: #d1d1d1;
 
   /* Specific variables for glass-panel in Light Mode */
-  --glass-bg: #F9FAFB;
-  --glass-border: #D1D5DB;
-  --glass-shadow: 0 4px 6px -1px rgba(17, 24, 39, 0.05), 0 2px 4px -2px rgba(17, 24, 39, 0.05);
+  --glass-bg: #FFFFFF;
+  --glass-border: #d1d1d1;
+  --glass-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 @theme {
@@ -162,16 +162,16 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
    Redefines background, text, borders, and custom cards for maximum legibility and style
    ========================================================================== */
 .theme-light {
-  background-color: #F0FDF4 !important; /* Fundo Geral: Verde menta suave (Emerald 50) */
-  color: #0F172A !important;
-  --bg-primary: #DCFCE7 !important; /* Emerald 100 para recipientes */
-  --bg-card: #F3F4F6; /* Cinza claro para cartões onde ficam as letras */
-  --accent-primary: #4B5563; /* Gray 600 */
-  --accent-error: #DC2626;
-  --accent-warning: #D97706;
-  --text-primary: #111827; /* Cinza Escuro/Preto para excelente leitura */
-  --text-secondary: #1F2937;
-  --border-color: #D1D5DB; /* Gray 300 */
+  background-color: #B2FF59 !important; /* Fundo Geral: Verde-Amarelo conforme solicitado */
+  color: #212121 !important;
+  --bg-primary: #B2FF59 !important;
+  --bg-card: #FFFFFF !important; /* Fundo do card/leitura: Branco puro */
+  --accent-primary: #2E7D32 !important; /* Cor de Destaque: Verde escuro */
+  --accent-error: #DC2626 !important;
+  --accent-warning: #D97706 !important;
+  --text-primary: #212121 !important; /* Texto principal: Escuro para excelente leitura */
+  --text-secondary: #212121 !important;
+  --border-color: #E0E0E0 !important; /* Cinza claro para divisórias */
 }
 
 /* 1. Fundo geral e Painéis base */
@@ -196,19 +196,19 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
 .theme-light .bg-slate-850,
 .theme-light .bg-slate-920,
 .theme-light .bg-black\/40 {
-  background-color: #F3F4F6 !important; /* Cards e Panels em cinza claro onde ficam as letras */
+  background-color: #FFFFFF !important; /* Cards e Panels em branco puro para preservar a vista (Fundo Card) */
 }
 
 .theme-light .bg-slate-900\/80,
 .theme-light .bg-slate-900\/90,
 .theme-light .bg-black\/20,
 .theme-light .bg-black\/50 {
-  background-color: #E5E7EB !important; /* Leve distinção para recipientes secundários */
+  background-color: #F8F9FA !important; /* Leve distinção para recipientes secundários */
 }
 
 .theme-light aside.bg-slate-950\/40 {
-  background-color: #F3F4F6 !important;
-  border-right: 1px solid #D1D5DB !important;
+  background-color: #FFFFFF !important;
+  border-right: 1px solid #E0E0E0 !important;
 }
 
 /* 2. Fundo de Cards/Banners especiais (ex: o cartão de avaliação) */
@@ -827,6 +827,129 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
   -ms-overflow-style: none !important;  /* IE and Edge */
   scrollbar-width: none !important;  /* Firefox */
 }
+
+/* ==========================================================================
+   CUSTOM ACADEMIC DAY MODE (MODO DIURNO) STYLING OVERRIDES
+   ========================================================================== */
+
+/* Outer solid green border on the screen body and yellow-green background */
+body.theme-light {
+  background-color: #B2FF59 !important;
+  border: 8px solid #1B5E20 !important;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* Enforce the theme colors on the outer wrapper */
+.theme-light.min-h-screen {
+  background-color: #B2FF59 !important;
+}
+
+/* MCQ alternative buttons styling in Day Mode */
+.theme-light [id^="challenge-option-btn-"] {
+  background-color: #F8F9FA !important;
+  border: 2px solid #E9ECEF !important;
+  color: #212121 !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.theme-light [id^="challenge-option-btn-"]:hover:not(:disabled) {
+  border-color: #2E7D32 !important;
+  background-color: #E8F5E9 !important;
+  transform: translateX(4px) !important;
+}
+
+/* Correct/selected options and status badges inside alternative buttons */
+.theme-light [id^="challenge-option-btn-"].bg-emerald-950\/20,
+.theme-light [id^="challenge-option-btn-"].border-emerald-500\/40 {
+  background-color: #E8F5E9 !important;
+  border-color: #2E7D32 !important;
+  color: #2E7D32 !important;
+  font-weight: bold !important;
+}
+
+.theme-light [id^="challenge-option-btn-"].bg-rose-950\/20,
+.theme-light [id^="challenge-option-btn-"].border-rose-500\/40 {
+  background-color: #FEF2F2 !important;
+  border-color: #DC2626 !important;
+  color: #DC2626 !important;
+  font-weight: bold !important;
+}
+
+/* Option letter circle badge inside alternatives */
+.theme-light [id^="challenge-option-btn-"] span[class*="border-"] {
+  border-color: #9CA3AF !important;
+  background-color: #FFFFFF !important;
+  color: #212121 !important;
+}
+
+.theme-light [id^="challenge-option-btn-"]:hover:not(:disabled) span[class*="border-"] {
+  border-color: #2E7D32 !important;
+  background-color: #E8F5E9 !important;
+  color: #2E7D32 !important;
+}
+
+.theme-light [id^="challenge-option-btn-"].bg-emerald-950\/20 span[class*="border-"],
+.theme-light [id^="challenge-option-btn-"].border-emerald-500\/40 span[class*="border-"] {
+  border-color: #2E7D32 !important;
+  background-color: #2E7D32 !important;
+  color: #FFFFFF !important;
+  font-weight: bold !important;
+}
+
+.theme-light [id^="challenge-option-btn-"].bg-rose-950\/20 span[class*="border-"],
+.theme-light [id^="challenge-option-btn-"].border-rose-500\/40 span[class*="border-"] {
+  border-color: #DC2626 !important;
+  background-color: #DC2626 !important;
+  color: #FFFFFF !important;
+  font-weight: bold !important;
+}
+
+/* Ensure active primary buttons have outstanding legibility */
+.theme-light #footer-mcq-submit-btn,
+.theme-light .botao-responder,
+.theme-light button[class*="bg-emerald"] {
+  background-color: #2E7D32 !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  border-bottom: 4px solid #1B5E20 !important;
+  transition: background 0.2s !important;
+}
+
+.theme-light #footer-mcq-submit-btn:hover:not(:disabled),
+.theme-light .botao-responder:hover,
+.theme-light button[class*="bg-emerald"]:hover:not(:disabled) {
+  background-color: #1B5E20 !important;
+  color: #FFFFFF !important;
+}
+
+/* Ensure robust white text contrast inside solid highlighted elements */
+.theme-light .bg-accent-primary,
+.theme-light .bg-accent-primary *,
+.theme-light button[class*="bg-gradient-to-r"] *,
+.theme-light button[class*="bg-gradient-to-r"],
+.theme-light .bg-emerald-650,
+.theme-light .bg-emerald-650 *,
+.theme-light button.bg-accent-primary,
+.theme-light button.bg-accent-primary *,
+.theme-light button[class*="bg-emerald"] *,
+.theme-light button[class*="bg-rose"] *,
+.theme-light button[class*="bg-rose"],
+.theme-light button[class*="bg-red"] *,
+.theme-light button[class*="bg-red"] {
+  color: #FFFFFF !important;
+}
+
+/* Day Mode Subtle Card Borders and Ultra-light Shadows */
+.theme-light .card-content,
+.theme-light .glass-panel,
+.theme-light [class*="glass-panel"] {
+  border: 1px solid #d1d1d1 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
 
 
 

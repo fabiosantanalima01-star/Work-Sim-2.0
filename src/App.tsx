@@ -1896,19 +1896,16 @@ Para resolver:
   // Phase -1 is ALWAYS unlocked for everyone as a review tool.
   const maxAllowedPhase = activeStudent?.faseAtual ?? 0;
   const unlockedPhasesList = useMemo(() => {
-    const defaultUnlocked = [-1, 0];
-    
     // Admin profile always has everything
     if (activeStudent?.id === "adm" || activeStudent?.matricula === "ADM2026") return [-1, 0, 1, 2, 3, 4, 5, 6, 7];
     
-    if (!activeStudent) return defaultUnlocked;
+    if (!activeStudent) return [-1];
     
-    const unlocked = [-1, 0]; 
-    for (let phaseId = 1; phaseId < 8; phaseId++) {
-      if (checkIfPassedPhase(activeStudent, phaseId - 1)) {
+    const unlocked = [-1]; // Phase 0 and 1 are explicitly blocked for all other students/rooms
+    for (let phaseId = 0; phaseId < 8; phaseId++) {
+      if (phaseId === 0 || phaseId === 1) continue;
+      if (phaseId <= maxAllowedPhase || checkIfPassedPhase(activeStudent, phaseId - 1)) {
         unlocked.push(phaseId);
-      } else {
-        break; 
       }
     }
     return unlocked;
@@ -1917,6 +1914,13 @@ Para resolver:
   const isCurrentPhaseLocked = useMemo(() => {
     return !unlockedPhasesList.includes(selectedPhaseId);
   }, [unlockedPhasesList, selectedPhaseId]);
+
+  // Automatically fall back to Phase -1 if the current selected phase is locked
+  useEffect(() => {
+    if (!isProfessorOrAdmin && isCurrentPhaseLocked && selectedPhaseId !== -1) {
+      setSelectedPhaseId(-1);
+    }
+  }, [isCurrentPhaseLocked, selectedPhaseId, isProfessorOrAdmin]);
 
   const precedingPhasesData = useMemo(() => {
     if (!activeStudent) return [];
@@ -1964,6 +1968,15 @@ Para resolver:
     // Play alert sound if possible
     playSoundEffect("unauthorized");
 
+    const isExempt = activeStudent.id === "STU-1C-10-1782358045698-r6f" || activeStudent.matricula === "1C102026RH" || activeStudent.faseAtual === -1 || selectedPhaseId === -1;
+    if (isExempt) {
+      alert(appLanguage === "pt"
+        ? "AVISO: Atividade suspeita ou tentativa de inspecionar código detectada. Por favor, evite este comportamento."
+        : "WARNING: Suspicious activity or inspect element attempt detected. Please avoid this behavior."
+      );
+      return;
+    }
+
     const newFraudCount = (activeStudent.tentativaFraude || 0) + 1;
     const isBlocking = newFraudCount >= 3;
 
@@ -2010,7 +2023,7 @@ Para resolver:
       ? "FRAUDE DETECTADA: Tentativa de violar o simulador. Seu XP foi zerado e o professor foi notificado." 
       : "FRAUD DETECTED: Attempt to breach simulator. Your XP has been reset and the professor notified."
     );
-  }, [activeStudent, isProfessorOrAdmin, appLanguage, db]);
+  }, [activeStudent, isProfessorOrAdmin, appLanguage, db, selectedPhaseId]);
 
   useEffect(() => {
     // If logged in as admin/professor, allow DevTools for debugging
@@ -2461,7 +2474,8 @@ Para resolver:
 
       setStudents((current) => {
         const student = current.find((s) => s.id === activeStudentId);
-        if (!student || (student.saidasTela || 0) >= 7) {
+        const isExempt = student?.id === "STU-1C-10-1782358045698-r6f" || student?.matricula === "1C102026RH" || student?.faseAtual === -1 || selectedPhaseId === -1;
+        if (!student || ((student.saidasTela || 0) >= 7 && !isExempt)) {
           return current; // already locked out or n/a
         }
 
@@ -2470,11 +2484,12 @@ Para resolver:
           if (s.id === activeStudentId) {
             if (s.focoStatus === "Fora da Tela") return s;
 
-            const totalLosses = s.recuperadoDeBloqueio ? 7 : (s.saidasTela || 0) + 1;
+            const isExempt = s.id === "STU-1C-10-1782358045698-r6f" || s.matricula === "1C102026RH" || s.faseAtual === -1 || selectedPhaseId === -1;
+            const totalLosses = s.recuperadoDeBloqueio ? (isExempt ? Math.min(6, s.saidasTela || 0) : 7) : (s.saidasTela || 0) + 1;
+            const isBlocked = !isExempt && totalLosses >= 7;
+            const finalLosses = isExempt ? Math.min(6, totalLosses) : totalLosses;
             const now = new Date();
             const timeStr = now.toLocaleTimeString("pt-BR");
-
-            const isBlocked = totalLosses >= 7;
 
             const newMsg = {
               id: `${Date.now()}-${Math.random()}`,
@@ -2483,14 +2498,14 @@ Para resolver:
                 ? (s.recuperadoDeBloqueio
                     ? `SISTEMA 🔒: SESSÃO BLOQUEADA às ${timeStr}. Saída de tela detectada pós-desbloqueio (TOLERÂNCIA ZERO). Auditoria Sancionada: -5% XP e acumulador resetado.`
                     : `SISTEMA 🔒: SESSÃO BLOQUEADA às ${timeStr}. Limite de ${totalLosses} saídas excedido. Auditoria Sancionada: -5% XP e acumulador resetado.`)
-                : `SISTEMA 🚫: O aluno minimizou a aba ou trocou de tela às ${timeStr} (Saídas detectadas: ${totalLosses}).`,
+                : `SISTEMA 🚫: O aluno minimizou a aba ou trocou de tela às ${timeStr} (Saídas detectadas: ${finalLosses}).`,
               timestamp: timeStr,
             };
 
             return {
               ...s,
               focoStatus: "Fora da Tela",
-              saidasTela: totalLosses,
+              saidasTela: finalLosses,
               mensagensChat: [...(s.mensagensChat || []), newMsg],
               ...(isBlocked ? {
                 xp: Math.max(0, Math.round(s.xp * 0.95)),
@@ -2509,7 +2524,8 @@ Para resolver:
 
       setStudents((current) => {
         const student = current.find((s) => s.id === activeStudentId);
-        if (!student || (student.saidasTela || 0) >= 7) {
+        const isExempt = student?.id === "STU-1C-10-1782358045698-r6f" || student?.matricula === "1C102026RH" || student?.faseAtual === -1 || selectedPhaseId === -1;
+        if (!student || ((student.saidasTela || 0) >= 7 && !isExempt)) {
           isOutOfFocus = false;
           return current; // no focus gains if locked out!
         }
@@ -2565,7 +2581,7 @@ Para resolver:
       window.removeEventListener("blur", handleWindowBlur);
       window.removeEventListener("focus", handleWindowFocus);
     };
-  }, [activeStudentId, isScreenBlocked, isProfessorOrAdmin]);
+  }, [activeStudentId, isScreenBlocked, isProfessorOrAdmin, selectedPhaseId]);
 
   // Student Activation workflow
   const handleActivationOrLogin = (e: React.FormEvent) => {
@@ -8908,7 +8924,8 @@ Para resolver:
       )}
 
       {/* FOCUS BLOCK OVERLAY (saidasTela >= 7) */}
-      {onboardingFinished && activeStudent && !isProfessorOrAdmin && (activeStudent.saidasTela || 0) >= 7 && (
+      {onboardingFinished && activeStudent && !isProfessorOrAdmin && (activeStudent.saidasTela || 0) >= 7 && 
+       activeStudent.id !== "STU-1C-10-1782358045698-r6f" && activeStudent.matricula !== "1C102026RH" && activeStudent.faseAtual !== -1 && (
         <div
           id="focus-block-overlay"
           className="fixed inset-0 z-[10000] bg-slate-950/95 backdrop-blur-md overflow-y-auto flex justify-center p-4 py-8 md:py-12 font-mono pointer-events-auto items-start md:items-center"

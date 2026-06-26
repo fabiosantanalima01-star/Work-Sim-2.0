@@ -327,6 +327,7 @@ export default function App() {
   const [firebaseSyncError, setFirebaseSyncError] = useState<string | null>(null);
 
   const [isStudentChatOpen, setIsStudentChatOpen] = useState<boolean>(false);
+  const [hasInitialStudentsLoaded, setHasInitialStudentsLoaded] = useState<boolean>(false);
   const [hasUnreadStudentChat, setHasUnreadStudentChat] = useState<boolean>(false);
   const [chatNotifications, setChatNotifications] = useState<{
     id: string;
@@ -482,11 +483,13 @@ export default function App() {
 
           return merged;
         });
+        setHasInitialStudentsLoaded(true);
         setIsFirebaseSyncing(false);
       },
       (error) => {
         console.error("Firestore onSnapshot error:", error);
         setFirebaseSyncError(error.message);
+        setHasInitialStudentsLoaded(true);
         setIsFirebaseSyncing(false);
       }
     );
@@ -2497,6 +2500,63 @@ Para resolver:
 
     // Match checking
     let matched = students.find((s) => s.matricula === targetMatricula);
+    
+    // Direct Firestore Check as fallback (crucial for mobile/new devices where sync might be slow)
+    if (!matched) {
+      const checkRemote = async () => {
+        try {
+          setIsFirebaseSyncing(true);
+          const q = query(collection(db, "students"), where("matricula", "==", targetMatricula));
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            const remoteData = { ...(snapshot.docs[0].data() as Student), id: snapshot.docs[0].id };
+            setStudents(prev => prev.some(s => s.id === remoteData.id) ? prev : [...prev, remoteData]);
+            
+            // Continue login flow with found data
+            if (!remoteData.senha) {
+              setLoginStep("activation");
+              setIsActivatingNewAccount(true);
+            } else {
+              setLoginStep("password");
+              setIsActivatingNewAccount(false);
+            }
+            setIsFirebaseSyncing(false);
+            return true;
+          }
+          return false;
+        } catch (err) {
+          console.error("Remote check failed:", err);
+          return false;
+        }
+      };
+
+      if (loginStep === "matricula") {
+        checkRemote().then(found => {
+          if (!found) {
+             // Continue to normal "not found" logic
+             handleNotFoundMatricula(targetMatricula);
+          }
+          setIsFirebaseSyncing(false);
+        });
+        return;
+      }
+    }
+
+    const handleNotFoundMatricula = (matricula: string) => {
+      // Check if veteran self-registration is allowed
+      const veteranCount = students.filter(s => s.isVeterano).length;
+      if (veteranCount < 20) { // Increased limit slightly
+        setLoginStep("activation");
+        setIsActivatingNewAccount(true);
+        setLoginErrorMessage("Matrícula não localizada no grid. Iniciando pré-cadastro de Veterano.");
+      } else {
+        setLoginErrorMessage(
+          "Matrícula não localizada! O ingresso de novos alunos sem cadastro prévio atingiu o limite.",
+        );
+        playSoundEffect("failure");
+      }
+    };
+
     if (!matched && targetMatricula === "ADM2026") {
       const adminBase = INITIAL_STUDENTS.find((s) => s.matricula === "ADM2026");
       if (adminBase) {
@@ -2507,27 +2567,6 @@ Para resolver:
           return prev;
         });
         matched = adminBase;
-      }
-    }
-
-    if (!matched) {
-      // Check if veteran self-registration is allowed
-      const veteranCount = students.filter(s => s.isVeterano).length;
-      if (veteranCount < 10) {
-        // Allow activation flow even without matching pre-enrolment
-        if (loginStep === "matricula") {
-          setLoginStep("activation");
-          setIsActivatingNewAccount(true);
-          setLoginErrorMessage("Matrícula não localizada. Iniciando ingresso como Veterano (Limite: 10).");
-          return;
-        }
-        // If it's activation step, we continue to create the new student
-      } else {
-        setLoginErrorMessage(
-          "Matrícula não localizada! O ingresso de novos alunos sem cadastro prévio (veteranos) atingiu o limite de 10.",
-        );
-        playSoundEffect("failure");
-        return;
       }
     }
 
@@ -4732,6 +4771,13 @@ Para resolver:
           <div className="w-full max-w-md glass-panel rounded-2xl p-6 border border-white/10 shadow-2xl relative space-y-6">
             {/* Theme Toggle - Centered Top in Login Gate */}
             <div className="flex justify-center z-20">
+              {!hasInitialStudentsLoaded && (
+                <div className="absolute top-0 left-0 right-0 p-2 text-center bg-emerald-500/10 border-b border-emerald-500/20 animate-pulse">
+                  <span className="text-[9px] font-mono font-bold text-emerald-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                    <RefreshCw className="w-3 h-3 animate-spin" /> Conectando ao WorkSIM Grid Global...
+                  </span>
+                </div>
+              )}
               <div className="flex bg-slate-950 p-0.5 rounded-lg border border-white/10 shadow-md">
                 <button
                   type="button"
@@ -5116,7 +5162,7 @@ Para resolver:
             {/* Isolated Highlighted Version (Only Login Gate) */}
             <div className="pt-4 flex justify-center">
               <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
-                Versão v7.07.2026
+                Versão v7.08.2026
               </span>
             </div>
           </div>

@@ -426,7 +426,7 @@ export default function TournamentTab({ localStudents, appLanguage, onSelectChal
           <ShieldCheck className="w-6 h-6 text-emerald-400" />
           <div className="text-left">
             <p className="text-[10px] font-black text-white uppercase tracking-widest">Sincronização de Alta Fidelidade</p>
-            <p className="text-[9px] text-gray-500 font-mono">Status: Conectado ao WorkSIM Global Grid Engine v1.5</p>
+            <p className="text-[9px] text-gray-500 font-mono">Status: Conectado ao WorkSIM Global Grid Engine v1.6</p>
           </div>
         </div>
         <div className="flex items-center gap-4">

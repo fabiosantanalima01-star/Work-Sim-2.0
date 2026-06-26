@@ -165,6 +165,7 @@ export default function App() {
     firebaseUser?.email?.toLowerCase() === "fabiosantanalima01@gmail.com";
 
   // --- OTHER STATES ---
+  const appLoadedAt = useRef(Date.now());
   const [activeBroadcast, setActiveBroadcast] = useState<{ id: string, text: string } | null>(null);
   const loginBroadcastRef = useRef(false);
 
@@ -1794,8 +1795,9 @@ Para resolver:
       snapshot.docChanges().forEach((change) => {
         if (change.type === "added") {
           const data = change.doc.data();
+          // Only show broadcasts that happened after the app was loaded
           // Avoid showing my own broadcast to myself if I just logged in
-          if (data.studentId !== activeStudentId) {
+          if (data.studentId !== activeStudentId && data.timestamp >= appLoadedAt.current - 2000) {
             setActiveBroadcast({ id: change.doc.id, text: data.text });
             setTimeout(() => {
               setActiveBroadcast(null);
@@ -9430,24 +9432,27 @@ Para resolver:
     <AnimatePresence>
       {activeBroadcast && (
         <motion.div
-          initial={{ opacity: 0, y: 50, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 20, scale: 0.95 }}
-          className="fixed bottom-6 right-6 z-[99999] max-w-sm pointer-events-auto"
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 0.65, y: 0, scale: 1 }}
+          whileHover={{ opacity: 0.95 }}
+          exit={{ opacity: 0, y: 15, scale: 0.95 }}
+          transition={{ duration: 0.25 }}
+          className="fixed bottom-4 right-4 z-[99999] max-w-xs pointer-events-auto transition-opacity"
         >
-          <div className="glass-panel p-4 rounded-xl border border-accent-primary/30 shadow-[0_0_20px_rgba(16,185,129,0.2)] flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-accent-primary/10 flex items-center justify-center shrink-0 border border-accent-primary/20">
-              <LogIn className="w-5 h-5 text-accent-primary" />
+          <div className="bg-slate-950/65 backdrop-blur-xs p-2.5 rounded-lg border border-white/5 shadow-md flex items-center gap-2">
+            <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 border border-emerald-500/10">
+              <LogIn className="w-3 h-3 text-emerald-500/60" />
             </div>
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-accent-primary mb-0.5">Sinal de Login Detectado</div>
-              <p className="text-xs text-white/90 leading-tight font-medium">{activeBroadcast.text}</p>
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] text-gray-400 font-mono font-medium block leading-tight truncate">
+                {activeBroadcast.text}
+              </span>
             </div>
             <button 
               onClick={() => setActiveBroadcast(null)}
-              className="ml-auto p-1.5 hover:bg-white/5 rounded text-gray-400 hover:text-white"
+              className="p-1 hover:bg-white/5 rounded text-gray-500 hover:text-gray-300 transition-colors"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3 h-3" />
             </button>
           </div>
         </motion.div>

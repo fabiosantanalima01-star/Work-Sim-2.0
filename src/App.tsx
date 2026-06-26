@@ -468,10 +468,16 @@ export default function App() {
                 merged[localIdx] = {
                   ...local,
                   ...remote,
-                  xp: Math.max(local.xp, remote.xp),
-                  respostasDesafios: remote.respostasDesafios || local.respostasDesafios,
-                  // Synchronize password: if remote has it (even if empty), use it; otherwise keep local
-                  senha: remote.hasOwnProperty("senha") ? remote.senha : local.senha,
+                  xp: Math.max(local.xp || 0, remote.xp || 0),
+                  faseAtual: Math.max(local.faseAtual || 0, remote.faseAtual || 0),
+                  precisao: remote.precisao !== undefined ? remote.precisao : local.precisao,
+                  respostasDesafios: {
+                    ...(local.respostasDesafios || {}),
+                    ...(remote.respostasDesafios || {}),
+                  },
+                  badges: Array.from(new Set([...(local.badges || []), ...(remote.badges || [])])),
+                  // Synchronize password: if remote has it, use it; otherwise keep local
+                  senha: remote.hasOwnProperty("senha") && remote.senha ? remote.senha : local.senha,
                   // Improved chat merge: preserve local messages if they are more recent/longer
                   mensagensChat: (remote.mensagensChat?.length || 0) >= (local.mensagensChat?.length || 0)
                     ? remote.mensagensChat
@@ -2500,47 +2506,6 @@ Para resolver:
 
     // Match checking
     let matched = students.find((s) => s.matricula === targetMatricula);
-    
-    // Direct Firestore Check as fallback (crucial for mobile/new devices where sync might be slow)
-    if (!matched) {
-      const checkRemote = async () => {
-        try {
-          setIsFirebaseSyncing(true);
-          const q = query(collection(db, "students"), where("matricula", "==", targetMatricula));
-          const snapshot = await getDocs(q);
-          if (!snapshot.empty) {
-            const remoteData = { ...(snapshot.docs[0].data() as Student), id: snapshot.docs[0].id };
-            setStudents(prev => prev.some(s => s.id === remoteData.id) ? prev : [...prev, remoteData]);
-            
-            // Continue login flow with found data
-            if (!remoteData.senha) {
-              setLoginStep("activation");
-              setIsActivatingNewAccount(true);
-            } else {
-              setLoginStep("password");
-              setIsActivatingNewAccount(false);
-            }
-            setIsFirebaseSyncing(false);
-            return true;
-          }
-          return false;
-        } catch (err) {
-          console.error("Remote check failed:", err);
-          return false;
-        }
-      };
-
-      if (loginStep === "matricula") {
-        checkRemote().then(found => {
-          if (!found) {
-             // Continue to normal "not found" logic
-             handleNotFoundMatricula(targetMatricula);
-          }
-          setIsFirebaseSyncing(false);
-        });
-        return;
-      }
-    }
 
     const handleNotFoundMatricula = (matricula: string) => {
       // Check if veteran self-registration is allowed
@@ -2556,40 +2521,80 @@ Para resolver:
         playSoundEffect("failure");
       }
     };
-
-    if (!matched && targetMatricula === "ADM2026") {
-      const adminBase = INITIAL_STUDENTS.find((s) => s.matricula === "ADM2026");
-      if (adminBase) {
-        setStudents((prev) => {
-          if (!prev.some((p) => p.matricula === "ADM2026")) {
-            return [...prev, adminBase];
-          }
-          return prev;
-        });
-        matched = adminBase;
-      }
-    }
-
-    // Step logic
+    
+    // Direct Firestore Check - Authoritative source of truth for all logins
     if (loginStep === "matricula") {
-      // Bypass password for the Professor if logged into Google correctly
-      if (targetMatricula === "ADM2026" && firebaseUser?.email === "fabiosantanalima01@gmail.com") {
-        if (matched) {
-          setActiveStudentId(matched.id);
-          setSelectedPhaseId(matched.faseAtual);
-          setOnboardingFinished(true);
-          playSoundEffect("success");
-          return;
-        }
-      }
+      setIsFirebaseSyncing(true);
+      const checkRemote = async () => {
+        try {
+          const q = query(collection(db, "students"), where("matricula", "==", targetMatricula));
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            const remoteDoc = snapshot.docs[0];
+            const remoteData = { ...(remoteDoc.data() as Student), id: remoteDoc.id };
+            
+            // Update local state with the absolute latest remote data
+            setStudents(prev => {
+              const filtered = prev.filter(s => s.id !== remoteData.id);
+              return [...filtered, remoteData];
+            });
+            
+            matched = remoteData;
 
-      if (matched && !matched.senha) {
-        setLoginStep("activation");
-        setIsActivatingNewAccount(true);
-      } else if (matched && matched.senha) {
-        setLoginStep("password");
-        setIsActivatingNewAccount(false);
-      }
+            // Bypass password for the Professor if logged into Google correctly
+            if (targetMatricula === "ADM2026" && firebaseUser?.email === "fabiosantanalima01@gmail.com") {
+              setActiveStudentId(remoteData.id);
+              setSelectedPhaseId(remoteData.faseAtual);
+              setOnboardingFinished(true);
+              playSoundEffect("success");
+              setIsFirebaseSyncing(false);
+              return true;
+            }
+
+            if (!remoteData.senha) {
+              setLoginStep("activation");
+              setIsActivatingNewAccount(true);
+            } else {
+              setLoginStep("password");
+              setIsActivatingNewAccount(false);
+            }
+            setIsFirebaseSyncing(false);
+            return true;
+          }
+          return false;
+        } catch (err) {
+          console.error("Remote check failed:", err);
+          setIsFirebaseSyncing(false);
+          return false;
+        }
+      };
+
+      checkRemote().then(found => {
+        if (!found) {
+          // If not found in Firestore, check if they are in INITIAL_STUDENTS
+          const localMatch = INITIAL_STUDENTS.find(s => s.matricula === targetMatricula);
+          if (localMatch) {
+            setStudents(prev => {
+              if (!prev.some(s => s.id === localMatch.id)) {
+                return [...prev, localMatch];
+              }
+              return prev;
+            });
+            
+            if (!localMatch.senha) {
+              setLoginStep("activation");
+              setIsActivatingNewAccount(true);
+            } else {
+              setLoginStep("password");
+              setIsActivatingNewAccount(false);
+            }
+          } else {
+            // Not in INITIAL_STUDENTS and not in Firestore, so handle veteran signup
+            handleNotFoundMatricula(targetMatricula);
+          }
+        }
+        setIsFirebaseSyncing(false);
+      });
       return;
     }
 
@@ -5162,7 +5167,7 @@ Para resolver:
             {/* Isolated Highlighted Version (Only Login Gate) */}
             <div className="pt-4 flex justify-center">
               <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
-                Versão v7.08.2026
+                Versão v7.09.2026
               </span>
             </div>
           </div>

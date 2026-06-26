@@ -133,8 +133,13 @@ export default function App() {
   const [activeStudentId, setActiveStudentId] = useState<string | null>(() => {
     try {
       const cached = localStorage.getItem("worksim_active_student_id");
-      // Check if cached ID exists in the base list to avoid ghost sessions
-      if (cached && INITIAL_STUDENTS.some((s) => s.id === cached)) {
+      if (!cached) return null;
+      
+      // Match checking
+      const studentsRaw = localStorage.getItem("worksim_students");
+      const currentStudents: Student[] = studentsRaw ? JSON.parse(studentsRaw) : INITIAL_STUDENTS;
+      let matched = currentStudents.find((s) => s.id === cached);
+      if (matched) {
         return cached;
       }
       return null;
@@ -187,7 +192,8 @@ export default function App() {
           respostasDesafios: {},
           saidasTela: 0,
           badges: [],
-          senha: "" // Clear old password to force Google sync or fresh setup
+          // Preserve password if it already exists, otherwise allow Google sync
+          senha: resetStudents[admStudentIndex].senha || ""
         };
         setStudents(resetStudents);
         localStorage.setItem("worksim_admin_reset_2026_06_24_v3", "true");
@@ -4548,12 +4554,19 @@ Para resolver:
     }
   };
 
-  // Safety fallback: if the student is lost from memory while onboarding is "finished", force logout
+   // Safety fallback: if the student is lost from memory while onboarding is "finished", force logout
+  // (Only if not in intro and after a short delay to allow syncs to complete)
   useEffect(() => {
     if (onboardingFinished && !activeStudent && !showMatrixIntro) {
-      console.warn("Session integrity lost: Active student not found. Returning to login.");
-      setOnboardingFinished(false);
-      setActiveStudentId(null);
+      const timeout = setTimeout(() => {
+        // Re-check after 1s to allow Firebase sync or state updates
+        if (onboardingFinished && !activeStudent && !showMatrixIntro) {
+          console.warn("Session integrity lost: Active student not found. Returning to login.");
+          setOnboardingFinished(false);
+          setActiveStudentId(null);
+        }
+      }, 1000);
+      return () => clearTimeout(timeout);
     }
   }, [onboardingFinished, activeStudent, showMatrixIntro]);
 
@@ -4791,6 +4804,8 @@ Para resolver:
                     </div>
                     <input
                       id="login-matricula-input"
+                      name="username"
+                      autocomplete="username"
                       type="text"
                       required
                       readOnly={loginStep !== "matricula"}
@@ -4808,6 +4823,7 @@ Para resolver:
                       </label>
                       <input
                         id="login-name-input"
+                        name="name"
                         type="text"
                         required
                         value={inputNome}
@@ -4825,6 +4841,8 @@ Para resolver:
                       </label>
                       <input
                         id="login-password-input"
+                        name="password"
+                        autocomplete={loginStep === "activation" ? "new-password" : "current-password"}
                         type="password"
                         required
                         value={inputPassword}
@@ -4883,6 +4901,7 @@ Para resolver:
                         </label>
                         <input
                           id="vet-register-nome"
+                          name="name"
                           type="text"
                           required
                           value={veteranNome}
@@ -4898,6 +4917,8 @@ Para resolver:
                         </label>
                         <input
                           id="vet-register-user"
+                          name="username"
+                          autoComplete="username"
                           type="text"
                           required
                           value={veteranUsuario}
@@ -4913,6 +4934,8 @@ Para resolver:
                         </label>
                         <input
                           id="vet-register-senha"
+                          name="password"
+                          autoComplete="new-password"
                           type="password"
                           required
                           value={veteranSenha}
@@ -4930,6 +4953,8 @@ Para resolver:
                         </label>
                         <input
                           id="vet-login-user"
+                          name="username"
+                          autoComplete="username"
                           type="text"
                           required
                           value={veteranUsuario}
@@ -4945,6 +4970,8 @@ Para resolver:
                         </label>
                         <input
                           id="vet-login-senha"
+                          name="password"
+                          autoComplete="current-password"
                           type="password"
                           required
                           value={veteranSenha}

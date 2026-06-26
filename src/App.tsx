@@ -617,6 +617,25 @@ export default function App() {
     const studentIds = Object.keys(queue);
     if (studentIds.length === 0) return;
 
+    // Check for stable and battery-friendly network connection
+    const isOnline = navigator.onLine;
+    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    const isSlowConnection = connection && (connection.saveData || ['slow-2g', '2g'].includes(connection.effectiveType));
+    const isStableNetwork = isOnline && !isSlowConnection;
+
+    if (!isStableNetwork) {
+      console.warn(`[Sync] Network offline or unstable. Postponing ${type} sync to save battery and traffic.`);
+      // Postpone with longer wait time
+      const delay = type === 'critical' ? 5000 : 45000;
+      if (syncTimersRef.current[type]) {
+        clearTimeout(syncTimersRef.current[type]);
+      }
+      syncTimersRef.current[type] = setTimeout(() => {
+        processSyncQueue(type);
+      }, delay);
+      return;
+    }
+
     studentIds.forEach(id => {
       const s = queue[id];
       lastFirestoreSyncedRef.current[s.id] = s;
@@ -637,7 +656,9 @@ export default function App() {
 
   const queueSync = useCallback((student: Student, type: 'critical' | 'telemetry') => {
     syncQueueRef.current[type][student.id] = student;
-    const delay = type === 'critical' ? 500 : 5000;
+    
+    // Aggressive debounce: 2.5 seconds for critical changes, 35 seconds for telemetry to optimize traffic and battery
+    const delay = type === 'critical' ? 2500 : 35000;
     
     if (syncTimersRef.current[type]) {
       clearTimeout(syncTimersRef.current[type]);
@@ -645,6 +666,21 @@ export default function App() {
     syncTimersRef.current[type] = setTimeout(() => {
       processSyncQueue(type);
     }, delay);
+  }, [processSyncQueue]);
+
+  // Handle immediate flushing when connection becomes stable/online
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log("[Sync] Device returned online. Flushes scheduled for pending sync queues.");
+      if (Object.keys(syncQueueRef.current.critical).length > 0) {
+        processSyncQueue('critical');
+      }
+      if (Object.keys(syncQueueRef.current.telemetry).length > 0) {
+        processSyncQueue('telemetry');
+      }
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
   }, [processSyncQueue]);
 
   // Push local changes of students to Firestore with priority debouncing
@@ -1877,6 +1913,49 @@ Para resolver:
     }
     return unlocked;
   }, [isProfessorOrAdmin, maxAllowedPhase, allChallenges, completedChallenges, activeStudent]);
+
+  const isCurrentPhaseLocked = useMemo(() => {
+    return !unlockedPhasesList.includes(selectedPhaseId);
+  }, [unlockedPhasesList, selectedPhaseId]);
+
+  const precedingPhasesData = useMemo(() => {
+    if (!activeStudent) return [];
+    const list: any[] = [];
+    
+    for (let pId = 0; pId < selectedPhaseId; pId++) {
+      const phaseConfig = CAREER_PHASES.find(p => p.id === pId);
+      if (!phaseConfig) continue;
+      
+      const phaseChallengesList = allChallenges.filter((c) => c.fase === pId);
+      const total = phaseChallengesList.length;
+      const attempted = phaseChallengesList.filter((c) => activeStudent.respostasDesafios?.[c.id] !== undefined).length;
+      const correct = phaseChallengesList.filter((c) => activeStudent.respostasDesafios?.[c.id] === true).length;
+      const accuracy = total > 0 ? (correct / total) * 100 : 100;
+      const minAccuracy = phaseConfig.precisaoMinima || 70;
+      
+      const isSpecial = activeStudent.isVeterano || activeStudent.id === "adm" || activeStudent.matricula === "ADM2026";
+      const meetsAccuracy = isSpecial || accuracy >= minAccuracy;
+      const meetsAttempted = attempted === total;
+      const isPassed = meetsAccuracy && meetsAttempted;
+      
+      list.push({
+        id: pId,
+        cargo: phaseConfig.cargo,
+        moduloTecnico: phaseConfig.moduloTecnico,
+        focoPrincipal: phaseConfig.focoPrincipal,
+        total,
+        attempted,
+        correct,
+        accuracy,
+        minAccuracy,
+        isPassed,
+        isSpecial,
+        meetsAccuracy,
+        meetsAttempted
+      });
+    }
+    return list;
+  }, [activeStudent, selectedPhaseId, allChallenges]);
 
   // --- SECURITY MONITORING (ANTI-FRAUD) ---
   const handleSecurityViolation = useCallback(async (type: string) => {
@@ -5167,7 +5246,7 @@ Para resolver:
             {/* Isolated Highlighted Version (Only Login Gate) */}
             <div className="pt-4 flex justify-center">
               <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
-                Versão v7.09.2026
+                Versão v7.10.2026
               </span>
             </div>
           </div>
@@ -6178,24 +6257,21 @@ Para resolver:
                       <button
                         id={`fast-phase-nav-${ph.id}`}
                         key={ph.id}
-                        disabled={!isPhUnlocked}
                         onClick={() => {
-                          if (isPhUnlocked) {
-                            setSelectedPhaseId(ph.id);
-                            setCurrentTab("challenges");
-                          }
+                          setSelectedPhaseId(ph.id);
+                          setCurrentTab("challenges");
                         }}
-                        className={`py-1 px-2.5 rounded text-[10px] uppercase font-bold transition-all select-none flex items-center gap-1 ${
+                        className={`py-1 px-2.5 rounded text-[10px] uppercase font-bold transition-all select-none flex items-center gap-1 cursor-pointer ${
                           selectedPhaseId === ph.id
-                            ? "bg-accent-primary text-bg-primary shadow-[0_0_8px_rgba(0,229,255,0.3)] cursor-pointer"
+                            ? "bg-accent-primary text-bg-primary shadow-[0_0_8px_rgba(0,229,255,0.3)]"
                             : isPhUnlocked
-                              ? "bg-slate-900 text-gray-300 hover:bg-slate-800 hover:text-white cursor-pointer"
-                              : "bg-black/40 text-gray-600 border border-white/5 cursor-not-allowed"
+                              ? "bg-slate-900 text-gray-300 hover:bg-slate-800 hover:text-white"
+                              : "bg-black/40 text-gray-500 hover:text-rose-400 hover:border-rose-500/30 border border-white/5"
                         }`}
                         title={
                           isPhUnlocked
                             ? `Acessar Fase ${ph.id}: ${ph.cargo}`
-                            : `Fase ${ph.id} Bloqueada: Requer conclusão da Fase ${ph.id - 1} com ${CAREER_PHASES.find(p => p.id === ph.id - 1)?.precisaoMinima}% de precisão.`
+                            : `Fase ${ph.id} Bloqueada: Clique para ver os requisitos de conclusão da Fase ${ph.id - 1} (${CAREER_PHASES.find(p => p.id === ph.id - 1)?.precisaoMinima}% de precisão).`
                         }
                       >
                         {!isPhUnlocked && <span className="text-[9px]">🔒</span>}F
@@ -6212,7 +6288,162 @@ Para resolver:
             {/* TAB CONTENTS ROUTER */}
             {currentTab === "challenges" && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                {isCurrentPhaseLocked ? (
+                  <div className="glass-panel p-6 sm:p-10 rounded-2xl border border-rose-500/10 bg-slate-950/40 space-y-8 animate-fade-in text-left relative overflow-hidden shadow-2xl">
+                    {/* Background faint red glow */}
+                    <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-rose-500/5 blur-3xl pointer-events-none" />
+                    
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 border-b border-white/5 pb-6">
+                      <div className="p-4 bg-rose-500/10 rounded-2xl text-rose-400 border border-rose-500/25 shadow-lg shadow-rose-500/5 shrink-0 flex items-center justify-center">
+                        <Lock className="w-10 h-10 animate-pulse" />
+                      </div>
+                      <div className="space-y-2 text-center sm:text-left">
+                        <div className="text-[10px] font-mono text-rose-400 font-extrabold uppercase tracking-widest bg-rose-500/10 px-2.5 py-1 rounded-full inline-block">
+                          {appLanguage === "en" ? "STAGE LOCKED" : "CARGO BLOQUEADO"}
+                        </div>
+                        <h3 className="text-xl sm:text-2xl font-sans font-black text-gray-100 uppercase tracking-tight">
+                          {CAREER_PHASES.find(p => p.id === selectedPhaseId)?.cargo || `Fase ${selectedPhaseId}`}
+                        </h3>
+                        <p className="text-xs sm:text-sm text-text-secondary max-w-2xl leading-relaxed">
+                          {appLanguage === "en"
+                            ? "To assume this role and unlock these challenges, you must meet all the regulatory requirements of the previous career phases."
+                            : "Para assumir este cargo e desbloquear estes desafios, você precisa cumprir todos os requisitos regulamentares das fases anteriores do plano de cargos."}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <h4 className="text-xs font-mono text-gray-400 font-extrabold uppercase tracking-widest flex items-center gap-2">
+                        <span>●</span> {appLanguage === "en" ? "REQUIRED PROGRESS CHECKLIST" : "CHECKLIST DE REQUISITOS PENDENTES"}
+                      </h4>
+
+                      <div className="grid grid-cols-1 gap-4">
+                        {precedingPhasesData.map((phase) => {
+                          const missingChallenges = phase.total - phase.attempted;
+                          
+                          return (
+                            <div 
+                              key={phase.id} 
+                              className={`p-5 rounded-2xl border transition-all ${
+                                phase.isPassed
+                                  ? "bg-emerald-950/10 border-emerald-500/15"
+                                  : "bg-slate-900/60 border-white/5 shadow-inner"
+                              }`}
+                            >
+                              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                                <div className="space-y-1 text-left">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-xs font-mono font-bold text-gray-400">
+                                      Fase {phase.id}
+                                    </span>
+                                    <span className="text-gray-600">•</span>
+                                    <span className="text-sm font-sans font-extrabold text-gray-200">
+                                      {phase.cargo}
+                                    </span>
+                                    {phase.isPassed ? (
+                                      <span className="text-[9px] font-mono font-bold uppercase bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">
+                                        {appLanguage === "en" ? "Passed" : "Aprovado"}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] font-mono font-bold uppercase bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded border border-amber-500/20">
+                                        {appLanguage === "en" ? "Pending" : "Pendente"}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-text-secondary">
+                                    Módulo: <strong className="text-gray-300">{phase.moduloTecnico}</strong> — {phase.focoPrincipal}
+                                  </p>
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row gap-6 w-full lg:w-auto items-stretch sm:items-center">
+                                  {/* Progress bar Completion */}
+                                  <div className="space-y-1.5 shrink-0 sm:w-36">
+                                    <div className="flex justify-between text-[10px] font-mono">
+                                      <span className="text-gray-400 uppercase font-bold">
+                                        {appLanguage === "en" ? "COMPLETION" : "RESOLUÇÃO"}
+                                      </span>
+                                      <span className={phase.meetsAttempted ? "text-emerald-400 font-bold" : "text-amber-500 font-bold"}>
+                                        {phase.attempted}/{phase.total}
+                                      </span>
+                                    </div>
+                                    <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden">
+                                      <div 
+                                        className={`h-full transition-all duration-500 ${phase.meetsAttempted ? "bg-emerald-500" : "bg-amber-500"}`}
+                                        style={{ width: `${phase.total > 0 ? (phase.attempted / phase.total) * 100 : 100}%` }}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Progress bar Accuracy */}
+                                  <div className="space-y-1.5 shrink-0 sm:w-36">
+                                    <div className="flex justify-between text-[10px] font-mono">
+                                      <span className="text-gray-400 uppercase font-bold">
+                                        {appLanguage === "en" ? "ACCURACY" : "PRECISÃO"}
+                                      </span>
+                                      <span className={phase.meetsAccuracy ? "text-emerald-400 font-bold" : "text-rose-500 font-bold"}>
+                                        {phase.accuracy.toFixed(0)}% / {phase.minAccuracy}%
+                                      </span>
+                                    </div>
+                                    <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden">
+                                      <div 
+                                        className={`h-full transition-all duration-500 ${phase.meetsAccuracy ? "bg-emerald-500" : "bg-rose-500"}`}
+                                        style={{ width: `${Math.min(100, phase.accuracy)}%` }}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Action CTA for the stage */}
+                                  <div className="flex items-center justify-end shrink-0 lg:w-40">
+                                    {phase.isPassed ? (
+                                      <div className="text-emerald-400 text-xs font-sans font-bold flex items-center gap-1 bg-emerald-500/5 px-3 py-1.5 rounded-lg border border-emerald-500/10">
+                                        <CheckCircle2 className="w-4 h-4" /> {appLanguage === "en" ? "Ready" : "Concluído"}
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => setSelectedPhaseId(phase.id)}
+                                        className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-slate-100 font-sans font-bold uppercase text-[10px] tracking-wider rounded-xl cursor-pointer hover:shadow-[0_0_12px_rgba(245,158,11,0.2)] transition-all flex items-center justify-center gap-1.5"
+                                      >
+                                        <span>{appLanguage === "en" ? "Resolve Phase" : "Resolver Pendências"}</span>
+                                        <ArrowRight className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Alert details explanation for pending phase */}
+                              {!phase.isPassed && (
+                                <div className="mt-3 p-3 bg-rose-500/5 border border-rose-500/10 rounded-xl text-left text-xs text-rose-300 font-sans leading-relaxed space-y-1">
+                                  <p className="font-bold flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-rose-400">
+                                    <AlertTriangle className="w-3.5 h-3.5" /> 
+                                    {appLanguage === "en" ? "Actionable requirements:" : "Exigências regulatórias não cumpridas:"}
+                                  </p>
+                                  <ul className="list-disc list-inside space-y-1 text-gray-300 text-[11px]">
+                                    {!phase.meetsAttempted && (
+                                      <li>
+                                        {appLanguage === "en" 
+                                          ? `You must answer all challenges. Missing ${missingChallenges} challenge(s) to complete.` 
+                                          : `Você deve responder a todos os cenários da trilha. Falta(m) ${missingChallenges} desafio(s).`}
+                                      </li>
+                                    )}
+                                    {!phase.meetsAccuracy && (
+                                      <li>
+                                        {appLanguage === "en" 
+                                          ? `Average score is ${phase.accuracy.toFixed(1)}%. The official minimum requirement is ${phase.minAccuracy}%.` 
+                                          : `Precisão média atual é de ${phase.accuracy.toFixed(1)}%. O exigido regulamentar é de no mínimo ${phase.minAccuracy}%.`}
+                                      </li>
+                                    )}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 {/* Main Challenge focus panel (width 2 cols) */}
                 <div className="xl:col-span-2 space-y-4">
                   {selectedPhaseId === 0 && (
@@ -7863,6 +8094,7 @@ Para resolver:
                   </div>
                 </div>
               </div>
+            )}
 
               {/* Plano de Progressão de Cargos (Career Progress) nested inside challenges tab */}
               <div className="border-t border-white/5 pt-6 mt-6">

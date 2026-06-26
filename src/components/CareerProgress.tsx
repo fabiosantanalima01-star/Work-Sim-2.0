@@ -547,9 +547,13 @@ export default function CareerProgress({
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Você está focando nesta Fase atual
                   </div>
                 ) : (
-                  <div className="p-3 rounded-xl bg-black/30 text-gray-500 border border-white/5 text-center font-mono text-[10.5px] uppercase flex items-center justify-center gap-1.5 mt-2">
-                    <Lock className="w-3.5 h-3.5" /> Requisitos de Cargo Pendentes
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onSelectPhase(activeNode.id)}
+                    className="w-full py-2 bg-slate-900 border border-white/10 hover:bg-slate-800 text-gray-300 hover:text-white font-sans font-extrabold uppercase text-[11px] tracking-wider rounded-xl cursor-pointer hover:shadow-[0_0_12px_rgba(239,68,68,0.1)] transition-all flex items-center justify-center gap-2 mt-2"
+                  >
+                    <Lock className="w-3.5 h-3.5 text-rose-500" /> Ver Requisitos de Desbloqueio
+                  </button>
                 )}
 
                 {/* Specific Challenges Leaf list of the Node */}
@@ -724,14 +728,14 @@ export default function CareerProgress({
                   id={`career-roadmap-node-${phase.id}`}
                   key={phase.id}
                   onClick={() => {
-                    if (isUnlocked) onSelectPhase(phase.id);
+                    onSelectPhase(phase.id);
                   }}
-                  className={`p-4 rounded-xl border transition-all text-left flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                  className={`p-4 rounded-xl border transition-all text-left flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer ${
                     isCurrent
-                      ? "bg-indigo-950/20 border-accent-primary shadow-[0_0_12px_rgba(0,229,255,0.05)] cursor-pointer"
+                      ? "bg-indigo-950/20 border-accent-primary shadow-[0_0_12px_rgba(0,229,255,0.05)]"
                       : isUnlocked
-                      ? "bg-slate-900/40 border-white/5 hover:border-accent-primary/50 cursor-pointer"
-                      : "bg-black/40 border-white/5 opacity-60 cursor-not-allowed select-none"
+                      ? "bg-slate-900/40 border-white/5 hover:border-accent-primary/50"
+                      : "bg-black/40 border-white/5 opacity-65 hover:border-rose-500/25 hover:bg-slate-950/40"
                   }`}
                 >
                   {/* Stage information */}

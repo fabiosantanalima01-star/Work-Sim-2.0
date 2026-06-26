@@ -99,7 +99,7 @@ Importante: O número deve ser sempre com 2 dígitos (ex: 01, 12).
 Ignore cabeçalhos ou rodapés, foque na lista de nomes e números.`;
 
     const result = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.5-flash",
       contents: [
         {
           role: "user",
@@ -175,7 +175,7 @@ Return the translations in JSON format with exactly these fields:
 
   try {
     const result = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.5-flash",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         responseMimeType: "application/json"

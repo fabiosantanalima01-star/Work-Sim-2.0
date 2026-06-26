@@ -10,17 +10,27 @@
   --text-primary: #ECEFF4;
   --text-secondary: #94A3B8;
   --border-color: rgba(255, 255, 255, 0.08);
+
+  /* Specific variables for glass-panel in Dark Mode */
+  --glass-bg: rgba(14, 20, 34, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
 .theme-light {
-  --bg-primary: #ffffff;
-  --bg-card: #ffffff;
-  --accent-primary: #0000ff; /* Azul escuro/puro para links e destaque */
-  --accent-error: #990000;
-  --accent-warning: #cc5500;
-  --text-primary: #000000;
-  --text-secondary: #222222;
-  --border-color: #333333;
+  --bg-primary: #DCFCE7;
+  --bg-card: #F3F4F6;
+  --accent-primary: #4B5563;
+  --accent-error: #DC2626;
+  --accent-warning: #D97706;
+  --text-primary: #111827;
+  --text-secondary: #1F2937;
+  --border-color: #D1D5DB;
+
+  /* Specific variables for glass-panel in Light Mode */
+  --glass-bg: #F9FAFB;
+  --glass-border: #D1D5DB;
+  --glass-shadow: 0 4px 6px -1px rgba(17, 24, 39, 0.05), 0 2px 4px -2px rgba(17, 24, 39, 0.05);
 }
 
 @theme {
@@ -103,10 +113,17 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
 
 /* Glassmorphism utility with robust theme variables */
 .glass-panel {
-  background: var(--bg-card);
+  background: var(--glass-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  transition: background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.3s ease,
+              opacity 0.3s ease;
 }
 
 /* Mobile Performance Optimizations */
@@ -192,12 +209,6 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
 .theme-light aside.bg-slate-950\/40 {
   background-color: #F3F4F6 !important;
   border-right: 1px solid #D1D5DB !important;
-}
-
-.theme-light .glass-panel {
-  background-color: #F9FAFB !important; /* Cinza bem clarinho quase branco */
-  border: 1px solid #D1D5DB !important;
-  box-shadow: 0 4px 6px -1px rgba(17, 24, 39, 0.05), 0 2px 4px -2px rgba(17, 24, 39, 0.05) !important;
 }
 
 /* 2. Fundo de Cards/Banners especiais (ex: o cartão de avaliação) */

@@ -107,7 +107,7 @@ export default function TopNavbar({
               </h1>
               <div className="hidden sm:flex items-center gap-2 mt-1">
                 <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <p className="text-[10px] text-accent-primary/80 font-mono font-bold uppercase tracking-[0.2em] whitespace-nowrap">Legislação v7.09.2026</p>
+                <p className="text-[10px] text-accent-primary/80 font-mono font-bold uppercase tracking-[0.2em] whitespace-nowrap">Legislação v7.10.2026</p>
                 
                 {/* Pedagogical Metadata Trigger */}
                 <div className="group relative ml-4">

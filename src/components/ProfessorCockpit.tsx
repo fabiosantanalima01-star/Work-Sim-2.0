@@ -14,6 +14,7 @@ import {
   Search,
   Send,
   Download,
+  Filter,
   HelpCircle,
   HardDrive,
   Cpu,
@@ -701,7 +702,7 @@ export default function ProfessorCockpit({
   // 1. Average XP Progression of the Class grouped by Fase Atual
   const phasesCohort = [0, 1, 2, 3];
   const xpProgressionData = phasesCohort.map((phaseNum) => {
-    const studentsInPhase = students.filter((s) => s.faseAtual === phaseNum);
+    const studentsInPhase = filteredStudentsByClass.filter((s) => s.faseAtual === phaseNum);
     const avgXp = studentsInPhase.length > 0
       ? Math.round(studentsInPhase.reduce((acc, s) => acc + s.xp, 0) / studentsInPhase.length)
       : 0;
@@ -761,7 +762,7 @@ export default function ProfessorCockpit({
   // 1. Desempenho Coletivo por Fase
   const academyPhases = [0, 1, 2, 3, 4, 5, 6, 7];
   const phasePerformanceCohort = academyPhases.map((pId) => {
-    const studentsInP = students.filter((s) => s.faseAtual === pId);
+    const studentsInP = filteredStudentsByClass.filter((s) => s.faseAtual === pId);
     const count = studentsInP.length;
 
     // Average XP of students in this phase
@@ -811,7 +812,7 @@ export default function ProfessorCockpit({
     let incorrect = 0;
     let pendingDoubts = 0;
 
-    students.forEach((student) => {
+    filteredStudentsByClass.forEach((student) => {
       if (student.respostasDesafios?.[ch.id] === true) {
         correct++;
       } else if (student.respostasDesafios?.[ch.id] === false) {
@@ -1250,7 +1251,7 @@ export default function ProfessorCockpit({
           }`}
         >
           <Sparkles className="w-4 h-4 text-amber-500" />
-          Oficina de Cenários 🛠️
+          Diagnóstico & Gargalos 🛠️
           <span className="bg-amber-500/10 text-amber-400 text-[8px] font-sans px-1.5 py-0.5 rounded border border-amber-500/20 font-black animate-pulse">
             DIRECIONAR
           </span>
@@ -2504,13 +2505,24 @@ export default function ProfessorCockpit({
                   Análise pedagógica baseada em submissões de conformidade CLT. Monitore as curvas reais de rendimento por fase da turma e identifique desafios críticos ou lacunas de competência com planos de ação sugeridos.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <span className="text-[10px] font-mono text-cyan-400/80 bg-cyan-400/10 px-2 py-1 rounded border border-cyan-500/20">
                   Total de Casos: {CHALLENGES_DATA.length}
                 </span>
-                <span className="text-[10px] font-mono text-accent-warning bg-accent-warning/5 px-2 py-1 rounded border border-accent-warning/15">
-                  Turma: {students[0]?.sala || "1B"}
-                </span>
+                
+                <div className="flex items-center gap-2 bg-slate-950 border border-white/20 rounded-lg px-2 py-0.5 shadow-sm">
+                  <span className="text-[9px] font-mono text-gray-400 uppercase font-bold">Turma:</span>
+                  <select 
+                    value={globalClassroomFilter}
+                    onChange={(e) => setGlobalClassroomFilter(e.target.value)}
+                    className="bg-slate-950 border-none text-[10px] font-mono text-accent-warning focus:outline-none cursor-pointer pr-1 font-bold"
+                  >
+                    <option value="TODAS" className="bg-slate-900 text-white">TODAS</option>
+                    {classrooms.map(c => (
+                      <option key={c} value={c} className="bg-slate-900 text-white">{c.toUpperCase()}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -2908,6 +2920,32 @@ export default function ProfessorCockpit({
       {activeTabPanel === "telemetry" && (
         <div className="space-y-6 animate-fade-in text-left">
           
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-950/40 p-4 rounded-2xl border border-white/5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-accent-primary/10 rounded-lg border border-accent-primary/20">
+                <BarChart3 className="w-5 h-5 text-accent-primary" />
+              </div>
+              <div>
+                <h3 className="text-sm font-sans font-black text-gray-100 uppercase tracking-widest">Painel Recharts de Telemetria Geral</h3>
+                <p className="text-[10px] text-text-secondary font-mono">Visualização analítica de cohort e gargalos de aprendizagem</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-white/20 shadow-md">
+              <span className="text-[9px] font-mono font-bold text-gray-400 uppercase ml-2">Filtro Local:</span>
+              <select 
+                value={globalClassroomFilter}
+                onChange={(e) => setGlobalClassroomFilter(e.target.value)}
+                className="bg-slate-950 border border-white/10 rounded-lg px-3 py-1.5 text-[10px] font-mono text-accent-primary font-bold focus:outline-none focus:border-accent-primary/60 transition-all cursor-pointer"
+              >
+                <option value="TODAS" className="bg-slate-900 text-white">TODAS AS TURMAS</option>
+                {classrooms.map(c => (
+                  <option key={c} value={c} className="bg-slate-900 text-white">{c.toUpperCase()}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
           {/* Subsection Grid analytics overview specific to Telemetry insights */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-slate-950/40 p-4 rounded-xl border border-white/5 font-mono">
@@ -3049,53 +3087,68 @@ export default function ProfessorCockpit({
                 </div>
               </div>
               
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                {/* Search Bar for Leaderboard */}
-                <div className="relative w-full sm:w-64">
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                {/* Search Bar for Analytical Table */}
+                <div className="relative w-full sm:w-56">
                   <Search className="w-3.5 h-3.5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={profSearchQuery}
                     onChange={(e) => setProfSearchQuery(e.target.value)}
-                    placeholder="Pesquisar aluno (Nome/ID)..."
+                    placeholder="Buscar por nome..."
                     className="w-full bg-slate-950/80 border border-white/10 rounded-xl py-1.5 pl-9 pr-3 text-[10px] font-mono text-gray-300 focus:border-accent-primary focus:outline-none transition-all placeholder:text-gray-600"
                   />
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleExportTelemetry}
-                  className="text-accent-primary hover:text-white flex items-center gap-1 font-mono text-[10px] cursor-pointer whitespace-nowrap bg-white/5 px-2 py-1.5 rounded-lg border border-white/5 hover:border-accent-primary/30 transition-all"
-                >
-                  <Download className="w-3.5 h-3.5" /> Exportar JSON
-                </button>
+                {/* Local Classroom Filter */}
+                <div className="flex items-center gap-2 bg-slate-950 border border-white/20 rounded-xl px-3 py-1.5 w-full sm:w-auto shadow-md">
+                  <Filter className="w-3 h-3 text-gray-400" />
+                  <select 
+                    value={globalClassroomFilter}
+                    onChange={(e) => setGlobalClassroomFilter(e.target.value)}
+                    className="bg-transparent border-none text-[10px] font-mono text-gray-200 font-bold focus:outline-none cursor-pointer"
+                  >
+                    <option value="TODAS" className="bg-slate-900 text-white">TODAS AS TURMAS</option>
+                    {classrooms.map(c => (
+                      <option key={c} value={c} className="bg-slate-900 text-white">{c.toUpperCase()}</option>
+                    ))}
+                  </select>
+                </div>
 
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setIsDownloadingQRs(true);
-                    try {
-                      const { exportAllQRBadgesToPDF } = await import("../utils/qrExporter");
-                      await exportAllQRBadgesToPDF(students, "pt");
-                    } catch (e) {
-                      console.error("Error exporting QR codes from panel", e);
-                    } finally {
-                      setIsDownloadingQRs(false);
-                    }
-                  }}
-                  disabled={isDownloadingQRs}
-                  className="text-emerald-400 hover:text-white flex items-center gap-1.5 font-mono text-[10px] cursor-pointer whitespace-nowrap bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/20 hover:border-emerald-500/40 transition-all font-bold disabled:opacity-50"
-                >
-                  {isDownloadingQRs ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Gerando Badges...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-3.5 h-3.5" /> Imprimir Crachás QR (PDF)
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={handleExportTelemetry}
+                    className="text-accent-primary hover:text-white flex items-center gap-1 font-mono text-[10px] cursor-pointer whitespace-nowrap bg-white/5 px-2 py-1.5 rounded-lg border border-white/5 hover:border-accent-primary/30 transition-all flex-1 sm:flex-initial"
+                  >
+                    <Download className="w-3.5 h-3.5" /> JSON
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setIsDownloadingQRs(true);
+                      try {
+                        const { exportAllQRBadgesToPDF } = await import("../utils/qrExporter");
+                        await exportAllQRBadgesToPDF(students, "pt");
+                      } catch (e) {
+                        console.error("Error exporting QR codes from panel", e);
+                      } finally {
+                        setIsDownloadingQRs(false);
+                      }
+                    }}
+                    disabled={isDownloadingQRs}
+                    className="text-emerald-400 hover:text-white flex items-center gap-1.5 font-mono text-[10px] cursor-pointer whitespace-nowrap bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/20 hover:border-emerald-500/40 transition-all font-bold disabled:opacity-50 flex-1 sm:flex-initial"
+                  >
+                    {isDownloadingQRs ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <>
+                        <Download className="w-3.5 h-3.5" /> PDF QR
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -3229,7 +3282,7 @@ export default function ProfessorCockpit({
           
           <div className="glass-panel p-6 rounded-2xl border border-amber-500/10 bg-slate-900/40 relative overflow-hidden font-sans">
             <div className="absolute top-0 right-0 bg-amber-500/10 px-3 py-1 text-[10px] rounded-bl text-amber-400 uppercase font-bold tracking-widest font-mono">
-              WORKSHOP DE CENÁRIOS v1.2
+              Diagnóstico Curricular & Mapeamento de Gargalos v2.0
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
@@ -3920,8 +3973,8 @@ export default function ProfessorCockpit({
 
         // Calculate TMA: Total Active Seconds divided by number of answered questions
         const solvedCount = Object.keys(student.respostasDesafios || {}).length;
-        const totalSecs = student.tempoAtivoSegundos || (380 + (student.xp % 300));
-        const avgSecondsPerChallenge = solvedCount > 0 ? Math.round(totalSecs / solvedCount) : 185;
+        const totalSecs = student.tempoAtivoSegundos || 0;
+        const avgSecondsPerChallenge = solvedCount > 0 ? Math.round(totalSecs / solvedCount) : 0;
         
         const tmaMinutes = Math.floor(avgSecondsPerChallenge / 60);
         const tmaSeconds = avgSecondsPerChallenge % 60;

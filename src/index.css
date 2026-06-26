@@ -243,6 +243,12 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
 .theme-light .text-gray-100,
 .theme-light .text-gray-200,
 .theme-light .text-gray-300,
+.theme-light .text-slate-100,
+.theme-light .text-slate-200,
+.theme-light .text-slate-300,
+.theme-light .text-zinc-100,
+.theme-light .text-zinc-200,
+.theme-light .text-zinc-300,
 .theme-light h1,
 .theme-light h2,
 .theme-light h3,
@@ -259,11 +265,19 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
   color: #0F172A !important;
 }
 
-.theme-light .text-gray-400 {
+.theme-light .text-gray-400,
+.theme-light .text-slate-400,
+.theme-light .text-zinc-400 {
   color: #374151 !important; /* Cinza escuro (Gray 700) para máxima legibilidade */
 }
 
 .theme-light .text-gray-450,
+.theme-light .text-gray-500,
+.theme-light .text-gray-600,
+.theme-light .text-slate-500,
+.theme-light .text-slate-600,
+.theme-light .text-zinc-500,
+.theme-light .text-zinc-600,
 .theme-light .text-text-secondary,
 .theme-light p,
 .theme-light span,
@@ -271,13 +285,6 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
 .theme-light td {
   color: #0F172A !important; /* Texto secundário: Escurecido para máxima força de leitura */
   font-weight: 500 !important; /* Letras mais fortes conforme solicitado */
-}
-
-.theme-light .text-text-secondary,
-.theme-light .text-gray-500,
-.theme-light .text-gray-600 {
-  color: #0F172A !important; /* Darkened for maximum visibility */
-  font-weight: 500 !important;
 }
 
 .theme-light .text-accent-primary,
@@ -566,7 +573,7 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
 
 .theme-light input::placeholder,
 .theme-light textarea::placeholder {
-  color: #9CA3AF !important;
+  color: #4B5563 !important; /* Darkened placeholder for accessibility */
 }
 
 /* Símbolos dinâmicos */

@@ -373,6 +373,39 @@ export default function App() {
         }));
 
         remoteStudents.forEach((remote) => {
+          const oldData = lastFirestoreSyncedRef.current[remote.id];
+          
+          // Detect peer progress for notifications
+          if (oldData && remote.id !== activeStudentId) {
+            // New phase reached
+            if (remote.faseAtual > oldData.faseAtual) {
+              setAlerts((prev) => [
+                {
+                  id: Date.now() + Math.random(),
+                  from: "Progressão Global",
+                  text: `🔥 O aluno ${remote.nomeCompleto} (Matrícula ${remote.matricula}) acaba de subir para a FASE ${remote.faseAtual}!`,
+                  time: "Agora",
+                  type: "success"
+                },
+                ...prev
+              ]);
+              if (audioEnabled) playSoundEffect("success");
+            }
+            // Significant XP gain
+            else if (remote.xp > oldData.xp + 50) {
+               setAlerts((prev) => [
+                {
+                  id: Date.now() + Math.random(),
+                  from: "Conquista Live",
+                  text: `⭐ ${remote.nomeCompleto} ganhou +${remote.xp - oldData.xp} XP no Simulador!`,
+                  time: "Agora",
+                  type: "info"
+                },
+                ...prev
+              ]);
+            }
+          }
+          
           lastFirestoreSyncedRef.current[remote.id] = remote;
         });
 
@@ -1891,29 +1924,29 @@ Para resolver:
   }, [activeStudent, isProfessorOrAdmin, appLanguage, db]);
 
   useEffect(() => {
-    if (!activeStudent || isProfessorOrAdmin) return;
+    // If logged in as admin/professor, allow DevTools for debugging
+    if (activeStudent && isProfessorOrAdmin) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // F12
       if (e.key === "F12") {
         e.preventDefault();
-        handleSecurityViolation("F12 Key");
+        if (activeStudent) handleSecurityViolation("F12 Key");
       }
       // Ctrl+Shift+I / Cmd+Opt+I
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "I" || e.key === "i" || e.key === "J" || e.key === "j" || e.key === "C" || e.key === "c")) {
         e.preventDefault();
-        handleSecurityViolation("DevTools Shortcut");
+        if (activeStudent) handleSecurityViolation("DevTools Shortcut");
       }
       // Ctrl+U / Cmd+Opt+U (View Source)
       if ((e.ctrlKey || e.metaKey) && (e.key === "U" || e.key === "u")) {
         e.preventDefault();
-        handleSecurityViolation("View Source Request");
+        if (activeStudent) handleSecurityViolation("View Source Request");
       }
     };
 
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
-      // Only penalize if they try multiple times or just block it
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -5082,7 +5115,7 @@ Para resolver:
             {/* Isolated Highlighted Version (Only Login Gate) */}
             <div className="pt-4 flex justify-center">
               <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
-                Versão v6.25.2026
+                Versão v6.26.2026
               </span>
             </div>
           </div>
@@ -5686,6 +5719,57 @@ Para resolver:
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-primary opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent-primary"></span>
                   </span>
+                </div>
+              )}
+
+              {/* LIVE PEER PROGRESS FEED */}
+              {!isSidebarCollapsed && (
+                <div className="border-t border-white/5 pt-3 animate-fade-in mb-2">
+                  <div className="flex items-center justify-between px-1.5 mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <Zap className="w-3 h-3 text-indigo-400 animate-pulse" />
+                      <span className="text-[9px] font-mono font-bold uppercase text-indigo-400 tracking-wider">
+                        {appLanguage === "en" ? "Peer Live Status" : "Monitoria em Tempo Real"}
+                      </span>
+                    </div>
+                    <span className="text-[8px] font-mono text-gray-600">
+                      {students.filter(s => s.focoStatus === "Ativo").length} Ativos
+                    </span>
+                  </div>
+                  <div className="space-y-1.5 max-h-[140px] overflow-y-auto px-1 custom-scrollbar">
+                    {students
+                      .filter(s => s.id !== activeStudentId && s.id !== 'adm' && s.id !== 'professor')
+                      .sort((a, b) => {
+                        // Priority: Active students first, then by XP
+                        if (a.focoStatus === "Ativo" && b.focoStatus !== "Ativo") return -1;
+                        if (b.focoStatus === "Ativo" && a.focoStatus !== "Ativo") return 1;
+                        return (b.xp || 0) - (a.xp || 0);
+                      })
+                      .slice(0, 4)
+                      .map(s => (
+                        <div key={s.id} className="bg-slate-950/40 p-2 rounded-lg border border-white/5 flex flex-col gap-1 hover:border-indigo-500/30 transition-all">
+                          <div className="flex justify-between items-center gap-2">
+                            <div className="flex items-center gap-1.5 truncate">
+                              <div className={`w-1 h-1 rounded-full ${s.focoStatus === 'Ativo' ? 'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]' : 'bg-gray-700'}`}></div>
+                              <span className="text-[10px] text-gray-200 font-bold truncate">{s.nomeCompleto.split(' ')[0]}</span>
+                            </div>
+                            <span className="text-[9px] text-amber-400 font-mono font-bold shrink-0">{s.xp} XP</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-[8px] text-gray-500 font-mono uppercase tracking-tighter">
+                              Fase {s.faseAtual} • {s.sala}
+                            </span>
+                            <span className={`text-[8px] font-mono ${s.focoStatus === 'Ativo' ? 'text-emerald-500' : 'text-gray-600'}`}>
+                              {s.focoStatus === 'Ativo' ? 'ONLINE' : 'AUSENTE'}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    }
+                    {students.filter(s => s.id !== activeStudentId && s.id !== 'adm' && s.id !== 'professor').length === 0 && (
+                      <p className="text-[9px] text-gray-600 font-mono text-center py-2 italic">Aguardando conexões...</p>
+                    )}
+                  </div>
                 </div>
               )}
 

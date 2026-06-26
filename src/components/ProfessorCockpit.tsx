@@ -3229,7 +3229,7 @@ export default function ProfessorCockpit({
           
           <div className="glass-panel p-6 rounded-2xl border border-amber-500/10 bg-slate-900/40 relative overflow-hidden font-sans">
             <div className="absolute top-0 right-0 bg-amber-500/10 px-3 py-1 text-[10px] rounded-bl text-amber-400 uppercase font-bold tracking-widest font-mono">
-              WORKSHOP DE CENÁRIOS v1.1
+              WORKSHOP DE CENÁRIOS v1.2
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">

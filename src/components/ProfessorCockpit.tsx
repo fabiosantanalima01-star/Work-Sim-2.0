@@ -239,6 +239,35 @@ export default function ProfessorCockpit({
     }
   };
 
+  const [isDeleting1B, setIsDeleting1B] = useState(false);
+
+  const handleDeleteClass1B = async () => {
+    if (window.confirm("⚠️ ATENÇÃO: Você está prestes a APAGAR DEFINITIVAMENTE a Turma 1B e todos os seus alunos. Esta ação NÃO pode ser desfeita. Confirmar exclusão?")) {
+      setIsDeleting1B(true);
+      try {
+        const variations = ["1B", "1 B", "1º B", "1ºB"];
+        const normalized = variations.flatMap(v => [v, v.toUpperCase(), v.toLowerCase()]);
+        const uniqueVars = Array.from(new Set(normalized));
+        
+        const toDelete = students.filter(s => s.sala && uniqueVars.includes(s.sala.trim()));
+        
+        if (toDelete.length > 0) {
+          if (onDeleteStudents) {
+            await onDeleteStudents(toDelete.map(s => s.id));
+            alert(`Sucesso! ${toDelete.length} alunos da Turma 1B foram removidos do sistema.`);
+          }
+        } else {
+          alert("Nenhum aluno encontrado na Turma 1B para apagar.");
+        }
+      } catch (error) {
+        console.error("Erro ao apagar Turma 1B:", error);
+        alert("Erro ao processar exclusão. Verifique os logs.");
+      } finally {
+        setIsDeleting1B(false);
+      }
+    }
+  };
+
   // --- IN-DEPTH INDIVIDUAL TELEMETRY & REMEDIAL ACTIONS ---
   const [selectedTelemetryStudentId, setSelectedTelemetryStudentId] = useState<string | null>(null);
   const [telemetryActionStatus, setTelemetryActionStatus] = useState<{ studentId: string; msg: string; type: "success" | "error" } | null>(null);
@@ -1696,6 +1725,64 @@ export default function ProfessorCockpit({
                     </>
                   )}
                 </button>
+              </div>
+            </div>
+
+            {/* ADMINISTRATIVE CONTROL PANEL (NEW) */}
+            <div className="glass-panel rounded-2xl p-6 border border-rose-500/30 bg-rose-950/10 space-y-4 shadow-[0_0_25px_rgba(244,63,94,0.1)] text-left">
+              <div className="flex items-center gap-2.5 border-b border-rose-500/20 pb-3">
+                <div className="p-2 bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/30">
+                  <ShieldAlert className="w-5 h-5 text-rose-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-sans font-bold text-rose-100 uppercase tracking-wide flex items-center gap-2">
+                    Ferramentas Administrativas de Limpeza
+                    <span className="bg-rose-500 text-white text-[8px] px-1.5 py-0.5 rounded font-black animate-pulse">ADMIN ONLY</span>
+                  </h3>
+                  <p className="text-[11px] text-rose-200/60 leading-snug">
+                    Execução de protocolos de exclusão em massa e manutenção de banco de dados. Use com extrema cautela.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 bg-slate-950/50 p-4 rounded-xl border border-rose-500/10 flex flex-col justify-between gap-4">
+                  <div>
+                    <h4 className="text-[10px] font-mono font-black text-rose-400 uppercase tracking-widest mb-1">RESETAR TURMA 1B</h4>
+                    <p className="text-[10px] text-gray-400 leading-tight">
+                      Apaga permanentemente todos os registros de alunos vinculados à <strong className="text-rose-400">SALA 1B</strong> (incluindo variações 1º B).
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDeleteClass1B}
+                    disabled={isDeleting1B}
+                    className="w-full bg-rose-600 hover:bg-rose-500 text-white font-sans font-bold text-[10px] uppercase py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 cursor-pointer"
+                  >
+                    {isDeleting1B ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                    EXCLUIR TODOS OS ALUNOS DA 1B
+                  </button>
+                </div>
+
+                <div className="flex-1 bg-slate-950/50 p-4 rounded-xl border border-white/5 flex flex-col justify-between gap-4 opacity-50">
+                  <div>
+                    <h4 className="text-[10px] font-mono font-black text-gray-500 uppercase tracking-widest mb-1">OUTRAS TURMAS</h4>
+                    <p className="text-[10px] text-gray-500 leading-tight">
+                      Selecione uma turma no filtro global para habilitar exclusões específicas de outras salas.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full bg-slate-800 text-gray-600 font-sans font-bold text-[10px] uppercase py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 cursor-not-allowed"
+                  >
+                    BLOQUEADO
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -3282,7 +3369,7 @@ export default function ProfessorCockpit({
           
           <div className="glass-panel p-6 rounded-2xl border border-amber-500/10 bg-slate-900/40 relative overflow-hidden font-sans">
             <div className="absolute top-0 right-0 bg-amber-500/10 px-3 py-1 text-[10px] rounded-bl text-amber-400 uppercase font-bold tracking-widest font-mono">
-              Diagnóstico Curricular & Mapeamento de Gargalos v2.0
+              Diagnóstico Curricular & Mapeamento de Gargalos v2.8
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">

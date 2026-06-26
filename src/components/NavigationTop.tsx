@@ -20,7 +20,8 @@ import {
   Eye,
   EyeOff,
   Menu,
-  X
+  X,
+  Globe
 } from "lucide-react";
 
 interface TopNavbarProps {
@@ -56,8 +57,9 @@ export default function TopNavbar({
 }: TopNavbarProps) {
   const tabs = [
     { id: "challenges", label: appLanguage === "en" ? "Challenges" : "Desafios Ativos", icon: BookOpen, color: "text-accent-primary" },
+    { id: "tournament", label: appLanguage === "en" ? "Tournament" : "WorkSIM Global", icon: Globe, color: "text-emerald-400" },
     { id: "linguajar", label: appLanguage === "en" ? "CLT Translator" : "Tradutor CLT", icon: Languages, color: "text-sky-400" },
-    { id: "metrics", label: appLanguage === "en" ? "e-Social Graph" : "Gráfico e-Social", icon: TrendingUp, color: "text-emerald-400" },
+    { id: "metrics", label: appLanguage === "en" ? "e-Social Graph" : "Gráfico e-Social", icon: TrendingUp, color: "text-cyan-400" },
     { id: "desempenho", label: appLanguage === "en" ? "Performance" : "Desempenho", icon: Timer, color: "text-indigo-400" },
     { id: "badges", label: appLanguage === "en" ? "Badges" : "Insígnias", icon: Award, color: "text-purple-400" },
     { id: "ranking", label: appLanguage === "en" ? "Ranking" : "Ranking & Equipes", icon: Trophy, color: "text-amber-500" },
@@ -105,7 +107,7 @@ export default function TopNavbar({
               </h1>
               <div className="hidden sm:flex items-center gap-2 mt-1">
                 <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <p className="text-[10px] text-accent-primary/80 font-mono font-bold uppercase tracking-[0.2em] whitespace-nowrap">Legislação v7.01.2026</p>
+                <p className="text-[10px] text-accent-primary/80 font-mono font-bold uppercase tracking-[0.2em] whitespace-nowrap">Legislação v7.07.2026</p>
                 
                 {/* Pedagogical Metadata Trigger */}
                 <div className="group relative ml-4">

@@ -29,6 +29,7 @@ import LinguajarTranslator from "./components/LinguajarTranslator";
 import DesempenhoPessoal from "./components/DesempenhoPessoal";
 import RankingTab from "./components/RankingTab";
 import BadgesTab from "./components/BadgesTab";
+import TournamentTab from "./components/TournamentTab";
 import ProfileProgressRing from "./components/ProfileProgressRing";
 import WorkContractModal from "./components/WorkContractModal";
 import NavigationTop from "./components/NavigationTop";
@@ -5115,7 +5116,7 @@ Para resolver:
             {/* Isolated Highlighted Version (Only Login Gate) */}
             <div className="pt-4 flex justify-center">
               <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
-                Versão v7.01.2026
+                Versão v7.07.2026
               </span>
             </div>
           </div>
@@ -8160,6 +8161,13 @@ Para resolver:
                 setStudents={setStudents}
                 activeStudentId={activeStudentId}
                 isProfessorOrAdmin={isProfessorOrAdmin}
+              />
+            )}
+
+            {currentTab === "tournament" && (
+              <TournamentTab
+                localStudents={students}
+                appLanguage={appLanguage}
               />
             )}
 

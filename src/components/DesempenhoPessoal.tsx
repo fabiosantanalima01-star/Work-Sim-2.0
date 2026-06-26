@@ -196,7 +196,7 @@ export default function DesempenhoPessoal({
       {/* HEADER SECTION */}
       <div className="glass-panel p-6 rounded-2xl border border-indigo-500/15 bg-gradient-to-br from-slate-900/60 to-indigo-950/20 relative overflow-hidden">
         <div className="absolute top-0 right-0 bg-indigo-500/10 px-3.5 py-1 text-[10px] rounded-bl text-indigo-400 font-bold uppercase tracking-wider font-mono">
-          Painel de Desempenho v3.0
+          Painel de Desempenho v3.8
         </div>
 
         <div className="flex flex-col md:flex-row gap-5 items-start justify-between">

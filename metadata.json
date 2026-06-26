@@ -1,6 +1,6 @@
 {
   "name": "Simulador Acadêmico de Legislação de RH",
-  "description": "Simulador acadêmico imersivo focado em metodologias ativas (Situação-Problema e Estudo de Caso) para legislação de RH e DP. Oferece telemetria docente em tempo real, gamificação, automação de onboarding via IA (OCR) e motor de cálculo paramétrico para e-Social.",
+  "description": "Simulador acadêmico imersivo focado em metodologias ativas (Situação-Problema e Estudo de Caso) para legislação de RH e DP. Oferece telemetria docente em tempo real, painel administrativo de limpeza de turmas, gamificação, automação de onboarding via IA (OCR) e motor de cálculo paramétrico para e-Social.",
   "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

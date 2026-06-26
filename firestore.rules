@@ -56,7 +56,8 @@ service cloud.firestore {
     // Collection: students
     match /students/{studentId} {
       allow read: if true;
-      allow write: if isValidStudent(incoming());
+      allow create, update: if isValidStudent(incoming());
+      allow delete: if isProfessor();
     }
 
     function isProfessor() {

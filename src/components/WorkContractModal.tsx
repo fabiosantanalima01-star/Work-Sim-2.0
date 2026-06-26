@@ -89,7 +89,7 @@ export default function WorkContractModal({ student, appLanguage, onSign }: Work
             <h2 className="text-xl font-black uppercase tracking-tighter text-slate-900 leading-none">
               WORKSIM <span className="text-emerald-600">RH</span> LABORATORY
             </h2>
-            <p className="text-[10px] font-mono text-slate-400 font-bold tracking-widest uppercase">Official Employment Document v3.0</p>
+            <p className="text-[10px] font-mono text-slate-400 font-bold tracking-widest uppercase">Official Employment Document v3.8</p>
           </div>
           <div className="bg-slate-900 text-white p-2 rounded-lg">
             <ShieldCheck className="w-6 h-6" />

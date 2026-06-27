@@ -44,7 +44,7 @@ import autoTable from "jspdf-autotable";
 import QRScanner from "./components/QRScanner";
 
 // Firebase Integration Client
-import { db, auth, syncSetDoc, syncAddDoc, syncDeleteDoc, syncUpdateDoc, arrayUnion, OperationType, handleFirestoreError } from "./lib/firebase";
+import { db, auth, syncSetDoc, syncAddDoc, syncDeleteDoc, syncUpdateDoc, arrayUnion, OperationType, handleFirestoreError, SyncManager } from "./lib/firebase";
 import { onAuthStateChanged, signInWithPopup, signOut, GoogleAuthProvider } from "firebase/auth";
 import { collection, doc, setDoc, onSnapshot, deleteDoc, query, where, addDoc, getDocs } from "firebase/firestore";
 
@@ -326,6 +326,8 @@ export default function App() {
   const [showMatrixIntro, setShowMatrixIntro] = useState<boolean>(false);
   const [isFirebaseSyncing, setIsFirebaseSyncing] = useState<boolean>(false);
   const [firebaseSyncError, setFirebaseSyncError] = useState<string | null>(null);
+  const [isStudentSyncing, setIsStudentSyncing] = useState<boolean>(false);
+  const [lastStudentSyncTime, setLastStudentSyncTime] = useState<string | null>(null);
 
   const [isStudentChatOpen, setIsStudentChatOpen] = useState<boolean>(false);
   const [hasInitialStudentsLoaded, setHasInitialStudentsLoaded] = useState<boolean>(false);
@@ -620,25 +622,6 @@ export default function App() {
     const studentIds = Object.keys(queue);
     if (studentIds.length === 0) return;
 
-    // Check for stable and battery-friendly network connection
-    const isOnline = navigator.onLine;
-    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-    const isSlowConnection = connection && (connection.saveData || ['slow-2g', '2g'].includes(connection.effectiveType));
-    const isStableNetwork = isOnline && !isSlowConnection;
-
-    if (!isStableNetwork) {
-      console.warn(`[Sync] Network offline or unstable. Postponing ${type} sync to save battery and traffic.`);
-      // Postpone with longer wait time
-      const delay = type === 'critical' ? 5000 : 45000;
-      if (syncTimersRef.current[type]) {
-        clearTimeout(syncTimersRef.current[type]);
-      }
-      syncTimersRef.current[type] = setTimeout(() => {
-        processSyncQueue(type);
-      }, delay);
-      return;
-    }
-
     studentIds.forEach(id => {
       const s = queue[id];
       lastFirestoreSyncedRef.current[s.id] = s;
@@ -660,12 +643,15 @@ export default function App() {
   const queueSync = useCallback((student: Student, type: 'critical' | 'telemetry') => {
     syncQueueRef.current[type][student.id] = student;
     
-    // Aggressive debounce: 2.5 seconds for critical changes, 35 seconds for telemetry to optimize traffic and battery
-    const delay = type === 'critical' ? 2500 : 35000;
-    
+    // Throttle pattern: if a timer is already running for this queue type,
+    // let it complete. Do not clear or push it back infinitely. This fixes the
+    // bug where active training ticks rescheduled the telemetry sync forever.
     if (syncTimersRef.current[type]) {
-      clearTimeout(syncTimersRef.current[type]);
+      return;
     }
+    
+    const delay = type === 'critical' ? 2500 : 15000;
+    
     syncTimersRef.current[type] = setTimeout(() => {
       processSyncQueue(type);
     }, delay);
@@ -2496,6 +2482,27 @@ Para resolver:
     return () => clearInterval(intervalId);
   }, [activeStudentId, onboardingFinished, isScreenBlocked, isProfessorOrAdmin]);
 
+  // Flush all sync queues immediately on beforeunload to prevent data loss on tab close/reload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const critQueue = syncQueueRef.current.critical;
+      const telQueue = syncQueueRef.current.telemetry;
+      
+      Object.keys(critQueue).forEach(id => {
+        const s = critQueue[id];
+        syncSetDoc("students", s.id, sanitizeForFirestore(s), { merge: true }).catch(() => {});
+      });
+      
+      Object.keys(telQueue).forEach(id => {
+        const s = telQueue[id];
+        syncSetDoc("students", s.id, sanitizeForFirestore(s), { merge: true }).catch(() => {});
+      });
+    };
+    
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
   // Real-time window focus and visibility status monitoring for students
   useEffect(() => {
     if (!activeStudentId || isScreenBlocked || activeStudentId === "adm" || activeStudent?.matricula === "ADM2026") return;
@@ -3110,6 +3117,61 @@ Para resolver:
       alert(`ERRO NA SINCRONIZAÇÃO (${err.code || "unknown"}): ${err.message || "Verifique sua conexão ou permissões."}`);
     } finally {
       setIsFirebaseSyncing(false);
+    }
+  };
+
+  const handleManualStudentSync = async () => {
+    if (!activeStudentId || activeStudentId === "adm") return;
+    const activeStudent = students.find((s) => s.id === activeStudentId);
+    if (!activeStudent) return;
+
+    setIsStudentSyncing(true);
+    try {
+      // Flush any pending throttled items in sync queues immediately
+      const critQueue = syncQueueRef.current.critical;
+      const telQueue = syncQueueRef.current.telemetry;
+      const promises: Promise<any>[] = [];
+
+      // Drain critical queue
+      Object.keys(critQueue).forEach(id => {
+        const s = critQueue[id];
+        promises.push(syncSetDoc("students", s.id, sanitizeForFirestore(s), { merge: true }).catch(console.error));
+        delete critQueue[id];
+      });
+
+      // Drain telemetry queue
+      Object.keys(telQueue).forEach(id => {
+        const s = telQueue[id];
+        promises.push(syncSetDoc("students", s.id, sanitizeForFirestore(s), { merge: true }).catch(console.error));
+        delete telQueue[id];
+      });
+
+      // Clear timers
+      if (syncTimersRef.current.critical) {
+        clearTimeout(syncTimersRef.current.critical);
+        syncTimersRef.current.critical = null;
+      }
+      if (syncTimersRef.current.telemetry) {
+        clearTimeout(syncTimersRef.current.telemetry);
+        syncTimersRef.current.telemetry = null;
+      }
+
+      // Sync active student explicitly
+      promises.push(syncSetDoc("students", activeStudent.id, sanitizeForFirestore(activeStudent), { merge: true }));
+
+      // Drain local storage queue as well to ensure total delivery
+      await SyncManager.drainQueue();
+
+      await Promise.all(promises);
+
+      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      setLastStudentSyncTime(now);
+      playSoundEffect("success");
+    } catch (err: any) {
+      console.error("Manual student sync failed:", err);
+      playSoundEffect("failure");
+    } finally {
+      setIsStudentSyncing(false);
     }
   };
 
@@ -5956,6 +6018,27 @@ Para resolver:
                     </button>
                     {hasUnreadStudentChat && !isSidebarCollapsed && (
                       <p className="text-[8px] font-mono text-sky-400 text-center animate-bounce mt-1">NOVA MENSAGEM DO PROFESSOR!</p>
+                    )}
+
+                    {/* Manual Sync Progress button */}
+                    <button
+                      type="button"
+                      onClick={handleManualStudentSync}
+                      disabled={isStudentSyncing}
+                      className={`w-full flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg border transition-all cursor-pointer font-sans ${
+                        isStudentSyncing
+                          ? "border-emerald-500 bg-emerald-500/20 text-white"
+                          : "border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/20 hover:border-emerald-500/50 text-emerald-400 hover:shadow-[0_0_8px_rgba(16,185,129,0.15)]"
+                      }`}
+                      title="Sincronizar tempo, XP e respostas com a nuvem Firestore imediatamente"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isStudentSyncing ? "animate-spin" : ""}`} />
+                      <span className="text-[10.5px]">
+                        {isStudentSyncing ? "Sincronizando..." : "Sincronizar Progresso"}
+                      </span>
+                    </button>
+                    {lastStudentSyncTime && !isSidebarCollapsed && (
+                      <p className="text-[8px] font-mono text-emerald-500 text-center mt-0.5">Sincronizado às {lastStudentSyncTime}</p>
                     )}
                   </div>
                 </div>

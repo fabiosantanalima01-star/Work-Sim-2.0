@@ -445,29 +445,30 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
 
 /* 7. Contraste e Sombreamento dos Botões no Modo Diurno */
 .theme-light button {
-  border-width: 2px !important; /* Linhas mais fortes */
+  border-width: 1px !important;
   border-style: solid !important;
-  border-color: #374151 !important; /* Cinza escuro sólido para bordas mais vivas */
-  background-color: #FFFFFF !important; /* Branco puro para brilho */
-  color: #0F172A !important; /* Letras mais fortes */
-  font-weight: 800 !important;
-  box-shadow: 0 4px 0px #D1D5DB, 0 8px 15px -3px rgba(55, 65, 81, 0.2) !important; /* Sombreamento 3D mais vivido */
-  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border-color: #D1D5DB !important; /* Elegant subtle light gray border by default */
+  background-color: #FFFFFF !important; /* Crisp white by default */
+  color: #1F2937 !important; /* Charcoal dark text for perfect contrast */
+  font-weight: 600 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important; /* Soft, modern shadow instead of brutalist chunky lines */
+  border-radius: 12px !important; /* Ensure beautiful rounded-xl */
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* Hover effect with stronger shadow and slight lift for high-fidelity feeling */
 .theme-light button:hover:not(:disabled) {
-  border-color: #111827 !important; /* Borda cinza muito escuro no hover */
-  background-color: #F9FAFB !important; /* Cinza extremamente claro no hover */
-  box-shadow: 0 6px 0px #D1D5DB, 0 12px 20px -5px rgba(55, 65, 81, 0.3) !important; /* Sombreamento mais pronunciado */
-  transform: translateY(-2px); /* Leve levante para ser mais vivido */
+  border-color: #9CA3AF !important;
+  background-color: #F9FAFB !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04) !important;
+  transform: translateY(-1px);
 }
 
 /* Active pressed state */
 .theme-light button:active:not(:disabled) {
-  background-color: #E5E7EB !important;
-  box-shadow: 0 1px 0px #D1D5DB !important;
-  transform: translateY(2px);
+  background-color: #F3F4F6 !important;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06) !important;
+  transform: translateY(1px);
 }
 
 /* Estilo específico para as abas de Navegação Superior (Desafios, Carreira, etc.) no modo Diurno */
@@ -476,6 +477,8 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
   border-color: #D1D5DB !important; /* Borda cinza suave para separar as abas */
   color: #4B5563 !important; /* Cor cinza escura para as letras das abas inativas */
   font-weight: 600 !important;
+  box-shadow: none !important;
+  border-width: 1px !important;
 }
 
 .theme-light header nav button:hover {
@@ -484,49 +487,121 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
   color: #1F2937 !important;
 }
 
-/* Abas Ativas (Selecionadas): Mais destaque, com fundo azul/cinza muito claro e borda azul marcante */
+/* Abas Ativas (Selecionadas): Mais destaque, com fundo Indigo-600 e texto branco para excelente visualização */
 .theme-light header nav button[class*="text-white"],
 .theme-light header nav button[class*="bg-white/5"] {
-  background-color: #FFFFFF !important; /* Branco puro para brilhar */
-  border-color: #374151 !important; /* Borda em cinza profundo de alto contraste */
-  border-width: 2.5px !important; /* Linha mais viva */
-  color: #0F172A !important; /* Letras em preto carvão forte */
-  font-weight: 900 !important;
-  box-shadow: 0 8px 16px rgba(55, 65, 81, 0.2) !important;
+  background-color: #4F46E5 !important; /* Indigo-600 */
+  border-color: #4338CA !important;
+  border-width: 1px !important;
+  color: #FFFFFF !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 12px 0 rgba(79, 70, 229, 0.25) !important;
 }
 
-/* Se o botão for especificamente verde (como os botões de conclusão ou sucesso) */
+/* Se o botão for especificamente verde (como os botões de conclusão ou sucesso ou de confirmação principal) */
+.theme-light button[class*="bg-accent-primary"],
 .theme-light button[class*="bg-emerald"],
-.theme-light button[class*="border-emerald"] {
-  background-color: #ECFDF5 !important; /* Fundo verde bem clarinho */
-  border-color: #10B981 !important; /* Emerald 500 border */
-  color: #065F46 !important;
-  box-shadow: 0 4px 6px -1px rgba(4, 120, 87, 0.1), 0 2px 4px -1px rgba(4, 120, 87, 0.06) !important;
+.theme-light button[class*="bg-green"] {
+  background-color: #16A34A !important; /* Emerald 600 */
+  border-color: #15803D !important; /* Emerald 700 */
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 4px 0 rgba(22, 163, 74, 0.2) !important;
 }
 
-.theme-light button[class*="bg-emerald"]:hover,
-.theme-light button[class*="border-emerald"]:hover {
-  background-color: #D1FAE5 !important;
-  border-color: #059669 !important; /* Emerald 600 border */
+.theme-light button[class*="bg-accent-primary"]:hover:not(:disabled),
+.theme-light button[class*="bg-emerald"]:hover:not(:disabled),
+.theme-light button[class*="bg-green"]:hover:not(:disabled) {
+  background-color: #15803D !important;
+  border-color: #166534 !important;
+  box-shadow: 0 4px 12px 0 rgba(22, 163, 74, 0.35) !important;
 }
 
-/* Se o botão for vermelho/erro */
+/* Se o botão for vermelho/erro/exclusão perigosa */
 .theme-light button[class*="bg-rose"],
 .theme-light button[class*="border-rose"],
 .theme-light button[class*="bg-red"],
 .theme-light button[class*="border-red"] {
-  background-color: #FEF2F2 !important; /* Fundo vermelho bem clarinho */
-  border-color: #F87171 !important; /* Red border */
-  color: #991B1B !important;
-  box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.1), 0 2px 4px -1px rgba(220, 38, 38, 0.06) !important;
+  background-color: #DC2626 !important; /* Red 600 */
+  border-color: #B91C1C !important; /* Red 700 */
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 4px 0 rgba(220, 38, 38, 0.2) !important;
 }
 
-.theme-light button[class*="bg-rose"]:hover,
-.theme-light button[class*="border-rose"]:hover,
-.theme-light button[class*="bg-red"]:hover,
-.theme-light button[class*="border-red"]:hover {
-  background-color: #FEE2E2 !important;
-  border-color: #EF4444 !important;
+.theme-light button[class*="bg-rose"]:hover:not(:disabled),
+.theme-light button[class*="border-rose"]:hover:not(:disabled),
+.theme-light button[class*="bg-red"]:hover:not(:disabled),
+.theme-light button[class*="border-red"]:hover:not(:disabled) {
+  background-color: #B91C1C !important;
+  border-color: #991B1B !important;
+  box-shadow: 0 4px 12px 0 rgba(220, 38, 38, 0.35) !important;
+}
+
+/* Se o botão for azul/informação */
+.theme-light button[class*="bg-indigo"],
+.theme-light button[class*="bg-blue"] {
+  background-color: #4F46E5 !important; /* Indigo 600 */
+  border-color: #4338CA !important; /* Indigo 700 */
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 4px 0 rgba(79, 70, 229, 0.2) !important;
+}
+
+.theme-light button[class*="bg-indigo"]:hover:not(:disabled),
+.theme-light button[class*="bg-blue"]:hover:not(:disabled) {
+  background-color: #4338CA !important;
+  border-color: #3730A3 !important;
+  box-shadow: 0 4px 12px 0 rgba(79, 70, 229, 0.35) !important;
+}
+
+/* Se o botão for amarelo/alerta/ouro */
+.theme-light button[class*="bg-amber"],
+.theme-light button[class*="bg-orange"] {
+  background-color: #D97706 !important; /* Amber 600 */
+  border-color: #B45309 !important; /* Amber 700 */
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 4px 0 rgba(217, 119, 6, 0.2) !important;
+}
+
+.theme-light button[class*="bg-amber"]:hover:not(:disabled),
+.theme-light button[class*="bg-orange"]:hover:not(:disabled) {
+  background-color: #B45309 !important;
+  border-color: #92400E !important;
+  box-shadow: 0 4px 12px 0 rgba(217, 119, 6, 0.35) !important;
+}
+
+/* Botões fantasmas ou de ícone (ex: close, toggles, back) */
+.theme-light button[class*="bg-transparent"],
+.theme-light button[class*="hover:bg-white/10"],
+.theme-light button[class*="hover:bg-white/5"],
+.theme-light button[class*="text-gray-400"],
+.theme-light button[class*="text-slate-400"],
+.theme-light button.p-1,
+.theme-light button.p-1.5,
+.theme-light button.p-2 {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: #4B5563 !important;
+}
+
+.theme-light button[class*="bg-transparent"]:hover,
+.theme-light button[class*="hover:bg-white/10"]:hover,
+.theme-light button[class*="hover:bg-white/5"]:hover,
+.theme-light button[class*="text-gray-400"]:hover,
+.theme-light button[class*="text-slate-400"]:hover,
+.theme-light button.p-1:hover,
+.theme-light button.p-1.5:hover,
+.theme-light button.p-2:hover {
+  background-color: #F3F4F6 !important;
+  color: #111827 !important;
+}
+
+/* Ícones dentro de botões herdam a cor do texto do botão */
+.theme-light button svg {
+  color: currentColor !important;
 }
 
 /* Painel DSR do Calendário Interativo: Laranja muito fraco com letras de alto contraste no modo diurno */
@@ -917,22 +992,23 @@ body.theme-light {
   font-weight: bold !important;
 }
 
-/* Ensure active primary buttons have outstanding legibility */
+/* Ensure active primary buttons have outstanding legibility and modern design */
 .theme-light #footer-mcq-submit-btn,
-.theme-light .botao-responder,
-.theme-light button[class*="bg-emerald"] {
-  background-color: #2E7D32 !important;
+.theme-light .botao-responder {
+  background-color: #16A34A !important; /* Elegant Emerald-600 */
   color: #FFFFFF !important;
-  border: none !important;
-  border-bottom: 4px solid #1B5E20 !important;
-  transition: background 0.2s !important;
+  border: 1px solid #15803D !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 12px 0 rgba(22, 163, 74, 0.2) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .theme-light #footer-mcq-submit-btn:hover:not(:disabled),
-.theme-light .botao-responder:hover,
-.theme-light button[class*="bg-emerald"]:hover:not(:disabled) {
-  background-color: #1B5E20 !important;
-  color: #FFFFFF !important;
+.theme-light .botao-responder:hover {
+  background-color: #15803D !important; /* Emerald-700 */
+  border-color: #166534 !important;
+  box-shadow: 0 6px 16px 0 rgba(22, 163, 74, 0.35) !important;
+  transform: translateY(-1px);
 }
 
 /* Ensure robust white text contrast inside solid highlighted elements */

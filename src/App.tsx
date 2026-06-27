@@ -190,7 +190,7 @@ export default function App() {
           ...resetStudents[admStudentIndex],
           xp: 0,
           precisao: 0.0,
-          faseAtual: 0,
+          faseAtual: -1,
           respostasDesafios: {},
           saidasTela: 0,
           badges: [],
@@ -413,23 +413,25 @@ export default function App() {
         });
 
         setStudents((localStudents) => {
-          if (remoteStudents.length === 0) {
-            return localStudents;
-          }
-          
-          // Merge logic: Start with local students to preserve them
-          const merged = [...localStudents];
+          // Source of truth for students that have been in Firestore is the remote snapshot.
+          const remoteIds = new Set(remoteStudents.map(r => r.id));
+          const previouslySyncedIds = new Set(Object.keys(lastFirestoreSyncedRef.current));
+
+          const filteredLocal = localStudents.filter(local => {
+            if (remoteIds.has(local.id)) return true;
+            if (!previouslySyncedIds.has(local.id)) return true;
+            return false;
+          });
+
+          const merged = [...filteredLocal];
 
           remoteStudents.forEach((remote) => {
             const localIdx = merged.findIndex((s) => s.id === remote.id);
             if (localIdx === -1) {
-              // New student from remote
               merged.push(remote);
             } else {
-              // Update existing student
               const local = merged[localIdx];
 
-              // Handle notifications/chat for others
               if (remote.id !== activeStudentId) {
                 if (isProfessorOrAdmin) {
                   const remoteMsgCount = remote.mensagensChat?.length || 0;
@@ -455,7 +457,6 @@ export default function App() {
                 }
                 merged[localIdx] = remote;
               } else {
-                // Handle chat for active student
                 const remoteMsgCount = remote.mensagensChat?.length || 0;
                 const localMsgCount = local.mensagensChat?.length || 0;
                 if (remoteMsgCount > localMsgCount) {
@@ -470,19 +471,13 @@ export default function App() {
                   ...local,
                   ...remote,
                   xp: Math.max(local.xp || 0, remote.xp || 0),
-                  faseAtual: Math.max(local.faseAtual || 0, remote.faseAtual || 0),
+                  faseAtual: Math.max(local.faseAtual ?? -1, remote.faseAtual ?? -1),
                   precisao: remote.precisao !== undefined ? remote.precisao : local.precisao,
                   respostasDesafios: {
                     ...(local.respostasDesafios || {}),
                     ...(remote.respostasDesafios || {}),
                   },
                   badges: Array.from(new Set([...(local.badges || []), ...(remote.badges || [])])),
-                  // Synchronize password: if remote has it, use it; otherwise keep local
-                  senha: remote.hasOwnProperty("senha") && remote.senha ? remote.senha : local.senha,
-                  // Improved chat merge: preserve local messages if they are more recent/longer
-                  mensagensChat: (remote.mensagensChat?.length || 0) >= (local.mensagensChat?.length || 0)
-                    ? remote.mensagensChat
-                    : local.mensagensChat,
                 };
               }
             }
@@ -807,7 +802,7 @@ export default function App() {
             email: userEmail,
             xp: 0,
             precisao: 0,
-            faseAtual: 0,
+            faseAtual: -1,
             status: "Ativo",
             sala: "Online",
             cargo: "Estudante",
@@ -1744,7 +1739,7 @@ Para resolver:
               ...s,
               xp: 0,
               precisao: 0.0,
-              faseAtual: 0,
+              faseAtual: -1,
               respostasDesafios: {},
               saidasTela: 0,
               badges: [],
@@ -2795,7 +2790,7 @@ Para resolver:
           cargo: "Testador Veterano",
           xp: 0,
           precisao: 100.0,
-          faseAtual: 0,
+          faseAtual: -1,
           status: "Ativo",
           senha: inputPassword,
           isVeterano: true,
@@ -2809,7 +2804,7 @@ Para resolver:
         setActiveStudentId(newVetId);
       }
       
-      setSelectedPhaseId(0);
+      setSelectedPhaseId(-1);
       setShowMatrixIntro(true);
       playSoundEffect("success");
     } else if (loginStep === "password" && matched) {
@@ -2885,7 +2880,7 @@ Para resolver:
         cargo: "Testador Veterano",
         xp: 0,
         precisao: 100.0,
-        faseAtual: 0,
+        faseAtual: -1,
         status: "Ativo",
         senha: targetSenha,
         isVeterano: true,
@@ -2902,7 +2897,7 @@ Para resolver:
 
       setStudents((prev) => [...prev, newVeteran]);
       setActiveStudentId(newVetId);
-      setSelectedPhaseId(0);
+      setSelectedPhaseId(-1);
       setShowMatrixIntro(true); // show the matrix dropping effect for veterans too!
       playSoundEffect("success");
     } else {
@@ -3038,31 +3033,33 @@ Para resolver:
       return;
     }
 
-    // Confirmation for individual delete or bulk
-    const msg = deletableIds.length === 1 
-      ? (appLanguage === "pt" ? `Deseja apagar o aluno selecionado?` : `Delete selected student?`)
-      : (appLanguage === "pt" ? `Deseja apagar os ${deletableIds.length} alunos selecionados?` : `Delete ${deletableIds.length} students?`);
+    const executeDeletion = async () => {
+      setStudents(prev => {
+        const remaining = prev.filter(s => !deletableIds.includes(s.id));
+        localStorage.setItem("worksim_students", JSON.stringify(remaining));
+        return remaining;
+      });
 
-    if (!window.confirm(msg)) return;
-
-    setStudents(prev => {
-      const remaining = prev.filter(s => !deletableIds.includes(s.id));
-      localStorage.setItem("worksim_students", JSON.stringify(remaining));
-      return remaining;
-    });
-
-    if (db && firebaseUser) {
-      try {
-        const deletePromises = deletableIds.map(id => syncDeleteDoc("students", id));
-        await Promise.all(deletePromises);
-      } catch (e) {
-        console.error("[App] Erro ao deletar estudantes do servidor", e);
+      if (db && firebaseUser) {
+        try {
+          const deletePromises = deletableIds.map(id => syncDeleteDoc("students", id));
+          await Promise.all(deletePromises);
+        } catch (e) {
+          console.error("[App] Erro ao deletar estudantes do servidor", e);
+        }
       }
-    }
 
-    alert(appLanguage === "pt" 
-      ? `Sucesso: ${deletableIds.length} aluno(s) removido(s) com sucesso.` 
-      : `Success: ${deletableIds.length} student(s) successfully removed.`);
+      // No alert here, maybe just let the UI reflect it
+    };
+
+    setConfirmModal({
+      isOpen: true,
+      title: appLanguage === "pt" ? "Confirmar Exclusão" : "Confirm Deletion",
+      description: deletableIds.length === 1 
+        ? (appLanguage === "pt" ? `Deseja realmente apagar o aluno selecionado?` : `Are you sure you want to delete the selected student?`)
+        : (appLanguage === "pt" ? `Deseja realmente apagar os ${deletableIds.length} alunos selecionados?` : `Are you sure you want to delete the ${deletableIds.length} selected students?`),
+      onConfirm: executeDeletion
+    });
   };
 
   const handleManualSyncToFirestore = async () => {
@@ -5504,12 +5501,12 @@ Para resolver:
                           transition={{ duration: 0.3 }}
                           className="text-accent-warning font-bold flex items-center gap-0.5"
                         >
-                          🌟 {activeStudent.xp} XP
+                          🌟 {activeStudent?.xp || 0} XP
                         </motion.span>
                       </div>
 
                       {/* Crachá Section - Access granted after signing contract or for Professor */}
-                      {(activeStudent.contratoAssinado || isProfessorOrAdmin) && (
+                      {(activeStudent?.contratoAssinado || isProfessorOrAdmin) && (
                         <div className="border-t border-white/10 pt-3 mt-1 space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] text-text-secondary uppercase font-bold tracking-tight flex items-center gap-1.5">
@@ -5570,10 +5567,10 @@ Para resolver:
                         </div>
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="text-[10px] font-bold text-white truncate leading-tight uppercase">
-                            {formatBadgeName(activeStudent.nomeCompleto)}
+                            {formatBadgeName(activeStudent?.nomeCompleto || "")}
                           </div>
-                          <div className="text-[8px] text-accent-primary font-mono font-bold">{activeStudent.matricula}</div>
-                          <div className="text-[7px] text-gray-400 uppercase leading-tight font-medium italic">{activeStudent.cargo || "Estagiário"}</div>
+                          <div className="text-[8px] text-accent-primary font-mono font-bold">{activeStudent?.matricula || ""}</div>
+                          <div className="text-[7px] text-gray-400 uppercase leading-tight font-medium italic">{activeStudent?.cargo || "Estagiário"}</div>
                         </div>
                       </div>
 
@@ -5590,7 +5587,7 @@ Para resolver:
                         </div>
                         <div className="w-12 h-12 bg-white p-1 rounded-lg shadow-inner">
                           <img 
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${activeStudent.matricula}`} 
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${activeStudent?.matricula || ""}`} 
                             className="w-full h-full"
                             alt="Badge QR"
                           />
@@ -5608,26 +5605,26 @@ Para resolver:
                     className="relative w-full flex flex-col items-center"
                   >
                     {/* FRONT SIDE (Original) */}
-                    <div className="flex flex-col items-center gap-2 p-2 bg-slate-950/40 rounded-xl border border-white/5 w-full font-mono text-center backface-hidden" style={{ backfaceVisibility: "hidden" }} title={`${activeStudent.nomeCompleto} - MAT: ${activeStudent.matricula}`}>
+                    <div className="flex flex-col items-center gap-2 p-2 bg-slate-950/40 rounded-xl border border-white/5 w-full font-mono text-center backface-hidden" style={{ backfaceVisibility: "hidden" }} title={`${activeStudent?.nomeCompleto || ""} - MAT: ${activeStudent?.matricula || ""}`}>
                       <span className="text-[8px] font-bold text-accent-primary bg-accent-primary/10 px-1.5 py-0.5 rounded uppercase">
-                        F{activeStudent.faseAtual}
+                        F{activeStudent?.faseAtual ?? -1}
                       </span>
                       <ProfileProgressRing progress={currentPhaseProgress} size={36} strokeWidth={2.5}>
                         <div className="w-full h-full bg-slate-850 flex items-center justify-center font-bold text-[10px] text-accent-primary">
-                          {activeStudent.nomeCompleto.substring(0, 2).toUpperCase()}
+                          {(activeStudent?.nomeCompleto || "??").substring(0, 2).toUpperCase()}
                         </div>
                       </ProfileProgressRing>
                       <span className="text-[9px] text-amber-400 font-bold block">
                         <motion.span
-                          key={activeStudent.xp}
+                          key={activeStudent?.xp || 0}
                           initial={{ opacity: 0.5 }}
                           animate={{ opacity: 1 }}
                         >
-                          {activeStudent.xp}XP
+                          {activeStudent?.xp || 0}XP
                         </motion.span>
                       </span>
                       
-                      {(activeStudent.contratoAssinado || isProfessorOrAdmin) && (
+                      {(activeStudent?.contratoAssinado || isProfessorOrAdmin) && (
                         <button
                           type="button"
                           onClick={handleDownloadBadge}
@@ -5651,7 +5648,7 @@ Para resolver:
                     >
                       <div className="w-8 h-8 bg-white p-0.5 rounded shadow-inner">
                         <img 
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${activeStudent.matricula}`} 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${activeStudent?.matricula || ""}`} 
                           className="w-full h-full"
                           alt="Mini QR"
                         />
@@ -5773,7 +5770,7 @@ Para resolver:
                       </div>
                       <div className="text-lg font-black text-white tracking-tighter">
                         {(() => {
-                          const totalSec = activeStudent.tempoAtivoSegundos || 0;
+                          const totalSec = activeStudent?.tempoAtivoSegundos || 0;
                           const hrs = Math.floor(totalSec / 3600);
                           const mins = Math.floor((totalSec % 3600) / 60);
                           const secs = totalSec % 60;
@@ -5793,11 +5790,11 @@ Para resolver:
                         <div className="flex-1 h-2 bg-slate-950 rounded-full overflow-hidden border border-white/5 p-[1px]">
                           <motion.div 
                             initial={{ width: 0 }}
-                            animate={{ width: `${activeStudent.precisao}%` }}
+                            animate={{ width: `${activeStudent?.precisao || 0}%` }}
                             className="h-full bg-gradient-to-r from-accent-primary to-blue-600 rounded-full" 
                           />
                         </div>
-                        <span className="text-white font-black text-xs">{activeStudent.precisao.toFixed(1)}%</span>
+                        <span className="text-white font-black text-xs">{(activeStudent?.precisao || 0).toFixed(1)}%</span>
                       </div>
                     </div>
 
@@ -5817,7 +5814,7 @@ Para resolver:
                         <div className="h-6 w-[1px] bg-white/5" />
                         <div className="flex flex-col items-end">
                           <span className="text-[8px] text-gray-500 uppercase font-bold">Casos</span>
-                          <span className="text-xs font-black text-white">{activeStudent.casosResolvidosNoCiclo || 0}</span>
+                          <span className="text-xs font-black text-white">{activeStudent?.casosResolvidosNoCiclo || 0}</span>
                         </div>
                       </div>
 
@@ -5852,7 +5849,7 @@ Para resolver:
                   </div>
                   <div className="flex flex-col items-center gap-0.5">
                     <Zap className="w-4 h-4 text-amber-500" />
-                    <span className="text-[9px] font-black text-white">{activeStudent.precisao.toFixed(0)}%</span>
+                    <span className="text-[9px] font-black text-white">{(activeStudent?.precisao || 0).toFixed(0)}%</span>
                   </div>
                 </div>
               )}
@@ -5874,10 +5871,10 @@ Para resolver:
                       {/* Bathroom break button */}
                       <button
                         type="button"
-                        disabled={(activeStudent.pausasBanheiroUsadas || 0) >= 3}
+                        disabled={(activeStudent?.pausasBanheiroUsadas || 0) >= 3}
                         onClick={handleStartBathroomPause}
                         className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center font-bold tracking-tight transition-all cursor-pointer ${
-                          (activeStudent.pausasBanheiroUsadas || 0) >= 3
+                          (activeStudent?.pausasBanheiroUsadas || 0) >= 3
                             ? "border-rose-950/40 bg-zinc-950/25 text-gray-500 cursor-not-allowed opacity-50"
                             : "border-indigo-500/20 bg-indigo-500/5 hover:bg-indigo-500/10 hover:border-indigo-500/40 text-indigo-400 hover:shadow-[0_0_8px_rgba(99,102,241,0.15)]"
                         }`}
@@ -5885,7 +5882,7 @@ Para resolver:
                       >
                         <span className="text-[12px] mb-0.5">🚽 Banheiro</span>
                         <span className="text-[8px] font-mono text-gray-400 font-normal">
-                          {(activeStudent.pausasBanheiroUsadas || 0)}/3 Usadas
+                          {(activeStudent?.pausasBanheiroUsadas || 0)}/3 Usadas
                         </span>
                       </button>
 
@@ -5976,7 +5973,7 @@ Para resolver:
                       </span>
                     </div>
                     <span className="text-[8px] font-mono text-gray-600">
-                      {students.filter(s => s.id !== 'adm' && s.id !== 'professor' && s.focoStatus === "Ativo" && s.lastSeen && (Date.now() - s.lastSeen) < 35000).length} Online
+                      {students.filter(s => s.id !== 'adm' && s.id !== 'professor' && s.focoStatus === "Ativo" && s.lastSeen && (Date.now() - s.lastSeen) < 35000).length} ● Na Tela
                     </span>
                   </div>
                   <div className="space-y-1.5 max-h-[140px] overflow-y-auto px-1 custom-scrollbar">
@@ -6006,7 +6003,7 @@ Para resolver:
                                 Fase {s.faseAtual} • {s.sala}
                               </span>
                               <span className={`text-[8px] font-mono ${isOnline ? 'text-emerald-500 font-bold' : 'text-gray-600'}`}>
-                                {isOnline ? 'ONLINE' : 'AUSENTE'}
+                                {isOnline ? '● Na Tela' : 'AUSENTE'}
                               </span>
                             </div>
                           </div>
@@ -6334,7 +6331,7 @@ Para resolver:
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-950/20 p-3.5 sm:p-4 rounded-2xl border border-white/5 relative overflow-hidden">
               <div className="absolute top-0 right-0 bg-accent-primary/10 px-3 py-1 text-[10px] font-mono rounded-bl text-accent-primary uppercase font-bold tracking-widest hidden sm:block">
                 {activeStudent?.timeId 
-                  ? `ESTAÇÃO ATIVA ${activeStudent.timeId} — SQUAD LOGÍSTICA`
+                  ? `ESTAÇÃO ATIVA ${activeStudent?.timeId} — SQUAD LOGÍSTICA`
                   : "ESTAÇÃO INDIVIDUAL — LOGÍSTICA"
                 }
               </div>
@@ -8186,23 +8183,31 @@ Para resolver:
                     </h3>
                     <div className="space-y-2 text-left text-text-secondary font-mono">
                       <div className="flex justify-between">
-                        <span>Fases Concluídas:</span>
+                        <span>Fase Atual:</span>
                         <span className="text-gray-300 font-bold">
-                          {activeStudent.faseAtual} / 7
+                          F{activeStudent?.faseAtual ?? -1}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Desafios Concluídos:</span>
+                        <span>Resoluções na Fase:</span>
                         <span className="text-gray-300 font-bold">
-                          {completedChallenges.length} /{" "}
-                          {allChallenges.length}
+                          {(() => {
+                            const phaseChallenges = allChallenges.filter(c => c.fase === (activeStudent?.faseAtual ?? -1));
+                            const solvedInPhase = phaseChallenges.filter(c => completedChallenges.includes(c.id)).length;
+                            return `${solvedInPhase} / ${phaseChallenges.length}`;
+                          })()}
                         </span>
                       </div>
                       <div className="w-full bg-slate-950 text-xs h-2 rounded-full overflow-hidden">
                         <div
                           className="bg-accent-primary h-full"
                           style={{
-                            width: `${(completedChallenges.length / allChallenges.length) * 100}%`,
+                            width: `${(() => {
+                              const phaseChallenges = allChallenges.filter(c => c.fase === (activeStudent?.faseAtual ?? -1));
+                              if (phaseChallenges.length === 0) return 100;
+                              const solvedInPhase = phaseChallenges.filter(c => completedChallenges.includes(c.id)).length;
+                              return (solvedInPhase / phaseChallenges.length) * 100;
+                            })()}%`,
                           }}
                         />
                       </div>
@@ -8223,7 +8228,7 @@ Para resolver:
                 <CareerProgress
                   currentPhaseId={selectedPhaseId}
                   unlockedPhases={unlockedPhasesList}
-                  student={activeStudent}
+                  student={activeStudent || INITIAL_STUDENTS[0]}
                   onSelectPhase={(phaseId) => setSelectedPhaseId(phaseId)}
                   completedChallengesCount={completedChallenges.length}
                 />
@@ -8343,8 +8348,8 @@ Para resolver:
                             const newId = `fb-${Date.now()}`;
                             const newFb = {
                               id: newId,
-                              veteranName: activeStudent.nomeCompleto,
-                              veteranUser: activeStudent.matricula,
+                              veteranName: activeStudent?.nomeCompleto || "Desconhecido",
+                              veteranUser: activeStudent?.matricula || "USR-???",
                               category: category,
                               text: desc,
                               timestamp: new Date().toLocaleString("pt-BR"),
@@ -8357,7 +8362,7 @@ Para resolver:
                             // Add to active chat messages of student to simulate system email dispatch
                             const sysAlertId = `alert-${Date.now()}`;
                             setStudents(prev => prev.map(s => {
-                              if (s.id === activeStudent.id) {
+                              if (s.id === activeStudent?.id) {
                                 return {
                                   ...s,
                                   mensagensChat: [
@@ -8400,7 +8405,7 @@ Para resolver:
                           <input
                             type="text"
                             disabled
-                            value={activeStudent.nomeCompleto}
+                            value={activeStudent?.nomeCompleto || ""}
                             className="w-full bg-slate-950/50 border border-white/5 rounded-lg px-3.5 py-2 text-xs font-mono text-gray-300 opacity-60"
                           />
                         </div>
@@ -8411,7 +8416,7 @@ Para resolver:
                           <input
                             type="text"
                             disabled
-                            value={activeStudent.matricula}
+                            value={activeStudent?.matricula || ""}
                             className="w-full bg-slate-950/50 border border-white/5 rounded-lg px-3.5 py-2 text-xs font-mono text-gray-300 opacity-60"
                           />
                         </div>
@@ -8484,7 +8489,7 @@ Para resolver:
                     <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
                       {(() => {
                         const myFeedbacks = veteranFeedbacks.filter(
-                          (fb: any) => fb.veteranUser === activeStudent.matricula
+                          (fb: any) => fb.veteranUser === (activeStudent?.matricula || "")
                         );
                         
                         const filteredFeedbacks = myFeedbacks.filter((fb: any) => {

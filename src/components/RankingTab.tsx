@@ -505,11 +505,11 @@ export default function RankingTab({
                       ➕ Conectar novo aluno à mesma máquina:
                     </h4>
                     <div className="flex gap-3">
-                      <select
-                        value={selectedStudentToAdd}
-                        onChange={(e) => setSelectedStudentToAdd(e.target.value)}
-                        className="flex-grow bg-slate-950 border border-white/10 rounded-xl p-2.5 text-xs text-white uppercase focus:border-cyan-400 tracking-wide focus:outline-none"
-                      >
+                    <select
+                      value={selectedStudentToAdd}
+                      onChange={(e) => setSelectedStudentToAdd(e.target.value)}
+                      className="flex-grow bg-bg-card border border-white/10 rounded-xl p-2.5 text-xs text-text-primary uppercase focus:border-cyan-400 tracking-wide focus:outline-none"
+                    >
                         <option value="">-- Selecione o Aluno por Chamada --</option>
                         {addableStudents.map((s) => (
                           <option key={s.id} value={s.id}>
@@ -664,7 +664,7 @@ export default function RankingTab({
                 <select
                   value={effectiveClassFilter}
                   onChange={(e) => setClassFilter(e.target.value)}
-                  className="bg-slate-930 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-cyan-400 focus:outline-none min-w-[140px]"
+                  className="bg-bg-card border border-white/10 rounded-xl px-3 py-2 text-xs text-text-primary focus:border-cyan-400 focus:outline-none min-w-[140px]"
                 >
                   {isProfessorOrAdmin && <option value="ALL">Todas as Turmas</option>}
                   {availableClasses.map((cl, i) => (
@@ -686,7 +686,7 @@ export default function RankingTab({
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Pesquisar..."
-                  className="bg-slate-930 border border-white/10 rounded-xl pl-8 pr-3 py-2 text-xs text-white focus:border-cyan-400 focus:outline-none w-full md:w-[220px] font-mono"
+                  className="bg-bg-card border border-white/10 rounded-xl pl-8 pr-3 py-2 text-xs text-text-primary focus:border-cyan-400 focus:outline-none w-full md:w-[220px] font-mono"
                 />
               </div>
             </div>

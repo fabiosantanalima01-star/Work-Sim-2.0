@@ -36,7 +36,9 @@ import {
   LayoutDashboard,
   BookOpen,
   MessageSquare,
-  Cloud
+  Cloud,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import {
   collection,
@@ -176,8 +178,8 @@ export default function ProfessorCockpit({
       shortLabel: `D${ch.id}`,
     };
   }).filter((item) => {
-    // Return all Phase 0 onboarding challenges or any challenge that has at least one completion
-    return item.id.startsWith("0.") || item["Alunos Resolvidos"] > 0;
+    // Return all Phase -1 and Phase 0 challenges or any challenge that has at least one completion
+    return item.id.startsWith("-1.") || item.id.startsWith("0.") || item["Alunos Resolvidos"] > 0;
   });
 
   // Calculate insights
@@ -243,21 +245,14 @@ export default function ProfessorCockpit({
   const handleDeleteSelected = async () => {
     if (selectedIdsForDeletion.length === 0) return;
     
-    const confirmMsg = appLanguage === "pt"
-      ? `Deseja realmente apagar os ${selectedIdsForDeletion.length} alunos selecionados?`
-      : `Are you sure you want to delete the ${selectedIdsForDeletion.length} selected students?`;
-
-    if (window.confirm(confirmMsg)) {
-      setIsDeletingSelection(true);
-      try {
-        await onDeleteStudents?.(selectedIdsForDeletion);
-        setSelectedIdsForDeletion([]);
-      } catch (err) {
-        console.error("[Cockpit] Error during deletion:", err);
-        alert(appLanguage === "pt" ? "Erro ao apagar alunos. Tente novamente." : "Error deleting students. Try again.");
-      } finally {
-        setIsDeletingSelection(false);
-      }
+    setIsDeletingSelection(true);
+    try {
+      await onDeleteStudents?.(selectedIdsForDeletion);
+      setSelectedIdsForDeletion([]);
+    } catch (err) {
+      console.error("[Cockpit] Error during deletion:", err);
+    } finally {
+      setIsDeletingSelection(false);
     }
   };
 
@@ -300,6 +295,13 @@ export default function ProfessorCockpit({
   const [batchRawInput, setBatchRawInput] = useState<string>("");
   const [batchSuccessMsg, setBatchSuccessMsg] = useState<string>("");
   const [isProcessingBatch, setIsProcessingBatch] = useState<boolean>(false);
+
+  // --- COLLAPSIBLE PANELS STATE ---
+  const [collapsedOcr, setCollapsedOcr] = useState<boolean>(true);
+  const [collapsedPdfRepo, setCollapsedPdfRepo] = useState<boolean>(true);
+  const [collapsedBatchEnroll, setCollapsedBatchEnroll] = useState<boolean>(true);
+  const [collapsedAdminClean, setCollapsedAdminClean] = useState<boolean>(true);
+  const [collapsedBadgePrint, setCollapsedBadgePrint] = useState<boolean>(true);
 
   // --- BROADCAST LOGS LISTENER ---
   useEffect(() => {
@@ -751,7 +753,7 @@ export default function ProfessorCockpit({
   // --- TELEMETRY CALCULATIONS ---
   
   // 1. Average XP Progression of the Class grouped by Fase Atual
-  const phasesCohort = [0, 1, 2, 3];
+  const phasesCohort = [-1, 0, 1, 2, 3, 4, 5, 6, 7];
   const xpProgressionData = phasesCohort.map((phaseNum) => {
     const studentsInPhase = filteredStudentsByClass.filter((s) => s.faseAtual === phaseNum);
     const avgXp = studentsInPhase.length > 0
@@ -759,10 +761,10 @@ export default function ProfessorCockpit({
       : 0;
     
     // Baseline XP targets expected for a student to clear or reach each phase
-    const expectedXP = phaseNum === 0 ? 100 : phaseNum === 1 ? 400 : phaseNum === 2 ? 1000 : 2500;
+    const expectedXP = phaseNum === -1 ? 20 : phaseNum === 0 ? 140 : phaseNum === 1 ? 200 : phaseNum === 2 ? 300 : phaseNum === 3 ? 510 : 1000;
     
     return {
-      fase: `Fase ${phaseNum}`,
+      fase: `F${phaseNum}`,
       "XP Médio": avgXp,
       "Referência Base": expectedXP,
       "Qtd Alunos": studentsInPhase.length,
@@ -811,7 +813,7 @@ export default function ProfessorCockpit({
   };
 
   // 1. Desempenho Coletivo por Fase
-  const academyPhases = [0, 1, 2, 3, 4, 5, 6, 7];
+  const academyPhases = [-1, 0, 1, 2, 3, 4, 5, 6, 7];
   const phasePerformanceCohort = academyPhases.map((pId) => {
     const studentsInP = filteredStudentsByClass.filter((s) => s.faseAtual === pId);
     const count = studentsInP.length;
@@ -940,7 +942,7 @@ export default function ProfessorCockpit({
               cargo: "Estagiário de RH",
               xp: 0,
               precisao: 0.0,
-              faseAtual: 0, 
+              faseAtual: -1, 
               status: "Aguardando Ativação",
               respostasDesafios: {},
               chamadaNumero: tempId.slice(0, 2)
@@ -980,7 +982,7 @@ export default function ProfessorCockpit({
         cargo: "Candidato de RH",
         xp: 0,
         precisao: 0.0,
-        faseAtual: 0,
+        faseAtual: -1,
         status: "Ativo",
         respostasDesafios: {},
         chamadaNumero: callNum,
@@ -1421,71 +1423,84 @@ export default function ProfessorCockpit({
           <div className="lg:col-span-2 space-y-6">
             
             {/* Automated Onboarding panel */}
-            <div className="glass-panel rounded-2xl p-6 border border-white/5 space-y-4">
-              <div className="flex items-center gap-2 border-b border-white/5 pb-3">
-                <Camera className="w-5 h-5 text-accent-primary" />
-                <div>
-                  <h3 className="text-sm font-sans font-bold text-gray-100 uppercase tracking-wide">
-                    Onboarding via OCR de Chamada
-                  </h3>
-                  <p className="text-[11px] text-text-secondary leading-snug">
-                    Mestre, digite ou cole a lista nominal da chamada do dia. O OCR simula o escaneamento físico e gera os IDs.
-                  </p>
+            <div className="glass-panel rounded-2xl border border-white/5 overflow-hidden transition-all duration-300">
+              <button 
+                onClick={() => setCollapsedOcr(!collapsedOcr)}
+                className="w-full flex items-center justify-between p-6 hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-accent-primary" />
+                  <div className="text-left">
+                    <h3 className="text-sm font-sans font-bold text-gray-100 uppercase tracking-wide">
+                      Onboarding via OCR de Chamada
+                    </h3>
+                    <p className="text-[11px] text-text-secondary leading-snug">
+                      Mestre, digite ou cole a lista nominal da chamada do dia. O OCR simula o escaneamento físico e gera os IDs.
+                    </p>
+                  </div>
                 </div>
-              </div>
+                {collapsedOcr ? <ChevronDown className="w-5 h-5 text-gray-500" /> : <ChevronUp className="w-5 h-5 text-accent-primary" />}
+              </button>
 
-              <textarea
-                id="professor-ocr-textarea"
-                rows={4}
-                value={ocrInputText}
-                onChange={(e) => setOcrInputText(e.target.value)}
-                className="w-full bg-slate-950/70 border border-white/10 rounded-lg p-3 text-xs font-mono focus:border-accent-primary focus:outline-none text-accent-primary"
-                placeholder="Digite um nome por linha..."
-                disabled={isProcessingOcr}
-              />
+              {!collapsedOcr && (
+                <div className="p-6 pt-0 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <textarea
+                    id="professor-ocr-textarea"
+                    rows={4}
+                    value={ocrInputText}
+                    onChange={(e) => setOcrInputText(e.target.value)}
+                    className="w-full bg-slate-950/70 border border-white/10 rounded-lg p-3 text-xs font-mono focus:border-accent-primary focus:outline-none text-accent-primary"
+                    placeholder="Digite um nome por linha..."
+                    disabled={isProcessingOcr}
+                  />
 
-              <div className="flex justify-between items-center bg-slate-950/20 p-3 rounded-xl border border-white/5">
-                <div className="flex items-center gap-2 text-xs text-text-secondary">
-                  <FileSpreadsheet className="w-4 h-4 text-accent-primary" />
-                  <span>Format: Nome completo | Turma 1B</span>
-                </div>
-                <button
-                  id="professor-ocr-launch-btn"
-                  type="button"
-                  onClick={handleSimulatedOCRUpload}
-                  disabled={isProcessingOcr}
-                  className="bg-accent-primary text-bg-primary hover:bg-white font-sans font-bold text-xs uppercase py-2 px-4 rounded-lg cursor-pointer flex items-center gap-1.5 transition-all disabled:opacity-50"
-                >
-                  {isProcessingOcr ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Buscando...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-3.5 h-3.5" />
-                      Rodar OCR e Cadastrar
-                    </>
+                  <div className="flex justify-between items-center bg-slate-950/20 p-3 rounded-xl border border-white/5">
+                    <div className="flex items-center gap-2 text-xs text-text-secondary">
+                      <FileSpreadsheet className="w-4 h-4 text-accent-primary" />
+                      <span>Format: Nome completo | Turma 1B</span>
+                    </div>
+                    <button
+                      id="professor-ocr-launch-btn"
+                      type="button"
+                      onClick={handleSimulatedOCRUpload}
+                      disabled={isProcessingOcr}
+                      className="bg-accent-primary text-bg-primary hover:bg-white font-sans font-bold text-xs uppercase py-2 px-4 rounded-lg cursor-pointer flex items-center gap-1.5 transition-all disabled:opacity-50"
+                    >
+                      {isProcessingOcr ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          Buscando...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5" />
+                          Rodar OCR e Cadastrar
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {isProcessingOcr && (
+                    <div className="p-3 bg-indigo-950/20 border border-indigo-500/10 rounded-xl flex items-center gap-2 font-mono text-xs text-accent-primary animate-pulse">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Estágio OCR: {ocrPhase}</span>
+                    </div>
                   )}
-                </button>
-              </div>
-
-              {isProcessingOcr && (
-                <div className="p-3 bg-indigo-950/20 border border-indigo-500/10 rounded-xl flex items-center gap-2 font-mono text-xs text-accent-primary animate-pulse">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Estágio OCR: {ocrPhase}</span>
                 </div>
               )}
             </div>
 
             {/* NOVO REPOSITÓRIO E ESPAÇO PARA UPAR AS FOLHAS DE CHAMADAS EM PDF */}
-            <div className="glass-panel rounded-2xl p-6 border border-indigo-500/30 bg-slate-950/40 space-y-4 shadow-[0_0_20px_rgba(99,102,241,0.08)] text-left">
-              <div className="flex items-center gap-2.5 border-b border-white/5 pb-3 justify-between">
+            <div className="glass-panel rounded-2xl border border-indigo-500/30 bg-slate-950/40 overflow-hidden shadow-[0_0_20px_rgba(99,102,241,0.08)] text-left transition-all duration-300">
+              <button 
+                onClick={() => setCollapsedPdfRepo(!collapsedPdfRepo)}
+                className="w-full flex items-center justify-between p-6 hover:bg-white/5 transition-colors cursor-pointer"
+              >
                 <div className="flex items-center gap-2.5">
                   <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg border border-indigo-500/20">
                     <FileText className="w-5 h-5 text-indigo-400" />
                   </div>
-                  <div>
+                  <div className="text-left">
                     <h3 className="text-sm font-sans font-bold text-gray-100 uppercase tracking-wide flex items-center gap-1.5">
                       Repositório Oficial de Chamadas (Upload de PDFs)
                     </h3>
@@ -1494,391 +1509,433 @@ export default function ProfessorCockpit({
                     </p>
                   </div>
                 </div>
-                <span className="bg-indigo-500/10 text-indigo-400 font-mono text-[9px] px-2.5 py-0.5 rounded-full border border-indigo-500/20 font-bold hidden sm:block">
-                  e-SOCIAL COMPLIANT
-                </span>
-              </div>
-
-              {/* DRAG AND DROP ZONE */}
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragOver(true);
-                }}
-                onDragLeave={() => setIsDragOver(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDragOver(false);
-                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                    handlePdfFileImport(e.dataTransfer.files[0]);
-                  }
-                }}
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer text-center select-none ${
-                  isDragOver
-                    ? "border-accent-primary bg-accent-primary/10 scale-[0.99]"
-                    : "border-white/10 hover:border-indigo-400/40 hover:bg-white/5 bg-slate-950/30"
-                }`}
-              >
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      handlePdfFileImport(e.target.files[0]);
-                    }
-                  }}
-                  accept=".pdf"
-                  className="hidden"
-                />
-                
-                <div className="p-3 bg-indigo-550/10 text-indigo-400 rounded-full border border-indigo-500/15 transition-all">
-                  <Upload className="w-6 h-6 text-indigo-400" />
+                <div className="flex items-center gap-4">
+                  <span className="bg-indigo-500/10 text-indigo-400 font-mono text-[9px] px-2.5 py-0.5 rounded-full border border-indigo-500/20 font-bold hidden sm:block">
+                    e-SOCIAL COMPLIANT
+                  </span>
+                  {collapsedPdfRepo ? <ChevronDown className="w-5 h-5 text-gray-500" /> : <ChevronUp className="w-5 h-5 text-indigo-400" />}
                 </div>
-                
-                <div>
-                  <p className="text-xs font-sans font-semibold text-gray-200">
-                    Clique para selecionar ou arraste o arquivo PDF aqui
-                  </p>
-                  <p className="text-[10px] text-gray-500 mt-1 font-mono">
-                    Apenas documentos com extensão .pdf são aceitos (Max. 10MB)
-                  </p>
-                </div>
-              </div>
+              </button>
 
-              {/* UPLOAD STATUS METER */}
-              {isUploadingPdf && (
-                <div className="p-4 bg-slate-950/70 border border-indigo-500/20 rounded-xl space-y-2.5 animate-pulse">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-mono text-indigo-400 flex items-center gap-1.5 font-bold">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      {pdfUploadPhase}
-                    </span>
-                    <span className="font-mono text-gray-400">
-                      {pdfUploadProgress}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden">
-                    <div
-                      className="bg-accent-primary h-full rounded-full transition-all duration-300"
-                      style={{ width: `${pdfUploadProgress}%` }}
+              {!collapsedPdfRepo && (
+                <div className="p-6 pt-0 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  {/* DRAG AND DROP ZONE */}
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsDragOver(true);
+                    }}
+                    onDragLeave={() => setIsDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragOver(false);
+                      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                        handlePdfFileImport(e.dataTransfer.files[0]);
+                      }
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer text-center select-none ${
+                      isDragOver
+                        ? "border-accent-primary bg-accent-primary/10 scale-[0.99]"
+                        : "border-white/10 hover:border-indigo-400/40 hover:bg-white/5 bg-slate-950/30"
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handlePdfFileImport(e.target.files[0]);
+                        }
+                      }}
+                      accept=".pdf"
+                      className="hidden"
                     />
+                    
+                    <div className="p-3 bg-indigo-550/10 text-indigo-400 rounded-full border border-indigo-500/15 transition-all">
+                      <Upload className="w-6 h-6 text-indigo-400" />
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs font-sans font-semibold text-gray-200">
+                        Clique para selecionar ou arraste o arquivo PDF aqui
+                      </p>
+                      <p className="text-[10px] text-gray-500 mt-1 font-mono">
+                        Apenas documentos com extensão .pdf são aceitos (Max. 10MB)
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
 
-              {/* SUCCESS & ERROR TOASTERS */}
-              {pdfErrorMsg && (
-                <div className="p-3 bg-red-950/20 border border-red-500/15 rounded-xl flex items-center gap-2 text-xs text-red-500 font-sans animate-fade-in">
-                  <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
-                  <span>{pdfErrorMsg}</span>
-                </div>
-              )}
-
-              {pdfSuccessMsg && (
-                <div className="p-3 bg-emerald-950/20 border border-emerald-500/15 rounded-xl flex items-center gap-2 text-xs text-emerald-400 font-sans animate-fade-in font-semibold">
-                  <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>{pdfSuccessMsg}</span>
-                </div>
-              )}
-
-              {/* LIST OF CURRENT CHAMADA PDF FILES */}
-              <div className="space-y-2">
-                <h4 className="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                  📁 Documentos Salvos de Chamada ({folhasPdfs.length})
-                </h4>
-                
-                {folhasPdfs.length === 0 ? (
-                  <p className="text-[10px] text-gray-500 font-mono italic p-2 bg-slate-900/40 rounded-lg text-center border border-white/5">
-                    Nenhuma folha de chamada importada em PDF até o momento.
-                  </p>
-                ) : (
-                  <div className="space-y-2 max-h-[180px] overflow-y-auto custom-scrollbar pr-1">
-                    {folhasPdfs.map((pdf) => (
-                      <div
-                        key={pdf.id}
-                        className="bg-slate-950/50 border border-white/5 p-3 rounded-xl flex items-center justify-between text-xs hover:border-indigo-500/20 transition-all group animate-fade-in"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="p-2 bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/15">
-                            <FileText className="w-4 h-4 text-rose-400" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-sans font-bold text-gray-200 group-hover:text-amber-400 transition-colors">
-                                {pdf.name}
-                              </span>
-                              <span className="text-[9px] font-mono text-gray-500">
-                                ({pdf.size})
-                              </span>
-                            </div>
-                            <p className="text-[9.5px] text-text-secondary font-mono flex items-center gap-2">
-                              <span>📅 Importado: <span className="text-gray-300">{pdf.date}</span></span>
-                              <span className="text-white/10">|</span>
-                              <span>Turma: <span className="text-cyan-400 font-semibold">{pdf.classroom}</span></span>
-                              <span className="text-white/10">|</span>
-                              <span>Alunos: <span className="text-[#00E5FF] font-semibold">{pdf.rowsCount}</span></span>
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <span className="text-[8px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full select-none font-bold uppercase">
-                            ✓ Sincronizado OCR
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleDeletePdf(pdf.id)}
-                            className="p-1.5 text-gray-500 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition-all cursor-pointer border border-transparent hover:border-rose-500/15"
-                            title="Apagar documento do sistema"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                  {/* UPLOAD STATUS METER */}
+                  {isUploadingPdf && (
+                    <div className="p-4 bg-slate-950/70 border border-indigo-500/20 rounded-xl space-y-2.5 animate-pulse">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-mono text-indigo-400 flex items-center gap-1.5 font-bold">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          {pdfUploadPhase}
+                        </span>
+                        <span className="font-mono text-gray-400">
+                          {pdfUploadProgress}%
+                        </span>
                       </div>
-                    ))}
+                      <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden">
+                        <div
+                          className="bg-accent-primary h-full rounded-full transition-all duration-300"
+                          style={{ width: `${pdfUploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUCCESS & ERROR TOASTERS */}
+                  {pdfErrorMsg && (
+                    <div className="p-3 bg-red-950/20 border border-red-500/15 rounded-xl flex items-center gap-2 text-xs text-red-500 font-sans animate-fade-in">
+                      <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+                      <span>{pdfErrorMsg}</span>
+                    </div>
+                  )}
+
+                  {pdfSuccessMsg && (
+                    <div className="p-3 bg-emerald-950/20 border border-emerald-500/15 rounded-xl flex items-center gap-2 text-xs text-emerald-400 font-sans animate-fade-in font-semibold">
+                      <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>{pdfSuccessMsg}</span>
+                    </div>
+                  )}
+
+                  {/* LIST OF CURRENT CHAMADA PDF FILES */}
+                  <div className="space-y-2">
+                    <h4 className="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                      📁 Documentos Salvos de Chamada ({folhasPdfs.length})
+                    </h4>
+                    
+                    {folhasPdfs.length === 0 ? (
+                      <p className="text-[10px] text-gray-500 font-mono italic p-2 bg-slate-900/40 rounded-lg text-center border border-white/5">
+                        Nenhuma folha de chamada importada em PDF até o momento.
+                      </p>
+                    ) : (
+                      <div className="space-y-2 max-h-[180px] overflow-y-auto custom-scrollbar pr-1">
+                        {folhasPdfs.map((pdf) => (
+                          <div
+                            key={pdf.id}
+                            className="bg-slate-950/50 border border-white/5 p-3 rounded-xl flex items-center justify-between text-xs hover:border-indigo-500/20 transition-all group animate-fade-in"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div className="p-2 bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/15">
+                                <FileText className="w-4 h-4 text-rose-400" />
+                              </div>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-sans font-bold text-gray-200 group-hover:text-amber-400 transition-colors">
+                                    {pdf.name}
+                                  </span>
+                                  <span className="text-[9px] font-mono text-gray-500">
+                                    ({pdf.size})
+                                  </span>
+                                </div>
+                                <p className="text-[9.5px] text-text-secondary font-mono flex items-center gap-2">
+                                  <span>📅 Importado: <span className="text-gray-300">{pdf.date}</span></span>
+                                  <span className="text-white/10">|</span>
+                                  <span>Turma: <span className="text-cyan-400 font-semibold">{pdf.classroom}</span></span>
+                                  <span className="text-white/10">|</span>
+                                  <span>Alunos: <span className="text-[#00E5FF] font-semibold">{pdf.rowsCount}</span></span>
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className="text-[8px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full select-none font-bold uppercase">
+                                ✓ Sincronizado OCR
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleDeletePdf(pdf.id)}
+                                className="p-1.5 text-gray-500 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition-all cursor-pointer border border-transparent hover:border-rose-500/15"
+                                title="Apagar documento do sistema"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* SECÃO PARALELA: MATRÍCULA POR LOTE (FOLHA DIGITALIZADA DA CHAMADA) */}
-            <div className="glass-panel rounded-2xl p-6 border border-cyan-500/25 bg-slate-950/30 space-y-4 shadow-[0_0_20px_rgba(6,182,212,0.05)] text-left">
-              <div className="flex items-center gap-2.5 border-b border-white/5 pb-3">
-                <div className="p-2 bg-cyan-500/10 text-cyan-400 rounded-lg border border-cyan-500/20">
-                  <FileSpreadsheet className="w-5 h-5 text-cyan-400" />
+            <div className="glass-panel rounded-2xl border border-cyan-500/25 bg-slate-950/30 overflow-hidden shadow-[0_0_20px_rgba(6,182,212,0.05)] text-left transition-all duration-300">
+              <button 
+                onClick={() => setCollapsedBatchEnroll(!collapsedBatchEnroll)}
+                className="w-full flex items-center justify-between p-6 hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-cyan-500/10 text-cyan-400 rounded-lg border border-cyan-500/20">
+                    <FileSpreadsheet className="w-5 h-5 text-cyan-400" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-sm font-sans font-bold text-gray-100 uppercase tracking-wide flex items-center gap-1.5">
+                      Matrícula por Lote (Folha de Chamada Digital)
+                    </h3>
+                    <p className="text-[11px] text-text-secondary leading-snug">
+                      Insira a lista da chamada escolar para registrar alunos e gerar matrículas automáticas sob o padrão parametrizado do e-Social: <strong className="text-cyan-400">{"{TURMA}{NÚMERO}2026RH"}</strong>.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-sans font-bold text-gray-100 uppercase tracking-wide flex items-center gap-1.5">
-                    Matrícula por Lote (Folha de Chamada Digital)
-                  </h3>
-                  <p className="text-[11px] text-text-secondary leading-snug">
-                    Insira a lista da chamada escolar para registrar alunos e gerar matrículas automáticas sob o padrão parametrizado do e-Social: <strong className="text-cyan-400">{"{TURMA}{NÚMERO}2026RH"}</strong>.
-                  </p>
-                </div>
-              </div>
+                {collapsedBatchEnroll ? <ChevronDown className="w-5 h-5 text-gray-500" /> : <ChevronUp className="w-5 h-5 text-cyan-400" />}
+              </button>
 
-              {/* Grid of parameters */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5 text-left">
-                  <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block">Turma / Sala Escolar</label>
-                  <input
-                    type="text"
-                    value={batchClassroom}
-                    onChange={(e) => setBatchClassroom(e.target.value)}
-                    placeholder="Ex: 1º B"
-                    className="w-full bg-slate-950/80 border border-white/10 rounded-lg py-2 px-3 text-xs font-mono text-white focus:border-cyan-400 focus:outline-none"
-                  />
-                  <p className="text-[9px] text-gray-500">Exemplos: 1º B, 2º A, 3º C</p>
-                </div>
-                <div className="space-y-1.5 text-left">
-                  <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block">Ano Letivo (Simulador)</label>
-                  <input
-                    type="number"
-                    value={batchYear}
-                    onChange={(e) => setBatchYear(parseInt(e.target.value, 10) || 2026)}
-                    placeholder="2026"
-                    className="w-full bg-slate-950/80 border border-white/10 rounded-lg py-2 px-3 text-xs font-mono text-white focus:border-cyan-400 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Textarea for roster names */}
-              <div className="space-y-1.5 text-left">
-                <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block">Insira Lista de Presença da Chamada</label>
-                <textarea
-                  rows={4}
-                  value={batchRawInput}
-                  onChange={(e) => setBatchRawInput(e.target.value)}
-                  className="w-full bg-slate-950/80 border border-[#00E5FF]/20 rounded-lg p-3 text-xs font-mono text-[#00E5FF] focus:border-cyan-400 focus:outline-none"
-                  placeholder="01 - Nome Aluno\n02 - Próximo Aluno..."
-                />
-                <p className="text-[10px] text-gray-500 mt-1">
-                  💡 Identifica automaticamente números sequenciais. Se omitidos, o sistema gerará na ordem digitada.
-                </p>
-              </div>
-
-              {/* Live Preview Console */}
-              <div className="bg-slate-950/90 border border-white/5 rounded-xl p-4 space-y-2 text-left">
-                <span className="text-[10px] font-mono text-gray-400 block border-b border-white/5 pb-1">
-                  👁️ PRÉ-VISUALIZAÇÃO DE MATRÍCULAS DO LOTE:
-                </span>
-                <div className="max-h-[120px] overflow-y-auto space-y-1.5 pr-1 text-xs">
-                  {parseBatchInput(batchRawInput, batchClassroom, batchYear).map((item, index) => (
-                    <div key={index} className="flex justify-between items-center bg-white/5 p-1.5 rounded text-[11px] font-mono">
-                      <span className="text-gray-300">
-                        <strong className="text-cyan-400">#{item.chamadaNumero}</strong> - {item.nomeCompleto}
-                      </span>
-                      <span className="text-xs font-bold text-gray-400 shrink-0">
-                        Matrícula: <strong className="text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/15">{item.matricula}</strong>
-                      </span>
+              {!collapsedBatchEnroll && (
+                <div className="p-6 pt-0 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  {/* Grid of parameters */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5 text-left">
+                      <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block">Turma / Sala Escolar</label>
+                      <input
+                        type="text"
+                        value={batchClassroom}
+                        onChange={(e) => setBatchClassroom(e.target.value)}
+                        placeholder="Ex: 1º B"
+                        className="w-full bg-slate-950/80 border border-white/10 rounded-lg py-2 px-3 text-xs font-mono text-white focus:border-cyan-400 focus:outline-none"
+                      />
+                      <p className="text-[9px] text-gray-500">Exemplos: 1º B, 2º A, 3º C</p>
                     </div>
-                  ))}
+                    <div className="space-y-1.5 text-left">
+                      <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block">Ano Letivo (Simulador)</label>
+                      <input
+                        type="number"
+                        value={batchYear}
+                        onChange={(e) => setBatchYear(parseInt(e.target.value, 10) || 2026)}
+                        placeholder="2026"
+                        className="w-full bg-slate-950/80 border border-white/10 rounded-lg py-2 px-3 text-xs font-mono text-white focus:border-cyan-400 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Textarea for roster names */}
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block">Insira Lista de Presença da Chamada</label>
+                    <textarea
+                      rows={4}
+                      value={batchRawInput}
+                      onChange={(e) => setBatchRawInput(e.target.value)}
+                      className="w-full bg-slate-950/80 border border-[#00E5FF]/20 rounded-lg p-3 text-xs font-mono text-[#00E5FF] focus:border-cyan-400 focus:outline-none"
+                      placeholder="01 - Nome Aluno\n02 - Próximo Aluno..."
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      💡 Identifica automaticamente números sequenciais. Se omitidos, o sistema gerará na ordem digitada.
+                    </p>
+                  </div>
+
+                  {/* Live Preview Console */}
+                  <div className="bg-slate-950/90 border border-white/5 rounded-xl p-4 space-y-2 text-left">
+                    <span className="text-[10px] font-mono text-gray-400 block border-b border-white/5 pb-1">
+                      👁️ PRÉ-VISUALIZAÇÃO DE MATRÍCULAS DO LOTE:
+                    </span>
+                    <div className="max-h-[120px] overflow-y-auto space-y-1.5 pr-1 text-xs">
+                      {parseBatchInput(batchRawInput, batchClassroom, batchYear).map((item, index) => (
+                        <div key={index} className="flex justify-between items-center bg-white/5 p-1.5 rounded text-[11px] font-mono">
+                          <span className="text-gray-300">
+                            <strong className="text-cyan-400">#{item.chamadaNumero}</strong> - {item.nomeCompleto}
+                          </span>
+                          <span className="text-xs font-bold text-gray-400 shrink-0">
+                            Matrícula: <strong className="text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/15">{item.matricula}</strong>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Controls */}
+                  <div className="flex justify-between items-center flex-wrap gap-3 pt-1">
+                    {batchSuccessMsg ? (
+                      <span className="text-emerald-400 font-mono text-[11px] bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 font-bold animate-fade-in">
+                        {batchSuccessMsg}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-gray-500 font-sans">
+                        * Matrículas síncronas integradas à folha de frequência escolar.
+                      </span>
+                    )}
+
+                    <button
+                      onClick={handleRunBatchEnrollment}
+                      type="button"
+                      disabled={isProcessingBatch || !batchRawInput.trim()}
+                      className="bg-cyan-550 hover:bg-cyan-500 text-slate-950 font-sans font-bold text-xs uppercase py-2.5 px-5 rounded-xl cursor-pointer flex items-center gap-1.5 transition-all disabled:opacity-50 shadow-[0_0_15px_rgba(6,182,212,0.2)] hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] active:scale-95"
+                    >
+                      {isProcessingBatch ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          Processando Lote...
+                        </>
+                      ) : (
+                        <>
+                          <FileSpreadsheet className="w-4 h-4 text-slate-950" />
+                          Matricular em Lote por Chamada
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              {/* Controls */}
-              <div className="flex justify-between items-center flex-wrap gap-3 pt-1">
-                {batchSuccessMsg ? (
-                  <span className="text-emerald-400 font-mono text-[11px] bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 font-bold animate-fade-in">
-                    {batchSuccessMsg}
-                  </span>
-                ) : (
-                  <span className="text-[11px] text-gray-500 font-sans">
-                    * Matrículas síncronas integradas à folha de frequência escolar.
-                  </span>
-                )}
-
-                <button
-                  onClick={handleRunBatchEnrollment}
-                  type="button"
-                  disabled={isProcessingBatch || !batchRawInput.trim()}
-                  className="bg-cyan-550 hover:bg-cyan-500 text-slate-950 font-sans font-bold text-xs uppercase py-2.5 px-5 rounded-xl cursor-pointer flex items-center gap-1.5 transition-all disabled:opacity-50 shadow-[0_0_15px_rgba(6,182,212,0.2)] hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] active:scale-95"
-                >
-                  {isProcessingBatch ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Processando Lote...
-                    </>
-                  ) : (
-                    <>
-                      <FileSpreadsheet className="w-4 h-4 text-slate-950" />
-                      Matricular em Lote por Chamada
-                    </>
-                  )}
-                </button>
-              </div>
+              )}
             </div>
 
             {/* ADMINISTRATIVE CONTROL PANEL (NEW) */}
-            <div className="glass-panel rounded-2xl p-6 border border-rose-500/30 bg-rose-950/10 space-y-4 shadow-[0_0_25px_rgba(244,63,94,0.1)] text-left">
-              <div className="flex items-center gap-2.5 border-b border-rose-500/20 pb-3">
-                <div className="p-2 bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/30">
-                  <ShieldAlert className="w-5 h-5 text-rose-400" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-sans font-bold text-rose-100 uppercase tracking-wide flex items-center gap-2">
-                    Ferramentas Administrativas de Limpeza
-                    <span className="bg-rose-500 text-white text-[8px] px-1.5 py-0.5 rounded font-black animate-pulse">ADMIN ONLY</span>
-                  </h3>
-                  <p className="text-[11px] text-rose-200/60 leading-snug">
-                    Execução de protocolos de exclusão em massa e manutenção de banco de dados. Use com extrema cautela.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1 bg-slate-950/50 p-4 rounded-xl border border-rose-500/10 flex flex-col justify-between gap-4">
-                  <div>
-                    <h4 className="text-[10px] font-mono font-black text-rose-400 uppercase tracking-widest mb-1">RESETAR TURMA 1B</h4>
-                    <p className="text-[10px] text-gray-400 leading-tight">
-                      Apaga permanentemente todos os registros de alunos vinculados à <strong className="text-rose-400">SALA 1B</strong> (incluindo variações 1º B).
+            <div className="glass-panel rounded-2xl border border-rose-500/30 bg-rose-950/10 overflow-hidden shadow-[0_0_25px_rgba(244,63,94,0.1)] text-left transition-all duration-300">
+              <button 
+                onClick={() => setCollapsedAdminClean(!collapsedAdminClean)}
+                className="w-full flex items-center justify-between p-6 hover:bg-rose-500/5 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/30">
+                    <ShieldAlert className="w-5 h-5 text-rose-400" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-sm font-sans font-bold text-rose-100 uppercase tracking-wide flex items-center gap-2">
+                      Ferramentas Administrativas de Limpeza
+                      <span className="bg-rose-500 text-white text-[8px] px-1.5 py-0.5 rounded font-black animate-pulse">ADMIN ONLY</span>
+                    </h3>
+                    <p className="text-[11px] text-rose-200/60 leading-snug">
+                      Execução de protocolos de exclusão em massa e manutenção de banco de dados. Use com extrema cautela.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleDeleteClass1B}
-                    disabled={isDeleting1B}
-                    className="w-full bg-rose-600 hover:bg-rose-500 text-white font-sans font-bold text-[10px] uppercase py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 cursor-pointer"
-                  >
-                    {isDeleting1B ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-3.5 h-3.5" />
-                    )}
-                    EXCLUIR TODOS OS ALUNOS DA 1B
-                  </button>
                 </div>
+                {collapsedAdminClean ? <ChevronDown className="w-5 h-5 text-rose-400/50" /> : <ChevronUp className="w-5 h-5 text-rose-400" />}
+              </button>
 
-                <div className="flex-1 bg-slate-950/50 p-4 rounded-xl border border-white/5 flex flex-col justify-between gap-4 opacity-50">
-                  <div>
-                    <h4 className="text-[10px] font-mono font-black text-gray-500 uppercase tracking-widest mb-1">OUTRAS TURMAS</h4>
-                    <p className="text-[10px] text-gray-500 leading-tight">
-                      Selecione uma turma no filtro global para habilitar exclusões específicas de outras salas.
-                    </p>
+              {!collapsedAdminClean && (
+                <div className="p-6 pt-0 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex-1 bg-slate-950/50 p-4 rounded-xl border border-rose-500/10 flex flex-col justify-between gap-4">
+                      <div>
+                        <h4 className="text-[10px] font-mono font-black text-rose-400 uppercase tracking-widest mb-1">RESETAR TURMA 1B</h4>
+                        <p className="text-[10px] text-gray-400 leading-tight">
+                          Apaga permanentemente todos os registros de alunos vinculados à <strong className="text-rose-400">SALA 1B</strong> (incluindo variações 1º B).
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleDeleteClass1B}
+                        disabled={isDeleting1B}
+                        className="w-full bg-rose-600 hover:bg-rose-500 text-white font-sans font-bold text-[10px] uppercase py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 cursor-pointer"
+                      >
+                        {isDeleting1B ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
+                        EXCLUIR TODOS OS ALUNOS DA 1B
+                      </button>
+                    </div>
+
+                    <div className="flex-1 bg-slate-950/50 p-4 rounded-xl border border-white/5 flex flex-col justify-between gap-4 opacity-50">
+                      <div>
+                        <h4 className="text-[10px] font-mono font-black text-gray-500 uppercase tracking-widest mb-1">OUTRAS TURMAS</h4>
+                        <p className="text-[10px] text-gray-500 leading-tight">
+                          Selecione uma turma no filtro global para habilitar exclusões específicas de outras salas.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled
+                        className="w-full bg-slate-800 text-gray-600 font-sans font-bold text-[10px] uppercase py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 cursor-not-allowed"
+                      >
+                        BLOQUEADO
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    disabled
-                    className="w-full bg-slate-800 text-gray-600 font-sans font-bold text-[10px] uppercase py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 cursor-not-allowed"
-                  >
-                    BLOQUEADO
-                  </button>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* BATCH BADGE EXPORT BY CLASS */}
-            <div className="glass-panel rounded-2xl p-6 border border-emerald-500/30 bg-slate-950/40 space-y-4 shadow-[0_0_20px_rgba(16,185,129,0.05)]">
-              <div className="flex items-center gap-2.5 border-b border-white/5 pb-3">
-                <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/20">
-                  <Camera className="w-5 h-5 text-emerald-400" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-sans font-bold text-gray-100 uppercase tracking-wide">
-                    Impressão em Lote: Crachás de Acesso
-                  </h3>
-                  <p className="text-[11px] text-text-secondary leading-snug">
-                    Gere o PDF oficial de crachás por turma. Inclui foto dos alunos que já configuraram ou espaço em branco (3x4) para colagem manual.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="flex-1 w-full">
-                  <label className="text-[10px] uppercase font-bold text-text-secondary mb-1 block">Filtrar por Turma/Sala:</label>
-                  <select 
-                    value={selectedClassForBadges}
-                    onChange={(e) => setSelectedClassForBadges(e.target.value)}
-                    className="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white focus:border-emerald-500 outline-none"
-                  >
-                    <option value="TODAS">TODAS AS TURMAS</option>
-                    {Array.from(new Set(students.map(s => s.sala).filter(Boolean))).sort().map(sala => (
-                      <option key={sala} value={sala}>{sala}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setIsDownloadingQRs(true);
-                    try {
-                      const filteredStudents = selectedClassForBadges === "TODAS" 
-                        ? students 
-                        : students.filter(s => s.sala === selectedClassForBadges);
-                      
-                      const { exportAllQRBadgesToPDF } = await import("../utils/qrExporter");
-                      await exportAllQRBadgesToPDF(filteredStudents, appLanguage);
-                    } catch (e) {
-                      console.error("Error bulk exporting badges", e);
-                    } finally {
-                      setIsDownloadingQRs(false);
-                    }
-                  }}
-                  disabled={isDownloadingQRs || students.length === 0}
-                  className="w-full sm:w-auto h-[38px] mt-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase px-6 rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/10 cursor-pointer"
-                >
-                  {isDownloadingQRs ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Download className="w-4 h-4" />
-                  )}
-                  {isDownloadingQRs ? "Gerando PDF..." : "Exportar Lote PDF"}
-                </button>
-              </div>
-
-              <div className="bg-slate-950/40 p-3 rounded-xl border border-white/5">
-                <div className="flex items-start gap-3">
-                  <ShieldAlert className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="text-[10px] text-gray-300 font-bold uppercase tracking-tight">Política de Privacidade QR</p>
-                    <p className="text-[9px] text-text-secondary leading-relaxed text-left">
-                      Cada código QR é <strong>único e individual</strong>. O mestre deve garantir a entrega sigilosa de cada crachá ao seu respectivo titular para evitar acessos indevidos.
+            <div className="glass-panel rounded-2xl border border-emerald-500/30 bg-slate-950/40 overflow-hidden shadow-[0_0_20px_rgba(16,185,129,0.05)] transition-all duration-300">
+              <button 
+                onClick={() => setCollapsedBadgePrint(!collapsedBadgePrint)}
+                className="w-full flex items-center justify-between p-6 hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/20">
+                    <Camera className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-sm font-sans font-bold text-gray-100 uppercase tracking-wide">
+                      Impressão em Lote: Crachás de Acesso
+                    </h3>
+                    <p className="text-[11px] text-text-secondary leading-snug">
+                      Gere o PDF oficial de crachás por turma. Inclui foto dos alunos que já configuraram ou espaço em branco (3x4) para colagem manual.
                     </p>
                   </div>
                 </div>
-              </div>
+                {collapsedBadgePrint ? <ChevronDown className="w-5 h-5 text-gray-500" /> : <ChevronUp className="w-5 h-5 text-emerald-400" />}
+              </button>
+
+              {!collapsedBadgePrint && (
+                <div className="p-6 pt-0 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <div className="flex-1 w-full">
+                      <label className="text-[10px] uppercase font-bold text-text-secondary mb-1 block">Filtrar por Turma/Sala:</label>
+                      <select 
+                        value={selectedClassForBadges}
+                        onChange={(e) => setSelectedClassForBadges(e.target.value)}
+                        className="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white focus:border-emerald-500 outline-none"
+                      >
+                        <option value="TODAS">TODAS AS TURMAS</option>
+                        {Array.from(new Set(students.map(s => s.sala).filter(Boolean))).sort().map(sala => (
+                          <option key={sala} value={sala}>{sala}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setIsDownloadingQRs(true);
+                        try {
+                          const filteredStudents = selectedClassForBadges === "TODAS" 
+                            ? students 
+                            : students.filter(s => s.sala === selectedClassForBadges);
+                          
+                          const { exportAllQRBadgesToPDF } = await import("../utils/qrExporter");
+                          await exportAllQRBadgesToPDF(filteredStudents, appLanguage);
+                        } catch (e) {
+                          console.error("Error bulk exporting badges", e);
+                        } finally {
+                          setIsDownloadingQRs(false);
+                        }
+                      }}
+                      disabled={isDownloadingQRs || students.length === 0}
+                      className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-sans font-bold text-xs uppercase py-3 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 disabled:opacity-50 mt-5 cursor-pointer"
+                    >
+                      {isDownloadingQRs ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Gerando PDF...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          Gerar Crachás da Turma
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                    <div className="flex items-start gap-3">
+                      <ShieldAlert className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-gray-300 font-bold uppercase tracking-tight">Política de Privacidade QR</p>
+                        <p className="text-[9px] text-text-secondary leading-relaxed text-left">
+                          Cada código QR é <strong>único e individual</strong>. O mestre deve garantir a entrega sigilosa de cada crachá ao seu respectivo titular para evitar acessos indevidos.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* CLEANUP BUTTON ADDED AS REQUESTED */}
@@ -2522,11 +2579,7 @@ export default function ProfessorCockpit({
                               </span>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (window.confirm(appLanguage === "pt" ? `Deseja realmente apagar o aluno ${student.nomeCompleto}?` : `Delete student ${student.nomeCompleto}?`)) {
-                                    onDeleteStudents?.([student.id]);
-                                  }
-                                }}
+                                onClick={() => onDeleteStudents?.([student.id])}
                                 className="text-rose-500/40 hover:text-rose-500 transition-colors p-0.5"
                                 title="Apagar aluno"
                               >
@@ -3340,11 +3393,22 @@ export default function ProfessorCockpit({
                       return s.nomeCompleto.toLowerCase().includes(q) || s.matricula.toLowerCase().includes(q) || s.id.toLowerCase().includes(q);
                     })
                     .map((student) => {
-                    const finishedCount = Object.values(student.respostasDesafios || {}).filter(val => val === true).length;
-                    const completionRate = Math.min(100, Math.round((finishedCount / 7) * 100));
-                    
-                    return (
-                      <tr key={student.id} className="border-b border-white/5 hover:bg-slate-900/40 hover:text-white transition-colors">
+                      const phaseConfig = CAREER_PHASES.find(p => p.id === student.faseAtual);
+                      const totalInPhase = phaseConfig?.totalDesafios || 7;
+                      
+                      const finishedCountGlobal = Object.values(student.respostasDesafios || {}).filter(val => val === true).length;
+                      // Count only challenges in current phase
+                      const phaseChallenges = CHALLENGES_DATA.filter(c => c.fase === student.faseAtual);
+                      const finishedInPhase = phaseChallenges.filter(c => student.respostasDesafios?.[c.id] === true).length;
+                      const completionRate = Math.min(100, Math.round((finishedInPhase / totalInPhase) * 100));
+
+                      // User requested that starting count should reflect actual questions
+                      // If phase is -1, denominator is 55. If 0, denominator is 21.
+                      // numerator is finishedInPhase. 
+                      // If starting at phase -1, they want to see it as a real count of questions.
+                      
+                      return (
+                        <tr key={student.id} className="border-b border-white/5 hover:bg-slate-900/40 hover:text-white transition-colors">
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2">
                             <div 
@@ -3353,7 +3417,7 @@ export default function ProfessorCockpit({
                                   ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)] animate-pulse"
                                   : "bg-gray-700"
                               }`} 
-                              title={student.lastSeen && (Date.now() - student.lastSeen) < 35000 ? "Online" : "Offline / Ausente"}
+                              title={student.lastSeen && (Date.now() - student.lastSeen) < 35000 ? "● Na Tela" : "Offline / Ausente"}
                             />
                             <span className="font-sans font-semibold text-gray-100 block">{student.nomeCompleto}</span>
                             {(student.tentativaFraude || 0) > 0 && (
@@ -3376,7 +3440,7 @@ export default function ProfessorCockpit({
                           {student.precisao > 0 ? `${student.precisao}%` : "—"}
                         </td>
                         <td className="py-3 px-3 text-center text-gray-300">
-                          {finishedCount} / 7
+                          {finishedInPhase} / {totalInPhase}
                         </td>
                         <td className="py-3 px-3 text-center">
                           {student.status === "Ativo" ? (
@@ -3442,6 +3506,47 @@ export default function ProfessorCockpit({
                       </tr>
                     );
                   })}
+                  {/* Summary Footer Row */}
+                  {(() => {
+                    const analyticalFiltered = filteredStudentsByClass.filter(s => {
+                      if (!profSearchQuery.trim()) return true;
+                      const q = profSearchQuery.toLowerCase();
+                      return s.nomeCompleto.toLowerCase().includes(q) || s.matricula.toLowerCase().includes(q) || s.id.toLowerCase().includes(q);
+                    });
+
+                    if (analyticalFiltered.length === 0) return null;
+
+                    const totalXP = analyticalFiltered.reduce((sum, s) => sum + (s.xp || 0), 0);
+                    const avgPrecisao = analyticalFiltered.reduce((sum, s) => sum + (s.precisao || 0), 0) / analyticalFiltered.length;
+                    
+                    const avgCompletion = (analyticalFiltered.reduce((sum, s) => {
+                      const phaseConfig = CAREER_PHASES.find(p => p.id === s.faseAtual);
+                      const total = phaseConfig?.totalDesafios || 7;
+                      const phaseChs = CHALLENGES_DATA.filter(c => c.fase === s.faseAtual);
+                      const finished = phaseChs.filter(c => s.respostasDesafios?.[c.id] === true).length;
+                      return sum + (finished / total);
+                    }, 0) / analyticalFiltered.length) * 100;
+
+                    return (
+                      <tr className="bg-slate-950/80 font-bold border-t-2 border-white/10 sticky bottom-0">
+                        <td className="py-4 px-3 text-accent-primary uppercase text-[10px] tracking-widest">Totais / Médias da Turma</td>
+                        <td className="py-4 px-3"></td>
+                        <td className="py-4 px-3 text-right text-accent-warning text-sm">{totalXP.toLocaleString()} XP</td>
+                        <td className="py-4 px-3 text-right text-emerald-400 text-sm">{avgPrecisao.toFixed(1)}%</td>
+                        <td className="py-4 px-3"></td>
+                        <td className="py-4 px-3"></td>
+                        <td className="py-4 px-3">
+                           <div className="flex items-center gap-2">
+                             <div className="w-full max-w-[130px] bg-slate-900 rounded-full h-2 overflow-hidden border border-white/5">
+                               <div className="bg-gradient-to-r from-accent-primary to-emerald-500 h-full" style={{ width: `${avgCompletion}%` }}></div>
+                             </div>
+                             <span className="text-[10px] text-accent-primary font-black">{avgCompletion.toFixed(1)}%</span>
+                           </div>
+                        </td>
+                        <td className="py-4 px-3"></td>
+                      </tr>
+                    );
+                  })()}
                 </tbody>
               </table>
             </div>
@@ -4510,14 +4615,19 @@ export default function ProfessorCockpit({
 
                 </div>
 
-                {/* PARALLEL EXAM GRADE (FASE 0) SPECIAL BANNER */}
+                {/* PARALLEL EXAM GRADE (FASE -1 or 0) SPECIAL BANNER */}
                 {(() => {
-                  const p0Ids = [
-                    "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10",
-                    "0.11", "0.12", "0.13", "0.14", "0.15", "0.16", "0.17", "0.18", "0.19", "0.20", "0.21"
-                  ];
-                  const p0CompletedCount = p0Ids.filter(id => student.respostasDesafios?.[id] === true).length;
-                  const p0Grade = ((p0CompletedCount / 21) * 10).toFixed(1);
+                  const isFaseM1 = student.faseAtual === -1;
+                  const isFase0 = student.faseAtual === 0;
+                  
+                  if (!isFaseM1 && !isFase0) return null;
+
+                  const phaseId = student.faseAtual;
+                  const phaseChallengesList = CHALLENGES_DATA.filter(c => c.fase === phaseId);
+                  const pCompletedCount = phaseChallengesList.filter(c => student.respostasDesafios?.[c.id] === true).length;
+                  const totalCount = phaseChallengesList.length || 1;
+                  const pGrade = ((pCompletedCount / totalCount) * 10).toFixed(1);
+                  const phaseLabel = isFaseM1 ? "Fase -1 (Revisão)" : "Fase 0 (Pré-Cadastro)";
 
                   return (
                     <div className="bg-gradient-to-r from-cyan-950/30 to-indigo-950/30 border border-[#00E5FF]/20 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in shadow-md">
@@ -4525,16 +4635,16 @@ export default function ProfessorCockpit({
                         <span className="text-2xl filter drop-shadow">📝</span>
                         <div>
                           <h5 className="font-sans font-extrabold text-sm text-gray-100 flex items-center gap-2">
-                            <span>Nota de Prova Oficial — Fase 0 (Pré-Cadastro)</span>
+                            <span>Nota de Prova Oficial — {phaseLabel}</span>
                           </h5>
                           <span className="text-[10px] text-gray-400 block mt-0.5">
-                            Acertos do aluno no simulador CLT: <strong>{p0CompletedCount} de 21</strong> módulos teóricos concluídos.
+                            Acertos do aluno no simulador CLT: <strong>{pCompletedCount} de {totalCount}</strong> módulos teóricos concluídos.
                           </span>
                         </div>
                       </div>
                       <div className="flex items-baseline gap-1 bg-[#00E5FF]/5 border border-[#00E5FF]/25 px-4 py-2 rounded-xl group hover:border-[#00E5FF]/40 transition-all select-none shrink-0 text-center">
                         <span className="text-[10px] text-cyan-400/85 font-mono font-bold uppercase tracking-wider">Nota:</span>
-                        <span className="text-xl font-mono font-black text-[#00E5FF] tracking-tight">{p0Grade}</span>
+                        <span className="text-xl font-mono font-black text-[#00E5FF] tracking-tight">{pGrade}</span>
                         <span className="text-[10px] text-cyan-400 font-mono">/ 10</span>
                       </div>
                     </div>

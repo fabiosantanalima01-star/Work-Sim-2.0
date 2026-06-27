@@ -575,6 +575,17 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
   color: #0F172A !important;
 }
 
+/* Ensure select options are visible and have proper contrast in all themes */
+select option {
+  background-color: #0f172a !important; /* Solid dark color for dark mode options */
+  color: #ECEFF4 !important;
+}
+
+.theme-light select option {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+}
+
 .theme-light input:focus,
 .theme-light select:focus,
 .theme-light textarea:focus {

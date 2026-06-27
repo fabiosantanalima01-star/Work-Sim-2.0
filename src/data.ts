@@ -3751,8 +3751,8 @@ export const CHALLENGES_DATA: Challenge[] = [
 
 // High quality custom generated initial list of students for the Professor's simulation OCR upload
 export const INITIAL_STUDENTS: Student[] = [
-  { id: "adm", nomeCompleto: "Professor Fábio (ADM)", email: "fabiosantanalima01@gmail.com", matricula: "ADM2026", sala: "ADM", ano: 2026, cargo: "Administrador / Mestre de DP", xp: 0, precisao: 0.0, faseAtual: 0, status: "Ativo", senha: "admin", respostasDesafios: {} },
-  { id: "01", nomeCompleto: "Ana Paula Souza", matricula: "011B2026RH", sala: "1B", ano: 2026, cargo: "Estagiário de RH (Primeiranista)", xp: 0, precisao: 0.0, faseAtual: 0, status: "Ativo", senha: "1234", respostasDesafios: {} },
+  { id: "adm", nomeCompleto: "Professor Fábio (ADM)", email: "fabiosantanalima01@gmail.com", matricula: "ADM2026", sala: "ADM", ano: 2026, cargo: "Administrador / Mestre de DP", xp: 0, precisao: 0.0, faseAtual: -1, status: "Ativo", senha: "admin", respostasDesafios: {} },
+  { id: "01", nomeCompleto: "Ana Paula Souza", matricula: "011B2026RH", sala: "1B", ano: 2026, cargo: "Estagiário de RH (Primeiranista)", xp: 0, precisao: 0.0, faseAtual: -1, status: "Ativo", senha: "1234", respostasDesafios: {} },
   { id: "04", nomeCompleto: "Daniel Mendes Viana", matricula: "041B2026RH", sala: "1B", ano: 2026, cargo: "Analista de RH Jr. (TRCT)", xp: 0, precisao: 0.0, faseAtual: 3, status: "Ativo", senha: "1234", respostasDesafios: {} }
 ];
 

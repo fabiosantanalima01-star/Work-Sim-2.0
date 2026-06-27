@@ -35,21 +35,22 @@ import {
 
 interface StudentMetricsTabProps {
   students: Student[];
-  activeStudent: Student;
+  activeStudent: Student | null;
   onUpdateSimulationTime?: (seconds: number) => void;
 }
 
 // Fixed cumulative reference standard XP benchmarks per phase.
 // This is used to draw the "Média de Referência" and helps calculate classroom averages cleanly.
 const REFERENCE_XP_CURVE = [
-  { pId: 0, label: "Fase 0: Pré-Cad.", refXp: 140, cargo: "Pré-Cadastro" },
-  { pId: 1, label: "Fase 1: Triagem", refXp: 200, cargo: "Estag. Triagem" },
-  { pId: 2, label: "Fase 2: FGTS", refXp: 300, cargo: "Estag. Segundoanista" },
-  { pId: 3, label: "Fase 3: Conf. CLT", refXp: 510, cargo: "Assistente DP" },
-  { pId: 4, label: "Fase 4: Contratos", refXp: 630, cargo: "Analista Pl." },
-  { pId: 5, label: "Fase 5: Rescisão", refXp: 1180, cargo: "Coordenador RH" },
-  { pId: 6, label: "Fase 6: Parecer", refXp: 1300, cargo: "Gerente RH" },
-  { pId: 7, label: "Fase 7: Direção", refXp: 1400, cargo: "Diretor RH" },
+  { pId: -1, label: "Fase -1 (Início)", refXp: 50, cargo: "Simulado Revisão" },
+  { pId: 0, label: "Fase 0 (ADM)", refXp: 140, cargo: "Pré-Cadastro" },
+  { pId: 1, label: "Fase 1 (Triagem)", refXp: 200, cargo: "Estag. Triagem" },
+  { pId: 2, label: "Fase 2 (FGTS)", refXp: 300, cargo: "Estag. Segundoanista" },
+  { pId: 3, label: "Fase 3 (DP)", refXp: 510, cargo: "Assistente DP" },
+  { pId: 4, label: "Fase 4 (CES)", refXp: 630, cargo: "Analista Pl." },
+  { pId: 5, label: "Fase 5 (RES)", refXp: 1180, cargo: "Coordenador RH" },
+  { pId: 6, label: "Fase 6 (Compliance)", refXp: 1300, cargo: "Gerente RH" },
+  { pId: 7, label: "Fase 7 (Estratégia)", refXp: 1400, cargo: "Diretor RH" },
 ];
 
 export default function StudentMetricsTab({
@@ -60,15 +61,15 @@ export default function StudentMetricsTab({
   // 1. Calculate general class metrics
   const totalStudentsCount = students.length;
   const sortedByXp = [...students].sort((a, b) => (b.xp || 0) - (a.xp || 0));
-  const myRankIndex = sortedByXp.findIndex((s) => s.id === activeStudent.id);
+  const myRankIndex = activeStudent ? sortedByXp.findIndex((s) => s.id === activeStudent.id) : -1;
   const myRank = myRankIndex !== -1 ? myRankIndex + 1 : totalStudentsCount;
 
   const totalClassXp = students.reduce((acc, curr) => acc + (curr.xp || 0), 0);
   const classAverageXp = Math.round(totalStudentsCount > 0 ? totalClassXp / totalStudentsCount : 0);
 
   // Calculate XP velocity per hour
-  const activeSecs = activeStudent.tempoAtivoSegundos || 1;
-  const xpHourSpeed = Math.round((activeStudent.xp / activeSecs) * 3600);
+  const activeSecs = activeStudent?.tempoAtivoSegundos || 1;
+  const xpHourSpeed = activeStudent ? Math.round((activeStudent.xp / activeSecs) * 3600) : 0;
 
   const [inputMinutes, setInputMinutes] = React.useState<string>("");
   const [logFilter, setLogFilter] = React.useState<"all" | "promotion" | "achievement" | "penalty" | "challenge">("all");
@@ -348,7 +349,8 @@ export default function StudentMetricsTab({
     let myPhaseXpProgress: number | null = null;
     if (activeStudent.faseAtual > refItem.pId) {
       // The student completed this phase, so they got approximately the reference XP (or slightly adjusted by their actual)
-      const ratio = activeStudent.xp / (REFERENCE_XP_CURVE[activeStudent.faseAtual]?.refXp || 1400);
+      const currentRef = REFERENCE_XP_CURVE.find(r => r.pId === activeStudent.faseAtual);
+      const ratio = activeStudent.xp / (currentRef?.refXp || 1400);
       myPhaseXpProgress = Math.round(refItem.refXp * Math.min(1.2, Math.max(0.8, ratio)));
     } else if (activeStudent.faseAtual === refItem.pId) {
       // Current active phase: plot their exact current XP
@@ -399,7 +401,7 @@ export default function StudentMetricsTab({
       </div>
 
       {/* QUICK STATS CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* Card 1: Meu XP */}
         <div className="glass-panel p-4 rounded-xl border border-white/5 bg-slate-900/20 hover:border-white/10 transition-colors">
           <div className="flex items-center justify-between">
@@ -412,11 +414,37 @@ export default function StudentMetricsTab({
           </p>
           <div className="flex justify-between items-center mt-3 text-[9px] font-mono border-t border-white/5 pt-2 text-gray-500">
             <span>Fase Atual:</span>
-            <span className="text-gray-300 font-bold">Fase {activeStudent.faseAtual}</span>
+            <span className="text-gray-300 font-bold">F{activeStudent.faseAtual}</span>
           </div>
         </div>
 
-        {/* Card 2: Turma Average */}
+        {/* Card 2: Question Progress in Phase */}
+        <div className="glass-panel p-4 rounded-xl border border-white/5 bg-slate-900/20 hover:border-white/10 transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono text-gray-450 uppercase tracking-widest">Resoluções na Fase</span>
+            <BookOpen className="w-4 h-4 text-emerald-400" />
+          </div>
+          <p className="text-2xl font-sans font-black text-white tracking-tight mt-2">
+            {(() => {
+              const phaseChallenges = CHALLENGES_DATA.filter(c => c.fase === activeStudent.faseAtual);
+              const solved = phaseChallenges.filter(c => activeStudent.respostasDesafios?.[c.id] === true).length;
+              return `${solved} / ${phaseChallenges.length}`;
+            })()}
+          </p>
+          <div className="flex justify-between items-center mt-3 text-[9px] font-mono border-t border-white/5 pt-2 text-gray-500">
+            <span>Progresso da Meta:</span>
+            <span className="text-gray-300 font-bold">
+              {(() => {
+                const phaseChallenges = CHALLENGES_DATA.filter(c => c.fase === activeStudent.faseAtual);
+                if (phaseChallenges.length === 0) return "100%";
+                const solved = phaseChallenges.filter(c => activeStudent.respostasDesafios?.[c.id] === true).length;
+                return `${Math.round((solved / phaseChallenges.length) * 100)}%`;
+              })()}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 3: Turma Average */}
         <div className="glass-panel p-4 rounded-xl border border-white/5 bg-slate-900/20 hover:border-white/10 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono text-gray-450 uppercase tracking-widest">Média da Turma</span>
@@ -471,14 +499,19 @@ export default function StudentMetricsTab({
         </div>
       </div>
 
-      {/* PARALLEL EXAM GRADE (FASE 0) CARD */}
+      {/* PARALLEL EXAM GRADE (FASE -1 or 0) CARD */}
       {(() => {
-        const p0Ids = [
-          "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10",
-          "0.11", "0.12", "0.13", "0.14", "0.15", "0.16", "0.17", "0.18", "0.19", "0.20", "0.21"
-        ];
-        const solvedCount = p0Ids.filter(id => activeStudent.respostasDesafios?.[id] === true).length;
-        const examGrade = ((solvedCount / 21) * 10).toFixed(1);
+        const isFaseM1 = activeStudent.faseAtual === -1;
+        const isFase0 = activeStudent.faseAtual === 0;
+        
+        if (!isFaseM1 && !isFase0) return null;
+
+        const phaseId = activeStudent.faseAtual;
+        const phaseChallenges = CHALLENGES_DATA.filter(c => c.fase === phaseId);
+        const solvedCount = phaseChallenges.filter(id => activeStudent.respostasDesafios?.[id.id] === true).length;
+        const totalCount = phaseChallenges.length || 1;
+        const examGrade = ((solvedCount / totalCount) * 10).toFixed(1);
+        const phaseLabel = isFaseM1 ? "Fase -1 (Revisão)" : "Fase 0 (Pré-Cadastro)";
         
         return (
           <div className="bg-gradient-to-r from-cyan-950/40 via-blue-950/40 to-indigo-950/40 border border-[#00E5FF]/20 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg shadow-cyan-950/10 animate-fade-in">
@@ -486,22 +519,22 @@ export default function StudentMetricsTab({
               <span className="text-3xl filter drop-shadow">📝</span>
               <div className="text-left">
                 <h4 className="text-sm font-sans font-extrabold text-gray-100 uppercase tracking-tight flex items-center gap-2">
-                  <span>Nota de Prova Oficial — Fase 0 (Pré-Cadastro)</span>
+                  <span>Nota de Prova Oficial — {phaseLabel}</span>
                   <span className="text-[9px] bg-cyan-400/10 text-cyan-400 px-2 py-0.5 rounded border border-cyan-400/25 font-mono">PARALELA</span>
                 </h4>
                 <p className="text-xs text-text-secondary mt-1 leading-relaxed max-w-xl">
-                  Calculada dinamicamente com base nas transmissões sem erro efetuadas aos 21 módulos teóricos de homologação CLT e e-Social do Pré-Cadastro.
+                  Calculada dinamicamente com base nas transmissões sem erro efetuadas aos {totalCount} módulos teóricos de homologação CLT e e-Social.
                 </p>
                 <div className="text-[10px] text-gray-400 font-mono mt-2 flex items-center gap-2">
                   <span>Progresso da Prova:</span>
-                  <strong className="text-white">{solvedCount} de 21 desafios corretos</strong>
+                  <strong className="text-white">{solvedCount} de {totalCount} desafios corretos</strong>
                   <span>•</span>
-                  <span className="text-emerald-400">Precisão de Fase: {((solvedCount / 21) * 100).toFixed(0)}%</span>
+                  <span className="text-emerald-400">Precisão de Fase: {((solvedCount / totalCount) * 100).toFixed(0)}%</span>
                 </div>
               </div>
             </div>
             <div className="flex items-baseline gap-1.5 bg-[#00E5FF]/5 border border-[#00E5FF]/25 px-5 py-2.5 rounded-2xl shadow-inner shrink-0 group hover:border-[#00E5FF]/50 transition-all select-none">
-              <span className="text-[10.5px] text-cyan-400/80 font-mono font-bold uppercase tracking-wider">Nota Prova F0:</span>
+              <span className="text-[10.5px] text-cyan-400/80 font-mono font-bold uppercase tracking-wider">Nota Prova:</span>
               <span className="text-3xl font-mono font-black text-[#00E5FF] tracking-tighter">
                 {examGrade}
               </span>
@@ -547,10 +580,10 @@ export default function StudentMetricsTab({
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" />
                 <XAxis 
-                  dataKey="name" 
+                  dataKey="label" 
                   stroke="#ffffff30" 
                   tickLine={false}
-                  tick={{ fill: '#9ca3af', fontSize: 8 }}
+                  tick={{ fill: '#9ca3af', fontSize: 7 }}
                 />
                 <YAxis 
                   stroke="#ffffff30" 

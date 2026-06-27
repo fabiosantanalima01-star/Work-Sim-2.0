@@ -2143,8 +2143,12 @@ Para resolver:
       if (document.visibilityState === "hidden") {
         setIsScreenObscured(true);
         wipeClipboard();
+      } else {
+        setIsScreenObscured(false);
       }
     };
+
+    const handleFocus = () => setIsScreenObscured(false);
 
     // Option 4: Detect Print Screen key
     const handleKeyUpScreen = (e: KeyboardEvent) => {
@@ -2160,11 +2164,13 @@ Para resolver:
     };
 
     window.addEventListener("blur", handleFocusLoss);
+    window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("keyup", handleKeyUpScreen);
 
     return () => {
       window.removeEventListener("blur", handleFocusLoss);
+      window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("keyup", handleKeyUpScreen);
     };
@@ -3006,13 +3012,30 @@ Para resolver:
   };
 
   const handleDeleteStudents = async (studentIds: string[]) => {
-    if (!isProfessorOrAdmin) return;
+    console.log("[App] handleDeleteStudents triggered for IDs:", studentIds);
+    if (!isProfessorOrAdmin) {
+      console.warn("[App] Delete blocked: user is not professor or admin.");
+      return;
+    }
 
-    // 1. Identify which students are truly deletable (not in INITIAL_STUDENTS)
-    const deletableIds = studentIds.filter(id => !INITIAL_STUDENTS.some(s => s.id === id));
+    // 1. Identify which students are truly deletable
+    const deletableIds = studentIds.filter(id => {
+      // Main admin email bypass
+      if (firebaseUser?.email === "fabiosantanalima01@gmail.com") return true; 
+      
+      const student = students.find(s => s.id === id);
+      const isProtected = INITIAL_STUDENTS.some(s => s.id === id) || 
+                          student?.matricula === "ADM2026" || 
+                          student?.id === "adm";
+      return !isProtected;
+    });
     
+    console.log("[App] Deletable IDs after protection check:", deletableIds);
+
     if (deletableIds.length === 0) {
-      alert("Atenção: Os alunos base (Daniel, Ana e Professor) são protegidos e não podem ser removidos individualmente.");
+      alert(appLanguage === "pt" 
+        ? "Atenção: Os alunos base (Daniel, Ana e Professor) são protegidos e não podem ser removidos individualmente por monitores."
+        : "Attention: Base students (Daniel, Ana and Professor) are protected and cannot be removed individually by monitors.");
       return;
     }
 
@@ -3020,20 +3043,25 @@ Para resolver:
     setStudents(prev => {
       const remaining = prev.filter(s => !deletableIds.includes(s.id));
       localStorage.setItem("worksim_students", JSON.stringify(remaining));
+      console.log("[App] Local students state updated. Remaining count:", remaining.length);
       return remaining;
     });
 
-    // 3. Delete from Firestore
-    if (firebaseUser) {
+    // 3. Sync with Firestore
+    if (db && firebaseUser) {
       try {
+        console.log("[App] Syncing deletions with Firestore...");
         const deletePromises = deletableIds.map(id => syncDeleteDoc("students", id));
         await Promise.all(deletePromises);
-        console.log(`Successfully deleted ${deletableIds.length} students from Firestore.`);
+        console.log(`[App] Successfully deleted ${deletableIds.length} students from Firestore.`);
       } catch (e) {
-        console.error("Erro ao deletar estudantes do servidor", e);
-        alert("Atenção: Houve um erro ao remover os dados do servidor, mas a lista local foi atualizada.");
+        console.error("[App] Erro ao deletar estudantes do servidor", e);
       }
     }
+
+    alert(appLanguage === "pt" 
+      ? `Sucesso: ${deletableIds.length} aluno(s) removido(s) com sucesso.` 
+      : `Success: ${deletableIds.length} student(s) successfully removed.`);
   };
 
   const handleManualSyncToFirestore = async () => {
@@ -5320,7 +5348,7 @@ Para resolver:
             {/* Isolated Highlighted Version (Only Login Gate) */}
             <div className="pt-4 flex justify-center">
               <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
-                Versão v7.10.2026
+                Versão v7.25.2026
               </span>
             </div>
           </div>
@@ -8573,6 +8601,7 @@ Para resolver:
                 onRemoveSquad={handleRemoveSquad}
                 chatNotifications={chatNotifications}
                 onSendMessage={handleSendChatMessage}
+                themeMode={themeMode}
               />
             )}
           </main>

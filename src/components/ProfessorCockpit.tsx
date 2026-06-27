@@ -96,6 +96,7 @@ interface ProfessorCockpitProps {
     timestamp: string;
   }[];
   appLanguage?: "pt" | "en";
+  themeMode?: "dark" | "light";
 }
 
 export default function ProfessorCockpit({ 
@@ -120,7 +121,8 @@ export default function ProfessorCockpit({
   onSyncAllStudents,
   onDeleteStudents,
   chatNotifications = [],
-  appLanguage = "pt"
+  appLanguage = "pt",
+  themeMode = "dark"
 }: ProfessorCockpitProps) {
   const [globalClassroomFilter, setGlobalClassroomFilter] = useState<string>("TODAS");
   const [activeTabPanel, setActiveTabPanel] = useState<"operations" | "telemetry" | "feedbacks" | "analytics" | "scenarios" | "activity" | "auditoria">("analytics");
@@ -141,6 +143,12 @@ export default function ProfessorCockpit({
   const [squadSearchQuery, setSquadSearchQuery] = useState<string>("");
   const [selectedSquadStudentIds, setSelectedSquadStudentIds] = useState<string[]>([]);
   const [profSearchQuery, setProfSearchQuery] = useState<string>("");
+  
+  // Theme-based tooltip styles
+  const tooltipBg = themeMode === "light" ? "#ffffff" : "#0f172a";
+  const tooltipBorder = themeMode === "light" ? "#e2e8f0" : "rgba(255,255,255,0.08)";
+  const tooltipText = themeMode === "light" ? "#1e293b" : "#f8fafc";
+  const tooltipLabel = themeMode === "light" ? "#64748b" : "#94a3b8";
 
   // --- DERIVED DATA BASED ON GLOBAL CLASS FILTER ---
   const classrooms = Array.from(new Set(students.map(s => s.sala))).filter(Boolean).sort();
@@ -227,15 +235,27 @@ export default function ProfessorCockpit({
   };
 
   const handleDeleteSelected = async () => {
+    console.log("[Cockpit] handleDeleteSelected triggered. Count:", selectedIdsForDeletion.length);
     if (selectedIdsForDeletion.length === 0) return;
     
-    if (window.confirm(`ATENÇÃO: Você está prestes a apagar os ${selectedIdsForDeletion.length} alunos selecionados. Esta ação é irreversível. Deseja continuar?`)) {
+    const confirmMsg = appLanguage === "pt"
+      ? `Deseja realmente apagar os ${selectedIdsForDeletion.length} alunos selecionados?`
+      : `Are you sure you want to delete the ${selectedIdsForDeletion.length} selected students?`;
+
+    if (window.confirm(confirmMsg)) {
+      console.log("[Cockpit] User confirmed deletion. Calling onDeleteStudents with:", selectedIdsForDeletion);
       setIsDeletingSelection(true);
-      if (onDeleteStudents) {
-        await onDeleteStudents(selectedIdsForDeletion);
+      try {
+        await onDeleteStudents?.(selectedIdsForDeletion);
+        console.log("[Cockpit] onDeleteStudents call completed.");
         setSelectedIdsForDeletion([]);
+      } catch (err) {
+        console.error("[Cockpit] Error during deletion:", err);
+      } finally {
+        setIsDeletingSelection(false);
       }
-      setIsDeletingSelection(false);
+    } else {
+      console.log("[Cockpit] User cancelled deletion.");
     }
   };
 
@@ -797,13 +817,13 @@ export default function ProfessorCockpit({
     // Average XP of students in this phase
     const avgXp = count > 0
       ? Math.round(studentsInP.reduce((acc, s) => acc + s.xp, 0) / count)
-      : (pId === 0 ? 120 : pId === 1 ? 400 : pId === 2 ? 1000 : pId === 3 ? 2500 : pId === 4 ? 4000 : pId === 5 ? 6500 : pId === 6 ? 9005 : 12000);
+      : 0;
 
     // Average precision of students in this phase
     const studentsWithPrec = studentsInP.filter(s => s.precisao > 0);
     const avgPrecision = studentsWithPrec.length > 0
       ? Number((studentsWithPrec.reduce((acc, s) => acc + s.precisao, 0) / studentsWithPrec.length).toFixed(1))
-      : (pId === 0 ? 82.5 : pId === 1 ? 86.0 : pId === 2 ? 90.0 : pId === 3 ? 92.5 : 94.0);
+      : 0;
 
     // Average completion percentage for current phase challenges
     const phaseChs = CHALLENGES_DATA.filter((c) => c.fase === pId);
@@ -815,7 +835,7 @@ export default function ProfessorCockpit({
       }, 0);
       completionPct = count > 0 ? Math.round((finishedSum / (phaseChs.length * count)) * 100) : 0;
     } else {
-      completionPct = pId <= 3 ? 20 : 0;
+      completionPct = 0;
     }
 
     const cpCargo = CAREER_PHASES.find((cp) => cp.id === pId)?.cargo || `Fase ${pId}`;
@@ -2732,8 +2752,9 @@ export default function ProfessorCockpit({
                     <XAxis dataKey="faseName" stroke="#94a3b8" fontSize={9} fontClassName="font-mono" tickLine={false} />
                     <YAxis stroke="#94a3b8" fontSize={9} fontClassName="font-mono" domain={[0, 100]} tickLine={false} />
                     <Tooltip 
-                      contentStyle={{ backgroundColor: "#0f172a", borderColor: "rgba(255,255,255,0.08)", borderRadius: "8px", color: "#f8fafc" }}
-                      itemStyle={{ color: "#94a3b8" }}
+                      contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, borderRadius: "8px", color: tooltipText, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)" }}
+                      itemStyle={{ color: tooltipText, fontSize: "12px" }}
+                      labelStyle={{ color: tooltipLabel, fontSize: "11px", fontWeight: "bold" }}
                     />
                     <Legend iconSize={8} wrapperStyle={{ fontSize: 9, fontFamily: "monospace", paddingTop: 10 }} />
                     <Area 
@@ -2793,7 +2814,9 @@ export default function ProfessorCockpit({
                     <XAxis dataKey="shortLabel" stroke="#94a3b8" fontSize={9} fontClassName="font-mono" tickLine={false} />
                     <YAxis stroke="#94a3b8" fontSize={9} fontClassName="font-mono" domain={[0, 100]} tickLine={false} />
                     <Tooltip 
-                      contentStyle={{ backgroundColor: "#0f172a", borderColor: "rgba(255,255,255,0.08)", borderRadius: "8px", color: "#f8fafc" }}
+                      contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, borderRadius: "8px", color: tooltipText, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)" }}
+                      itemStyle={{ color: tooltipText, fontSize: "12px" }}
+                      labelStyle={{ color: tooltipLabel, fontSize: "11px", fontWeight: "bold" }}
                       formatter={(value, name) => [value, name]}
                     />
                     <Legend iconSize={8} wrapperStyle={{ fontSize: 9, fontFamily: "monospace", paddingTop: 10 }} />
@@ -3113,9 +3136,9 @@ export default function ProfessorCockpit({
                     <XAxis dataKey="fase" stroke="#94a3b8" fontSize={11} tickLine={false} />
                     <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: "#020617", borderColor: "#1e293b", borderRadius: "8px" }}
-                      itemStyle={{ color: "#f8fafc", fontSize: "12px" }}
-                      labelStyle={{ color: "#94a3b8", fontSize: "11px", fontWeight: "bold" }}
+                      contentStyle={{ backgroundColor: tooltipBg === "#ffffff" ? "#ffffff" : "#020617", borderColor: tooltipBorder, borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)" }}
+                      itemStyle={{ color: tooltipText, fontSize: "12px" }}
+                      labelStyle={{ color: tooltipLabel, fontSize: "11px", fontWeight: "bold" }}
                     />
                     <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
                     <Line type="monotone" dataKey="XP Médio" stroke="#6366f1" strokeWidth={3} activeDot={{ r: 7 }} name="Média Real Turma" />
@@ -3151,9 +3174,9 @@ export default function ProfessorCockpit({
                     <XAxis dataKey="shortLabel" stroke="#94a3b8" fontSize={10} tickLine={false} />
                     <YAxis stroke="#94a3b8" fontSize={11} domain={[0, 100]} tickLine={false} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: "#020617", borderColor: "#1e293b", borderRadius: "8px" }}
-                      itemStyle={{ color: "#f8fafc", fontSize: "12px" }}
-                      labelStyle={{ color: "#94a3b8", fontSize: "11px", fontWeight: "bold" }}
+                      contentStyle={{ backgroundColor: tooltipBg === "#ffffff" ? "#ffffff" : "#020617", borderColor: tooltipBorder, borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)" }}
+                      itemStyle={{ color: tooltipText, fontSize: "12px" }}
+                      labelStyle={{ color: tooltipLabel, fontSize: "11px", fontWeight: "bold" }}
                       formatter={(value: any, name: any, props: any) => {
                         if (name === "Taxa de Acertos (%)") {
                           return [`${value}% de acerto`, `${props.payload.titulo}`];
@@ -4410,7 +4433,7 @@ export default function ProfessorCockpit({
                     <div>
                       <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest block border-b border-white/5 pb-1 mb-2">🎯 TAXA DE ACERTO</span>
                       <div className="text-2xl font-mono font-bold text-cyan-400 tracking-tight">
-                        {student.precisao > 0 ? `${student.precisao}%` : "—"}
+                        {typeof student.precisao === 'number' ? `${student.precisao}%` : "—"}
                       </div>
                       <p className="text-[10px] text-gray-400 mt-1">
                         Aproveitamento global nas primeiras submissões.
@@ -4418,7 +4441,7 @@ export default function ProfessorCockpit({
                     </div>
                     {/* Visual meter */}
                     <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden mt-3 border border-white/5">
-                      <div className="bg-gradient-to-r from-cyan-500 to-indigo-500 h-full" style={{ width: `${student.precisao || 75}%` }} />
+                      <div className="bg-gradient-to-r from-cyan-500 to-indigo-500 h-full transition-all duration-500" style={{ width: `${student.precisao || 0}%` }} />
                     </div>
                   </div>
 

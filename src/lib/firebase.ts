@@ -86,7 +86,8 @@ export const SyncManager = {
   },
 
   async drainQueue() {
-    if (!navigator.onLine) return;
+    // Attempt drain even if navigator.onLine is false, as it's unreliable.
+    // The Firebase SDK will handle the actual connectivity check.
     const queue = this.getQueue();
     if (queue.length === 0) return;
 
@@ -106,13 +107,15 @@ export const SyncManager = {
           await addDoc(collection(db, action.collection), action.data);
         }
       } catch (err: any) {
-        console.error(`[Queue] Failed to process ${action.type} for ${action.collection}:`, err.message);
+        console.error(`[Queue] FAILED to process ${action.type} for ${action.collection} (ID: ${action.docId}):`, err.message);
         remaining.push(action);
       }
     }
     this.saveQueue(remaining);
     if (remaining.length === 0) {
       console.log("[Queue] All pending actions synchronized successfully.");
+    } else {
+      console.warn(`[Queue] Still ${remaining.length} items in queue.`);
     }
   }
 };

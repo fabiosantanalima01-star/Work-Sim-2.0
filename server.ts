@@ -130,7 +130,7 @@ Ignore cabeçalhos ou rodapés, foque na lista de nomes e números.`;
         cargo: "Candidato de RH",
         xp: 0,
         precisao: 0.0,
-        faseAtual: 0,
+        faseAtual: -1,
         status: "Ativo",
         respostasDesafios: {}
       };

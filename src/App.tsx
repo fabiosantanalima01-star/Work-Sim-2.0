@@ -298,7 +298,7 @@ export default function App() {
   );
 
   // Tracking current selected career module
-  const [selectedPhaseId, setSelectedPhaseId] = useState<number>(0);
+  const [selectedPhaseId, setSelectedPhaseId] = useState<number>(-1);
   const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(
     null,
   );
@@ -370,10 +370,17 @@ export default function App() {
     const unsubscribe = onSnapshot(
       collection(db, "students"),
       (snapshot) => {
-        const remoteStudents = snapshot.docs.map(doc => ({
-          ...(doc.data() as Student),
-          id: doc.id
-        }));
+        const remoteStudents = snapshot.docs.map(doc => {
+          const sData = doc.data() as Student;
+          // One-time migration: if they have 0 XP and are in phase 0, they should start in F-1 (Initial Review)
+          if (sData.faseAtual === 0 && (sData.xp || 0) === 0 && !sData.isVeterano) {
+            sData.faseAtual = -1;
+          }
+          return {
+            ...sData,
+            id: doc.id
+          };
+        });
 
         remoteStudents.forEach((remote) => {
           const oldData = lastFirestoreSyncedRef.current[remote.id];
@@ -437,22 +444,22 @@ export default function App() {
                   const remoteMsgCount = remote.mensagensChat?.length || 0;
                   const localMsgCount = local.mensagensChat?.length || 0;
                   if (remoteMsgCount > localMsgCount) {
-                    const lastMsg = remote.mensagensChat?.[remoteMsgCount - 1];
-                    if (lastMsg && lastMsg.remetente !== "Professor" && lastMsg.remetente !== "Sistema") {
-                      playSoundEffect(remote.soundTheme || "bip");
-                      if (!openChats.includes(remote.id)) {
-                        setChatNotifications((prev) => {
-                          if (prev.some(n => n.id === lastMsg.id)) return prev;
-                          return [...prev, {
-                            id: lastMsg.id || `${Date.now()}-${Math.random()}`,
-                            studentId: remote.id,
-                            studentName: remote.nomeCompleto,
-                            text: lastMsg.texto,
-                            timestamp: lastMsg.timestamp,
-                          }];
-                        });
-                      }
-                    }
+                     const lastMsg = remote.mensagensChat?.[remoteMsgCount - 1];
+                     if (lastMsg && lastMsg.remetente !== "Professor" && lastMsg.remetente !== "Sistema") {
+                       playSoundEffect(remote.soundTheme || "bip");
+                       if (!openChats.includes(remote.id)) {
+                         setChatNotifications((prev) => {
+                           if (prev.some(n => n.id === lastMsg.id)) return prev;
+                           return [...prev, {
+                             id: lastMsg.id || `${Date.now()}-${Math.random()}`,
+                             studentId: remote.id,
+                             studentName: remote.nomeCompleto,
+                             text: lastMsg.texto,
+                             timestamp: lastMsg.timestamp,
+                           }];
+                         });
+                       }
+                     }
                   }
                 }
                 merged[localIdx] = remote;
@@ -470,8 +477,8 @@ export default function App() {
                 merged[localIdx] = {
                   ...local,
                   ...remote,
-                  xp: Math.max(local.xp || 0, remote.xp || 0),
-                  faseAtual: Math.max(local.faseAtual ?? -1, remote.faseAtual ?? -1),
+                  xp: remote.xp !== undefined ? remote.xp : (local.xp || 0),
+                  faseAtual: remote.faseAtual !== undefined ? remote.faseAtual : (local.faseAtual ?? -1),
                   precisao: remote.precisao !== undefined ? remote.precisao : local.precisao,
                   respostasDesafios: {
                     ...(local.respostasDesafios || {}),
@@ -1757,6 +1764,29 @@ Para resolver:
     }
   }, []);
 
+  // One-time migration: Fix students that defaulted to Phase 0 instead of -1 (Initial Review)
+  useEffect(() => {
+    setStudents(prev => {
+      let changed = false;
+      const updated = prev.map(s => {
+        // If they are in phase 0 but have 0 XP, they should likely be in the starting phase -1
+        if (s.faseAtual === 0 && (s.xp || 0) === 0 && !s.isVeterano) {
+          changed = true;
+          if (s.id === activeStudentId) {
+            syncSetDoc("students", s.id, { faseAtual: -1 }, { merge: true }).catch(console.error);
+          }
+          return { ...s, faseAtual: -1 };
+        }
+        return s;
+      });
+      if (changed) {
+        localStorage.setItem("worksim_students", JSON.stringify(updated));
+        return updated;
+      }
+      return prev;
+    });
+  }, [activeStudentId]);
+
   useEffect(() => {
     if (activeStudentId) {
       localStorage.setItem("worksim_active_student_id", activeStudentId);
@@ -1891,7 +1921,7 @@ Para resolver:
   // Rigorous Phase Navigation Lock for Students
   // A phase N is unlocked ONLY if Phase N-1 has been "passed" (100% completed & >= 70% accuracy for normals)
   // Phase -1 is ALWAYS unlocked for everyone as a review tool.
-  const maxAllowedPhase = activeStudent?.faseAtual ?? 0;
+  const maxAllowedPhase = activeStudent?.faseAtual ?? -1;
   const unlockedPhasesList = useMemo(() => {
     // Admin profile always has everything
     if (activeStudent?.id === "adm" || activeStudent?.matricula === "ADM2026") return [-1, 0, 1, 2, 3, 4, 5, 6, 7];

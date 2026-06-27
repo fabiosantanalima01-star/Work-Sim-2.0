@@ -32,7 +32,7 @@ export default function CareerProgress({
   const accuracyText = student.precisao > 0 ? `${student.precisao}%` : "95%";
 
   // Computed metrics for current active HR training phase
-  const trainingPhaseId = student.faseAtual ?? 0;
+  const trainingPhaseId = student.faseAtual ?? -1;
   const trainingPhaseObj = CAREER_PHASES.find(p => p.id === trainingPhaseId) || CAREER_PHASES[0];
   const trainingPhaseChallenges = CHALLENGES_DATA.filter(c => c.fase === trainingPhaseId);
   const trainingPhaseTotal = trainingPhaseChallenges.length;

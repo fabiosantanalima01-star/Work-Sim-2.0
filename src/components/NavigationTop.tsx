@@ -112,21 +112,25 @@ export default function TopNavbar({
                   </button>
                 )}
 
-                <div className="flex items-center gap-2 sm:gap-3 min-w-max">
-                  <div className="relative group hidden xs:block">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <div className="relative group hidden xs:block flex-shrink-0">
                     <div className="absolute -inset-1 bg-gradient-to-r from-accent-primary to-blue-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
                     <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-900 border border-white/20 flex items-center justify-center shadow-2xl">
                       <BookOpen className="w-5 h-5 sm:w-7 sm:h-7 text-accent-primary" />
                     </div>
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <h1 className="text-base sm:text-3xl font-black tracking-tight text-white uppercase leading-tight whitespace-nowrap">
-                      {appLanguage === "en" ? "Academic Simulator" : "Simulador Acadêmico"}
-                      <span className="text-accent-primary ml-2">Legislação de RH</span>
+                    <h1 className="text-xs sm:text-lg md:text-2xl lg:text-3xl font-black tracking-tight text-white uppercase leading-none sm:leading-tight">
+                      <span className="block sm:inline whitespace-nowrap">
+                        {appLanguage === "en" ? "Academic Simulator" : "Simulador Acadêmico"}
+                      </span>
+                      <span className="text-accent-primary block sm:inline sm:ml-2 whitespace-nowrap">
+                        Legislação de RH
+                      </span>
                     </h1>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <p className="text-[10px] sm:text-[11px] text-accent-primary/80 font-mono font-bold uppercase tracking-wider whitespace-nowrap">Legislação v7.27.2026</p>
+                      <p className="text-[9px] sm:text-[11px] text-accent-primary/80 font-mono font-bold uppercase tracking-wider">Legislação v7.27.2026</p>
                     </div>
                   </div>
                 </div>
@@ -134,21 +138,21 @@ export default function TopNavbar({
             </div>
 
             {/* ACTIONS & METADATA (RIGHT) */}
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
               {/* Metodologia Highlight Button */}
               <div className="relative group">
                 <button
                   type="button"
                   onClick={() => setIsMethodologyOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl transition-all cursor-pointer group"
+                  className="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl transition-all cursor-pointer group"
                   title={appLanguage === "en" ? "Click to view full pedagogical methodology" : "Clique para ver a metodologia pedagógica detalhada"}
                 >
                   <BookOpen className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-[10px] font-black text-emerald-300 uppercase tracking-tight">Metodologia</span>
+                  <span className="hidden xs:inline text-[10px] font-black text-emerald-300 uppercase tracking-tight">Metodologia</span>
                 </button>
               </div>
 
-              <div className="h-5 w-[1px] bg-white/10 mx-0.5 sm:mx-1" />
+              <div className="h-5 w-[1px] bg-white/10 mx-0.5" />
 
               <div className="flex items-center gap-1 sm:gap-1.5 bg-white/5 border border-white/10 rounded-xl p-1">
                 {/* Focus Toggle */}
@@ -166,12 +170,12 @@ export default function TopNavbar({
                   {isFocusedMode ? (
                     <>
                       <Eye className="w-3.5 h-3.5 text-slate-950 group-hover:scale-110 transition-transform" />
-                      <span className="text-[9px] font-black tracking-tight text-slate-950 uppercase whitespace-nowrap">Foco Ativo</span>
+                      <span className="hidden sm:inline text-[9px] font-black tracking-tight text-slate-950 uppercase whitespace-nowrap">Foco Ativo</span>
                     </>
                   ) : (
                     <>
                       <EyeOff className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                      <span className="text-[9px] font-bold tracking-tight uppercase whitespace-nowrap">Focado</span>
+                      <span className="hidden sm:inline text-[9px] font-bold tracking-tight uppercase whitespace-nowrap">Focado</span>
                     </>
                   )}
                 </button>
@@ -197,7 +201,7 @@ export default function TopNavbar({
                   <p className="text-[10px] font-bold text-white uppercase tracking-tight">Status do Servidor</p>
                   <p className="text-[9px] text-emerald-400 font-mono animate-pulse">● OPERACIONAL</p>
                 </div>
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                <div className="hidden sm:flex w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 items-center justify-center">
                   <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
                 </div>
               </div>

@@ -77,8 +77,11 @@ export default function TournamentTab({ localStudents, appLanguage, onSelectChal
 
   // Derive Top 50 for the individual ranking display
   const globalTopStudents = useMemo(() => {
-    return allStudents.slice(0, 50);
-  }, [allStudents]);
+    const localIds = new Set((localStudents || []).map(s => s.id));
+    return allStudents
+      .filter(s => localIds.has(s.id))
+      .slice(0, 50);
+  }, [allStudents, localStudents]);
 
   // Calculate Interclasses Ranking based on ALL students with normalization and canonical name selection
   const classRankings = useMemo(() => {
@@ -90,7 +93,10 @@ export default function TournamentTab({ localStudents, appLanguage, onSelectChal
       topXP: number 
     }> = {};
     
-    allStudents.forEach(s => {
+    const localIds = new Set((localStudents || []).map(s => s.id));
+    const filteredStudents = allStudents.filter(s => localIds.has(s.id));
+
+    filteredStudents.forEach(s => {
       const rawSala = (s.sala || "Sem Sala").trim();
       
       // Normalization for grouping (internal key)
@@ -138,7 +144,7 @@ export default function TournamentTab({ localStudents, appLanguage, onSelectChal
     });
 
     return rankings.sort((a, b) => b.totalXP - a.totalXP);
-  }, [allStudents]);
+  }, [allStudents, localStudents]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">

@@ -156,6 +156,12 @@ export default function ProfessorCockpit({
     .filter(s => s.id !== "adm") // Always filter out ADM
     .filter(s => globalClassroomFilter === "TODAS" || s.sala === globalClassroomFilter);
 
+  const studentsToDisplay = filteredStudentsByClass.filter(s => {
+    if (!profSearchQuery.trim()) return true;
+    const q = profSearchQuery.toLowerCase();
+    return s.nomeCompleto.toLowerCase().includes(q) || s.matricula.toLowerCase().includes(q);
+  });
+
   // --- ANALYTICS CALCULATIONS ---
   const challengeAccuracyData = CHALLENGES_DATA.map((ch) => {
     const correctCount = filteredStudentsByClass.filter((s) => s.respostasDesafios?.[ch.id] === true).length;
@@ -235,7 +241,6 @@ export default function ProfessorCockpit({
   };
 
   const handleDeleteSelected = async () => {
-    console.log("[Cockpit] handleDeleteSelected triggered. Count:", selectedIdsForDeletion.length);
     if (selectedIdsForDeletion.length === 0) return;
     
     const confirmMsg = appLanguage === "pt"
@@ -243,19 +248,16 @@ export default function ProfessorCockpit({
       : `Are you sure you want to delete the ${selectedIdsForDeletion.length} selected students?`;
 
     if (window.confirm(confirmMsg)) {
-      console.log("[Cockpit] User confirmed deletion. Calling onDeleteStudents with:", selectedIdsForDeletion);
       setIsDeletingSelection(true);
       try {
         await onDeleteStudents?.(selectedIdsForDeletion);
-        console.log("[Cockpit] onDeleteStudents call completed.");
         setSelectedIdsForDeletion([]);
       } catch (err) {
         console.error("[Cockpit] Error during deletion:", err);
+        alert(appLanguage === "pt" ? "Erro ao apagar alunos. Tente novamente." : "Error deleting students. Try again.");
       } finally {
         setIsDeletingSelection(false);
       }
-    } else {
-      console.log("[Cockpit] User cancelled deletion.");
     }
   };
 
@@ -2382,56 +2384,86 @@ export default function ProfessorCockpit({
             <div className="glass-panel rounded-2xl p-4 border border-white/5 space-y-3 flex flex-col h-full max-h-[480px]">
               <div className="flex justify-between items-center border-b border-white/5 pb-2">
                 <h4 className="text-xs font-sans font-bold text-gray-300 uppercase tracking-wider">
-                  Livro de Registro: Turma 1B
+                  Livro de Registro: {globalClassroomFilter === "TODAS" ? (appLanguage === "en" ? "All Cohorts" : "Todas as Turmas") : globalClassroomFilter}
                 </h4>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => {
-                      if (selectedIdsForDeletion.length === students.length) {
-                        setSelectedIdsForDeletion([]);
+                      const allVisibleIds = studentsToDisplay.map(s => s.id);
+                      const allSelected = allVisibleIds.length > 0 && allVisibleIds.every(id => selectedIdsForDeletion.includes(id));
+                      
+                      if (allSelected) {
+                        // Deselect all visible students currently filtered
+                        setSelectedIdsForDeletion(prev => prev.filter(id => !allVisibleIds.includes(id)));
                       } else {
-                        setSelectedIdsForDeletion(students.map(s => s.id));
+                        // Select all visible students (plus already selected ones)
+                        setSelectedIdsForDeletion(prev => Array.from(new Set([...prev, ...allVisibleIds])));
                       }
                     }}
                     className={`text-[9px] font-mono px-2 py-0.5 rounded border transition-all ${
-                      selectedIdsForDeletion.length > 0 && selectedIdsForDeletion.length === students.length
+                      studentsToDisplay.length > 0 && studentsToDisplay.every(s => selectedIdsForDeletion.includes(s.id))
                         ? "bg-rose-500 border-rose-500 text-white"
                         : "bg-slate-900 border-white/10 text-gray-400 hover:text-white"
                     }`}
                   >
-                    {selectedIdsForDeletion.length === students.length ? "Desmarcar Todos" : "Selecionar Todos"}
+                    {studentsToDisplay.length > 0 && studentsToDisplay.every(s => selectedIdsForDeletion.includes(s.id)) ? "Desmarcar" : "Selecionar Todos"}
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDeleteSelected}
+                    disabled={selectedIdsForDeletion.length === 0 || isDeletingSelection}
+                    className={`text-[9px] font-mono px-2 py-0.5 rounded border transition-all flex items-center gap-1 ${
+                      selectedIdsForDeletion.length > 0
+                        ? "bg-rose-500 border-rose-500 text-white hover:bg-rose-600 shadow-lg shadow-rose-500/20"
+                        : "bg-slate-900 border-white/5 text-gray-600 cursor-not-allowed"
+                    }`}
+                  >
+                    <Trash2 className="w-2.5 h-2.5" />
+                    {isDeletingSelection ? "..." : "Apagar"}
+                  </button>
+                  
+                  <div className="h-4 w-[1px] bg-white/5 mx-1" />
+
                   <button
                     id="prof-telemetry-btn"
                     type="button"
                     onClick={handleExportTelemetry}
                     className="text-accent-primary hover:text-white flex items-center gap-1 font-mono text-[10px] cursor-pointer"
                   >
-                    <Download className="w-3 h-3" /> Telemetria
+                    <Download className="w-3 h-3" />
                   </button>
                 </div>
               </div>
 
-              {/* SEARCH FILTER FOR STUDENT LIST */}
-              <div className="relative">
-                <input
-                  type="text"
-                  value={profSearchQuery}
-                  onChange={(e) => setProfSearchQuery(e.target.value)}
-                  placeholder="Pesquisar aluno para excluir ou gerenciar..."
-                  className="w-full bg-slate-950/80 border border-white/5 rounded-lg py-1.5 px-3 text-[10px] font-mono text-gray-300 focus:border-accent-primary focus:outline-none transition-all"
-                />
+              {/* SEARCH FILTERS FOR STUDENT LIST */}
+              <div className="flex gap-2">
+                <select
+                  value={globalClassroomFilter}
+                  onChange={(e) => setGlobalClassroomFilter(e.target.value)}
+                  className="bg-slate-950/80 border border-white/5 rounded-lg py-1 px-2 text-[10px] font-mono text-gray-300 focus:border-accent-primary focus:outline-none transition-all w-24"
+                >
+                  <option value="TODAS">{appLanguage === "en" ? "All Classes" : "Turmas"}</option>
+                  {classrooms.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={profSearchQuery}
+                    onChange={(e) => setProfSearchQuery(e.target.value)}
+                    placeholder={appLanguage === "en" ? "Filter by student..." : "Filtrar por aluno..."}
+                    className="w-full bg-slate-950/80 border border-white/5 rounded-lg py-1.5 px-3 text-[10px] font-mono text-gray-300 focus:border-accent-primary focus:outline-none transition-all"
+                  />
+                  <Search className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" />
+                </div>
               </div>
 
               {/* Scrollable grid representing live performance of students */}
               <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
-                {filteredStudentsByClass
-                  .filter(s => {
-                    if (!profSearchQuery.trim()) return true;
-                    const q = profSearchQuery.toLowerCase();
-                    return s.nomeCompleto.toLowerCase().includes(q) || s.matricula.toLowerCase().includes(q);
-                  })
+                {studentsToDisplay
                   .map((student) => {
                   const phase0CompletedCount = [
                     "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10",
@@ -2484,9 +2516,23 @@ export default function ProfessorCockpit({
                                 {student.nomeCompleto}
                               </button>
                             </div>
-                            <span className="text-[10px] text-text-secondary block">
-                              MAT: {student.matricula}
-                            </span>
+                            <div className="flex items-center justify-between gap-1 w-full">
+                              <span className="text-[10px] text-text-secondary block truncate">
+                                MAT: {student.matricula}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (window.confirm(appLanguage === "pt" ? `Deseja realmente apagar o aluno ${student.nomeCompleto}?` : `Delete student ${student.nomeCompleto}?`)) {
+                                    onDeleteStudents?.([student.id]);
+                                  }
+                                }}
+                                className="text-rose-500/40 hover:text-rose-500 transition-colors p-0.5"
+                                title="Apagar aluno"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
                           <span className={`text-[9px] uppercase font-bold px-1.5 py-0.2 rounded inline-block ${
                             student.status === "Ativo" ? "bg-emerald-950/35 text-emerald-400" : "bg-slate-900 text-gray-500"
                           }`}>

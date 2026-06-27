@@ -3012,48 +3012,49 @@ Para resolver:
   };
 
   const handleDeleteStudents = async (studentIds: string[]) => {
-    console.log("[App] handleDeleteStudents triggered for IDs:", studentIds);
+    if (studentIds.length === 0) return;
+
     if (!isProfessorOrAdmin) {
-      console.warn("[App] Delete blocked: user is not professor or admin.");
+      alert(appLanguage === "pt" ? "Acesso negado: Você não tem permissão para apagar alunos." : "Access denied: You do not have permission to delete students.");
       return;
     }
 
-    // 1. Identify which students are truly deletable
     const deletableIds = studentIds.filter(id => {
-      // Main admin email bypass
-      if (firebaseUser?.email === "fabiosantanalima01@gmail.com") return true; 
+      const isAdminEmail = firebaseUser?.email?.toLowerCase() === "fabiosantanalima01@gmail.com";
+      if (isAdminEmail) return true; 
       
       const student = students.find(s => s.id === id);
       const isProtected = INITIAL_STUDENTS.some(s => s.id === id) || 
                           student?.matricula === "ADM2026" || 
-                          student?.id === "adm";
+                          student?.id === "adm" ||
+                          student?.matricula === "PROF2026";
       return !isProtected;
     });
     
-    console.log("[App] Deletable IDs after protection check:", deletableIds);
-
     if (deletableIds.length === 0) {
       alert(appLanguage === "pt" 
-        ? "Atenção: Os alunos base (Daniel, Ana e Professor) são protegidos e não podem ser removidos individualmente por monitores."
-        : "Attention: Base students (Daniel, Ana and Professor) are protected and cannot be removed individually by monitors.");
+        ? "Atenção: Os alunos selecionados são protegidos (Daniel, Ana ou Professor) e não podem ser removidos."
+        : "Attention: Selected students are protected (Daniel, Ana or Professor) and cannot be removed.");
       return;
     }
 
-    // 2. Update local state immediately for responsiveness
+    // Confirmation for individual delete or bulk
+    const msg = deletableIds.length === 1 
+      ? (appLanguage === "pt" ? `Deseja apagar o aluno selecionado?` : `Delete selected student?`)
+      : (appLanguage === "pt" ? `Deseja apagar os ${deletableIds.length} alunos selecionados?` : `Delete ${deletableIds.length} students?`);
+
+    if (!window.confirm(msg)) return;
+
     setStudents(prev => {
       const remaining = prev.filter(s => !deletableIds.includes(s.id));
       localStorage.setItem("worksim_students", JSON.stringify(remaining));
-      console.log("[App] Local students state updated. Remaining count:", remaining.length);
       return remaining;
     });
 
-    // 3. Sync with Firestore
     if (db && firebaseUser) {
       try {
-        console.log("[App] Syncing deletions with Firestore...");
         const deletePromises = deletableIds.map(id => syncDeleteDoc("students", id));
         await Promise.all(deletePromises);
-        console.log(`[App] Successfully deleted ${deletableIds.length} students from Firestore.`);
       } catch (e) {
         console.error("[App] Erro ao deletar estudantes do servidor", e);
       }
@@ -5348,7 +5349,7 @@ Para resolver:
             {/* Isolated Highlighted Version (Only Login Gate) */}
             <div className="pt-4 flex justify-center">
               <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
-                Versão v7.25.2026
+                Versão v7.27.2026
               </span>
             </div>
           </div>

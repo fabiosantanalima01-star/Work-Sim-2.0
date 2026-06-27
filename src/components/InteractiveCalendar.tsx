@@ -325,7 +325,7 @@ export default function InteractiveCalendar() {
       </div>
 
       {/* Analytical result counts summary */}
-      <div id="dsr-summary-panel" className="bg-slate-900/60 p-3 rounded-lg border border-white/5 font-mono text-[11px] space-y-1.5 text-left">
+      <div id="dsr-summary-panel" className="bg-slate-900/60 p-3 rounded-lg border border-white/5 font-mono text-[11px] space-y-1.5 text-left overflow-hidden">
         <div className="flex justify-between">
           <span className="text-gray-400">Dias no Mês:</span>
           <span className="text-white font-bold">{monthData.daysInMonth} dias</span>
@@ -344,18 +344,18 @@ export default function InteractiveCalendar() {
         </div>
 
         <div className="border-t border-white/13 my-2 pt-1.5 space-y-1.5 font-sans">
-          <div className="flex justify-between text-xs font-black">
-            <span className="text-emerald-400 uppercase tracking-wider text-[10px]">1. Dias Úteis (Divisor DSR):</span>
+          <div className="flex justify-between text-xs font-black truncate">
+            <span className="text-emerald-400 uppercase tracking-wider text-[10px] truncate">1. Dias Úteis (Divisor DSR):</span>
             <span className="text-emerald-400 font-mono text-[13px]">{monthData.totalBusinessDays} dias</span>
           </div>
-          <div className="flex justify-between text-xs font-black">
-            <span className="text-rose-400 uppercase tracking-wider text-[10px]">2. Repousos (Multiplicador DSR):</span>
+          <div className="flex justify-between text-xs font-black truncate">
+            <span className="text-rose-400 uppercase tracking-wider text-[10px] truncate">2. Repousos (Multiplicador DSR):</span>
             <span className="text-rose-400 font-mono text-[13px]">{monthData.totalDsrDays} dias</span>
           </div>
         </div>
 
         <div className="border-t border-dashed border-white/5 pt-1.5 text-[9px] text-gray-500 leading-tight">
-          <span className="font-bold text-gray-400 text-[10px] block mb-0.5">Equação do DSR sobre Variáveis:</span>
+          <span className="font-bold text-gray-400 text-[10px] block mb-0.5 truncate">Equação do DSR sobre Variáveis:</span>
           DSR = (Soma das Horas Extras / {monthData.totalBusinessDays}) × {monthData.totalDsrDays}
         </div>
       </div>

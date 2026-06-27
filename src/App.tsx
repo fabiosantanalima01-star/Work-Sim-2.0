@@ -7612,9 +7612,9 @@ Para resolver:
                                         </div>
 
                                         {/* Row 4: Comissões & Reflexo DSR s/ HE e Vars */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3">
                                           <div>
-                                            <label className="block text-[11px] text-gray-400 mb-1 font-mono">7. Comissões / Prêmios</label>
+                                            <label className="block text-[11px] text-gray-400 mb-1 font-mono truncate">7. Comissões / Prêmios</label>
                                             <input
                                               type="text"
                                               value={crisisInputs.comissoes}
@@ -7624,7 +7624,7 @@ Para resolver:
                                             />
                                           </div>
                                           <div>
-                                            <label className="block text-[11px] text-gray-400 mb-1 font-mono">8. Reflexos DSR s/ HE e Adic.</label>
+                                            <label className="block text-[11px] text-gray-400 mb-1 font-mono truncate">8. Reflexos DSR s/ HE e Adic.</label>
                                             <input
                                               type="text"
                                               value={crisisInputs.dsrHe}
@@ -7682,9 +7682,9 @@ Para resolver:
                                         </div>
 
                                         {/* Row 2: Vale-Transporte & Desconto Faltas & DSR perdidos */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3">
                                           <div>
-                                            <label className="block text-[11px] text-gray-400 mb-1 font-mono">12. Desconto Vale-Transporte</label>
+                                            <label className="block text-[11px] text-gray-400 mb-1 font-mono truncate">12. Desconto Vale-Transporte</label>
                                             <input
                                               type="text"
                                               value={crisisInputs.vt}
@@ -7694,7 +7694,7 @@ Para resolver:
                                             />
                                           </div>
                                           <div>
-                                            <label className="block text-[11px] text-gray-400 mb-1 font-mono">13. Desconto Faltas & DSR Perdidos</label>
+                                            <label className="block text-[11px] text-gray-400 mb-1 font-mono truncate">13. Desconto Faltas & DSR Perdidos</label>
                                             <input
                                               type="text"
                                               value={crisisInputs.faltasDesconto}

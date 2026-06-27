@@ -50,6 +50,7 @@ import {
   Timestamp
 } from "firebase/firestore";
 import { db, auth } from "../lib/firebase";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -145,6 +146,158 @@ export default function ProfessorCockpit({
   const [squadSearchQuery, setSquadSearchQuery] = useState<string>("");
   const [selectedSquadStudentIds, setSelectedSquadStudentIds] = useState<string[]>([]);
   const [profSearchQuery, setProfSearchQuery] = useState<string>("");
+
+  // --- Google Classroom States & Functions ---
+  const [classroomAccessToken, setClassroomAccessToken] = useState<string | null>(null);
+  const [classroomCourses, setClassroomCourses] = useState<any[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
+  const [classroomStudents, setClassroomStudents] = useState<any[]>([]);
+  const [isLoadingCourses, setIsLoadingCourses] = useState<boolean>(false);
+  const [isLoadingStudents, setIsLoadingStudents] = useState<boolean>(false);
+  const [classroomError, setClassroomError] = useState<string | null>(null);
+  const [selectedClassroomStudentIds, setSelectedClassroomStudentIds] = useState<string[]>([]);
+  const [classroomTargetSala, setClassroomTargetSala] = useState<string>("1B");
+  const [classroomTargetYear, setClassroomTargetYear] = useState<number>(2026);
+  const [showConfirmImportModal, setShowConfirmImportModal] = useState<boolean>(false);
+  const [collapsedClassroom, setCollapsedClassroom] = useState<boolean>(false);
+
+  const handleConnectClassroom = async () => {
+    setIsLoadingCourses(true);
+    setClassroomError(null);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.addScope("https://www.googleapis.com/auth/classroom.courses.readonly");
+      provider.addScope("https://www.googleapis.com/auth/classroom.rosters.readonly");
+      provider.addScope("https://www.googleapis.com/auth/classroom.profile.emails");
+      
+      const result = await signInWithPopup(auth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (!credential || !credential.accessToken) {
+        throw new Error("Não foi possível obter o token de acesso da conta Google.");
+      }
+      
+      setClassroomAccessToken(credential.accessToken);
+      // Fetch courses immediately!
+      await fetchCourses(credential.accessToken);
+    } catch (err: any) {
+      console.error("Erro ao conectar ao Google Classroom:", err);
+      setClassroomError(err.message || "Falha na autenticação com o Google Classroom.");
+      setIsLoadingCourses(false);
+    }
+  };
+
+  const fetchCourses = async (token: string) => {
+    setIsLoadingCourses(true);
+    setClassroomError(null);
+    try {
+      const res = await fetch("https://classroom.googleapis.com/v1/courses?courseStates=ACTIVE", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          setClassroomAccessToken(null);
+          throw new Error("Sessão expirada ou sem permissões suficientes. Por favor, reconecte.");
+        }
+        throw new Error("Erro ao buscar turmas do Google Classroom.");
+      }
+      const data = await res.json();
+      setClassroomCourses(data.courses || []);
+    } catch (err: any) {
+      setClassroomError(err.message);
+    } finally {
+      setIsLoadingCourses(false);
+    }
+  };
+
+  const fetchClassroomStudents = async (courseId: string) => {
+    if (!classroomAccessToken) return;
+    setIsLoadingStudents(true);
+    setClassroomError(null);
+    try {
+      const res = await fetch(`https://classroom.googleapis.com/v1/courses/${courseId}/students`, {
+        headers: { Authorization: `Bearer ${classroomAccessToken}` },
+      });
+      if (!res.ok) {
+        throw new Error("Erro ao buscar alunos desta turma no Google Classroom.");
+      }
+      const data = await res.json();
+      setClassroomStudents(data.students || []);
+      // Auto select all fetched students
+      setSelectedClassroomStudentIds((data.students || []).map((s: any) => s.userId));
+    } catch (err: any) {
+      setClassroomError(err.message);
+    } finally {
+      setIsLoadingStudents(false);
+    }
+  };
+
+  const handleSelectCourse = (courseId: string) => {
+    setSelectedCourseId(courseId);
+    if (courseId) {
+      fetchClassroomStudents(courseId);
+    } else {
+      setClassroomStudents([]);
+      setSelectedClassroomStudentIds([]);
+    }
+  };
+
+  const toggleSelectClassroomStudent = (userId: string) => {
+    setSelectedClassroomStudentIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
+
+  const toggleSelectAllClassroomStudents = () => {
+    if (selectedClassroomStudentIds.length === classroomStudents.length) {
+      setSelectedClassroomStudentIds([]);
+    } else {
+      setSelectedClassroomStudentIds(classroomStudents.map((s) => s.userId));
+    }
+  };
+
+  const handleImportClassroomStudents = () => {
+    if (selectedClassroomStudentIds.length === 0) return;
+    setShowConfirmImportModal(true);
+  };
+
+  const executeImportClassroom = () => {
+    const studentsToImport = classroomStudents.filter((s) => selectedClassroomStudentIds.includes(s.userId));
+    
+    const generated: Student[] = studentsToImport.map((cs) => {
+      const tempId = Math.random().toString(36).substring(2, 9);
+      const nextId = `CLASSROOM-${Date.now()}-${tempId}`;
+      const rawName = cs.profile?.name?.fullName || "Aluno Google Classroom";
+      const email = cs.profile?.emailAddress || "";
+      
+      const compactClass = classroomTargetSala.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+      const subId = tempId.toUpperCase().slice(0, 3);
+      const matricula = `${compactClass}${subId}${classroomTargetYear}RH`;
+      
+      return {
+        id: nextId,
+        nomeCompleto: rawName,
+        matricula: matricula,
+        sala: classroomTargetSala,
+        ano: classroomTargetYear,
+        cargo: "Estagiário de RH",
+        xp: 0,
+        precisao: 0.0,
+        faseAtual: -1,
+        status: "Ativo",
+        respostasDesafios: {},
+        email: email,
+        chamadaNumero: tempId.slice(0, 2)
+      };
+    });
+    
+    onAddStudents(generated);
+    setShowConfirmImportModal(false);
+    
+    // Reset selected course / students
+    setClassroomStudents([]);
+    setSelectedCourseId("");
+    setSelectedClassroomStudentIds([]);
+  };
   
   // Theme-based tooltip styles
   const tooltipBg = themeMode === "light" ? "#ffffff" : "#0f172a";
@@ -1391,6 +1544,214 @@ export default function ProfessorCockpit({
           
           {/* Left column: OCR automated roster builder & lock controller */}
           <div className="lg:col-span-2 space-y-6">
+
+            {/* Google Classroom Integration Card */}
+            <div className="glass-panel rounded-2xl border border-indigo-500/30 bg-indigo-950/5 overflow-hidden transition-all duration-300 shadow-[0_0_25px_rgba(79,70,229,0.05)] text-left">
+              <button 
+                type="button"
+                onClick={() => setCollapsedClassroom(!collapsedClassroom)}
+                className="w-full flex items-center justify-between p-6 hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
+                    <Cloud className="w-5 h-5 text-indigo-400" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-sm font-sans font-bold text-indigo-200 uppercase tracking-wide flex items-center gap-1.5">
+                      Sincronização com Google Classroom
+                      <span className="bg-indigo-500/20 text-indigo-300 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase">
+                        OAuth 2.0
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-indigo-300/80 leading-snug mt-0.5 font-sans">
+                      Vincule suas turmas e faça onboarding automático dos alunos diretamente do Classroom.
+                    </p>
+                  </div>
+                </div>
+                {collapsedClassroom ? <ChevronDown className="w-5 h-5 text-indigo-400" /> : <ChevronUp className="w-5 h-5 text-indigo-300" />}
+              </button>
+
+              {!collapsedClassroom && (
+                <div className="p-6 pt-0 space-y-5 border-t border-white/5 mt-2">
+                  {classroomError && (
+                    <div className="p-3 bg-red-950/40 border border-red-500/20 rounded-xl flex items-center justify-between gap-3 text-xs text-red-300 animate-in fade-in duration-200">
+                      <div className="flex items-center gap-2">
+                        <span>⚠️</span>
+                        <span>{classroomError}</span>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => setClassroomError(null)}
+                        className="text-[10px] underline hover:text-white"
+                      >
+                        Dispensar
+                      </button>
+                    </div>
+                  )}
+
+                  {!classroomAccessToken ? (
+                    <div className="space-y-4 py-2">
+                      <p className="text-xs text-text-secondary leading-relaxed">
+                        Conecte seu perfil docente para carregar suas salas de aula ativas, listar participantes e importá-los instantaneamente com as permissões concedidas.
+                      </p>
+                      
+                      {/* Official styled GSI Material Button */}
+                      <div className="flex justify-start">
+                        <button 
+                          type="button"
+                          onClick={handleConnectClassroom}
+                          disabled={isLoadingCourses}
+                          className="gsi-material-button relative flex items-center justify-center gap-3 bg-white hover:bg-slate-50 text-slate-900 border border-slate-200 font-medium py-2.5 px-4 rounded-xl shadow-sm transition-all text-xs cursor-pointer disabled:opacity-50"
+                        >
+                          <div className="gsi-material-button-icon flex items-center justify-center w-5 h-5">
+                            <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" style={{ display: "block" }}>
+                              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+                              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+                              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+                              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+                            </svg>
+                          </div>
+                          <span className="font-sans font-bold text-slate-800">
+                            {isLoadingCourses ? "Buscando credenciais..." : "Fazer login com Google Classroom"}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Connection Header details */}
+                      <div className="flex items-center justify-between bg-slate-950/40 p-3 rounded-xl border border-white/5 text-xs text-text-secondary">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                          <span className="text-gray-200 font-medium">Classroom Ativo</span>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            setClassroomAccessToken(null);
+                            setClassroomCourses([]);
+                            setClassroomStudents([]);
+                            setSelectedCourseId("");
+                          }}
+                          className="text-red-400 hover:text-red-300 transition-colors font-medium hover:underline text-[10px]"
+                        >
+                          Desconectar conta Google
+                        </button>
+                      </div>
+
+                      {/* Controls Row */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-1 md:col-span-2">
+                          <label className="text-[10px] text-text-secondary uppercase tracking-wider font-bold">Selecione a Turma no Classroom</label>
+                          {isLoadingCourses ? (
+                            <div className="h-10 bg-slate-900 border border-white/10 rounded-lg flex items-center justify-center text-xs text-text-secondary gap-2">
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                              <span>Carregando turmas...</span>
+                            </div>
+                          ) : (
+                            <select
+                              value={selectedCourseId}
+                              onChange={(e) => handleSelectCourse(e.target.value)}
+                              className="w-full h-10 bg-slate-950 border border-white/10 rounded-lg px-3 text-xs focus:border-indigo-400 focus:outline-none text-gray-100"
+                            >
+                              <option value="">-- Selecionar Curso --</option>
+                              {classroomCourses.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.name} {c.section ? `(${c.section})` : ""}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-text-secondary uppercase tracking-wider font-bold">Turma Destino WorkSim</label>
+                          <input 
+                            type="text" 
+                            value={classroomTargetSala}
+                            onChange={(e) => setClassroomTargetSala(e.target.value)}
+                            placeholder="Ex: 1B"
+                            className="w-full h-10 bg-slate-950 border border-white/10 rounded-lg px-3 text-xs focus:border-indigo-400 focus:outline-none text-gray-100"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Student details roster */}
+                      {selectedCourseId && (
+                        <div className="space-y-3 pt-2">
+                          <div className="flex items-center justify-between text-xs border-b border-white/5 pb-2">
+                            <span className="text-gray-200 font-bold">Alunos Disponíveis</span>
+                            {classroomStudents.length > 0 && (
+                              <button 
+                                type="button"
+                                onClick={toggleSelectAllClassroomStudents}
+                                className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors text-[11px]"
+                              >
+                                {selectedClassroomStudentIds.length === classroomStudents.length ? "Desmarcar Todos" : "Selecionar Todos"}
+                              </button>
+                            )}
+                          </div>
+
+                          {isLoadingStudents ? (
+                            <div className="py-8 text-center space-y-2">
+                              <Loader2 className="w-6 h-6 animate-spin text-indigo-400 mx-auto" />
+                              <p className="text-xs text-text-secondary">Carregando lista de chamada...</p>
+                            </div>
+                          ) : classroomStudents.length === 0 ? (
+                            <div className="py-6 text-center text-xs text-text-secondary">
+                              Nenhum estudante matriculado encontrado nesta turma no Google Classroom.
+                            </div>
+                          ) : (
+                            <div className="max-h-60 overflow-y-auto rounded-lg border border-white/5 bg-slate-950/40 divide-y divide-white/5 custom-scrollbar">
+                              {classroomStudents.map((cs) => {
+                                const isSelected = selectedClassroomStudentIds.includes(cs.userId);
+                                return (
+                                  <div 
+                                    key={cs.userId} 
+                                    onClick={() => toggleSelectClassroomStudent(cs.userId)}
+                                    className="flex items-center justify-between p-3 hover:bg-white/5 transition-colors cursor-pointer text-xs"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <input 
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        onChange={() => {}} // handled by parent click
+                                        className="rounded border-gray-400 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"
+                                      />
+                                      <div className="text-left">
+                                        <div className="text-gray-200 font-semibold">{cs.profile?.name?.fullName || "Sem Nome"}</div>
+                                        <div className="text-[10px] text-text-secondary">{cs.profile?.emailAddress || "Sem email"}</div>
+                                      </div>
+                                    </div>
+                                    <span className="text-[9px] font-mono text-text-secondary uppercase">
+                                      Google Auth
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {classroomStudents.length > 0 && (
+                            <div className="flex justify-end pt-2">
+                              <button
+                                type="button"
+                                onClick={handleImportClassroomStudents}
+                                disabled={selectedClassroomStudentIds.length === 0}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-sans font-bold text-xs uppercase py-2.5 px-5 rounded-lg cursor-pointer flex items-center gap-1.5 transition-all disabled:opacity-50"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                                Importar {selectedClassroomStudentIds.length} Alunos
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             
             {/* Automated Onboarding panel */}
             <div className="glass-panel rounded-2xl border border-white/5 overflow-hidden transition-all duration-300">
@@ -4690,6 +5051,54 @@ export default function ProfessorCockpit({
           </div>
         );
       })()}
+
+      {/* Google Classroom Confirmation Modal */}
+      {showConfirmImportModal && (
+        <div className="fixed inset-0 z-[10005] bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-slate-900 border border-white/10 rounded-2xl p-6 space-y-5 shadow-[0_0_50px_rgba(79,70,229,0.3)] animate-in fade-in zoom-in duration-200 text-left">
+            <div className="flex items-center gap-3 border-b border-white/5 pb-3">
+              <span className="text-xl">🎓</span>
+              <h3 className="text-sm font-sans font-bold text-gray-100 uppercase tracking-wide">
+                Confirmar Importação de Alunos
+              </h3>
+            </div>
+            
+            <p className="text-xs text-text-secondary leading-relaxed">
+              Você está prestes a matricular <strong className="text-white font-sans font-bold">{selectedClassroomStudentIds.length} aluno(s)</strong> na turma <strong className="text-indigo-400 font-sans font-bold">{classroomTargetSala} ({classroomTargetYear})</strong> do WorkSim.
+            </p>
+            
+            <div className="bg-slate-950 p-3.5 rounded-xl border border-white/5 font-mono text-[10px] space-y-1 max-h-40 overflow-y-auto">
+              <span className="text-[9px] text-indigo-400 uppercase font-bold tracking-widest block mb-1">ALUNOS A SEREM IMPORTADOS:</span>
+              {classroomStudents.filter((s) => selectedClassroomStudentIds.includes(s.userId)).map((s) => (
+                <div key={s.userId} className="text-gray-300 truncate">
+                  • {s.profile?.name?.fullName || "Aluno"} ({s.profile?.emailAddress})
+                </div>
+              ))}
+            </div>
+
+            <p className="text-[10px] text-text-secondary italic">
+              * Isso criará credenciais individuais vinculadas para fins de registro e sincronização de notas.
+            </p>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirmImportModal(false)}
+                className="bg-slate-800 hover:bg-slate-700 text-gray-200 border border-white/5 font-bold px-4 py-2 rounded-xl transition-all text-xs cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={executeImportClassroom}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl transition-all text-xs cursor-pointer"
+              >
+                Confirmar e Matricular
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

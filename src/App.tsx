@@ -2600,6 +2600,18 @@ Para resolver:
     return () => clearInterval(interval);
   }, [activeStudentId]);
 
+  // Proactively zero the XP of Professor Fábio (fabiosantanalima01@gmail.com) on load if requested
+  useEffect(() => {
+    if (!activeStudentId) return;
+    const targetId = activeStudentId;
+    const currentStudentObj = students.find(s => s.id === targetId);
+    if (currentStudentObj && currentStudentObj.email === "fabiosantanalima01@gmail.com" && currentStudentObj.xp > 0) {
+      setStudents(prev => prev.map(s => s.id === targetId ? { ...s, xp: 0 } : s));
+      syncSetDoc("students", targetId, { xp: 0 }, { merge: true }).catch(console.error);
+      console.log("XP of admin zeroed as requested!");
+    }
+  }, [activeStudentId, students]);
+
   // Student Activation workflow
   const handleActivationOrLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -3812,6 +3824,35 @@ Para resolver:
       })
     );
     playSoundEffect("success");
+  };
+
+  // Reset/Zero current logged-in user's XP
+  const handleZeroOwnXP = () => {
+    if (!activeStudentId) return;
+    if (window.confirm(appLanguage === "en" ? "Are you sure you want to reset your XP to 0?" : "Tem certeza que deseja zerar seu XP para 0?")) {
+      setStudents((prev) =>
+        prev.map((s) => {
+          if (s.id === activeStudentId) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString("pt-BR");
+            const newMsg = {
+              id: `${Date.now()}-reset-xp`,
+              remetente: "Sistema",
+              texto: `SISTEMA 🌟: Seu XP foi zerado com sucesso conforme sua solicitação direta.`,
+              timestamp: timeStr,
+            };
+            return {
+              ...s,
+              xp: 0,
+              mensagensChat: [...(s.mensagensChat || []), newMsg],
+            };
+          }
+          return s;
+        })
+      );
+      syncSetDoc("students", activeStudentId, { xp: 0 }, { merge: true }).catch(console.error);
+      playSoundEffect("success");
+    }
   };
 
   // Answer doubt from Cockpit (Professor/Monitoria Desk)
@@ -5416,7 +5457,16 @@ Para resolver:
                       </div>
 
                       <div className="border-t border-white/10 pt-2 flex justify-between items-center text-xs font-mono">
-                        <span className="text-text-secondary">Seu Score:</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-text-secondary">Seu Score:</span>
+                          <button
+                            onClick={handleZeroOwnXP}
+                            className="text-[9px] px-1 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-500/30 transition-all font-sans cursor-pointer"
+                            title={appLanguage === "en" ? "Reset your XP to 0" : "Zerar seu XP para 0"}
+                          >
+                            {appLanguage === "en" ? "Reset" : "Zerar"}
+                          </button>
+                        </div>
                         <motion.span
                           key={activeStudent.xp}
                           id="sidebar-student-xp"

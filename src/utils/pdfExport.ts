@@ -585,7 +585,7 @@ export function exportCertificateToPDF(data: CertificateExportData) {
   doc.setFont("Helvetica", "bold");
   doc.setFontSize(13);
   doc.setTextColor(120, 53, 4); // Amber 900
-  doc.text("ESCOLA ESTADUAL PROFª FLORIANA LOPES", 148.5, 22, { align: "center" });
+  doc.text("ESCOLA ESTADUAL PROFESSORA FLAVINA MARIA DA SILVA", 148.5, 22, { align: "center" });
 
   doc.setFont("Helvetica", "bold");
   doc.setFontSize(9);
@@ -620,7 +620,7 @@ export function exportCertificateToPDF(data: CertificateExportData) {
 
   const text1 = `Certificamos que ${certType === "squad" ? "o grupo de estudantes do" : "o(a) aluno(a)"} ${displayName.toUpperCase()}` +
     (certType !== "squad" ? `, N.º de matrícula: ${displayMatricula} | Turma: ${displayTurma}` : "") +
-    `, estudante da Escola Estadual Profª Floriana Lopes, regularmente matriculado(a) no Curso Técnico em Recursos Humanos – 1.º Semestre, e registrado(a) no sistema WorkSim sob a credencial de matrícula ${activeStudentMatricula},`;
+    `, estudante da Escola Estadual Professora Flavina Maria da Silva, regularmente matriculado(a) no Curso Técnico em Recursos Humanos – 1.º Semestre, e registrado(a) no sistema WorkSim sob a credencial de matrícula ${activeStudentMatricula},`;
 
   const text2 = `${statusText} a fase ${phaseName}, com o desempenho técnico-legal registrado e aferido pelas regras do simulador em tempo real:`;
 

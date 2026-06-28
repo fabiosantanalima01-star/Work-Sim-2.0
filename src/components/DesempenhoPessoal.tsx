@@ -1002,7 +1002,7 @@ export default function DesempenhoPessoal({
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-b-2 border-amber-800/20 pb-4">
                   <div className="text-center md:text-left space-y-1">
                     <h2 className="text-[17px] font-bold uppercase tracking-wider text-amber-900 leading-tight">
-                      Escola Estadual Profª Floriana Lopes
+                      Escola Estadual Professora Flavina Maria da Silva
                     </h2>
                     <p className="text-[11px] font-sans text-stone-650 tracking-wide font-semibold uppercase">
                       Curso Técnico em Recursos Humanos – 1.º Semestre
@@ -1044,7 +1044,7 @@ export default function DesempenhoPessoal({
                         , N.º de matrícula: <strong className="font-bold text-stone-950">{displayMatricula}</strong> | Turma: <strong className="font-bold text-stone-950">{displayTurma}</strong>
                       </>
                     )}
-                    {certType === "squad" ? ", do " : ", "}estudante da <strong className="font-bold text-stone-900">Escola Estadual Profª Floriana Lopes</strong>, regularmente matriculado(a) no <strong className="font-bold text-stone-900">Curso Técnico em Recursos Humanos – 1.º Semestre</strong>, e registrado(a) no sistema <strong className="font-bold text-amber-900">WorkSim</strong> sob a credencial de matrícula <strong className="font-mono text-stone-950">{activeStudent.matricula}</strong>,
+                    {certType === "squad" ? ", do " : ", "}estudante da <strong className="font-bold text-stone-900">Escola Estadual Professora Flavina Maria da Silva</strong>, regularmente matriculado(a) no <strong className="font-bold text-stone-900">Curso Técnico em Recursos Humanos – 1.º Semestre</strong>, e registrado(a) no sistema <strong className="font-bold text-amber-900">WorkSim</strong> sob a credencial de matrícula <strong className="font-mono text-stone-950">{activeStudent.matricula}</strong>,
                   </p>
 
                   <p>

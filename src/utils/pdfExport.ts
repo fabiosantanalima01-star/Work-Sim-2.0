@@ -625,13 +625,13 @@ export function exportCertificateToPDF(data: CertificateExportData) {
   const text2 = `${statusText} a fase ${phaseName}, com o desempenho técnico-legal registrado e aferido pelas regras do simulador em tempo real:`;
 
   const lines1 = doc.splitTextToSize(text1, 250);
-  doc.text(lines1, 23.5, 59, { align: "justify" });
+  doc.text(lines1, 23.5, 59, { align: "left" });
 
   const lines1Height = lines1.length * 4.5;
   const startText2Y = 59 + lines1Height + 1.5;
 
   const lines2 = doc.splitTextToSize(text2, 250);
-  doc.text(lines2, 23.5, startText2Y, { align: "justify" });
+  doc.text(lines2, 23.5, startText2Y, { align: "left" });
 
   const lines2Height = lines2.length * 4.5;
   const startTableY = startText2Y + lines2Height + 3.5;

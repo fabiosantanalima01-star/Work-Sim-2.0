@@ -768,6 +768,19 @@ export default function DesempenhoPessoal({
                 body > * {
                   visibility: hidden !important;
                 }
+                /* specificity override to bypass parent print:hidden and display the card nested inside */
+                #worksim-rh-main-app {
+                  display: block !important;
+                  visibility: hidden !important;
+                  background: none !important;
+                  border: none !important;
+                  box-shadow: none !important;
+                  padding: 0 !important;
+                  margin: 0 !important;
+                  height: auto !important;
+                  min-height: auto !important;
+                  overflow: visible !important;
+                }
                 #printable-certificate-card {
                   visibility: visible !important;
                   display: block !important;

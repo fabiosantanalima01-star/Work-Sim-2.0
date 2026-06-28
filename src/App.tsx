@@ -2638,17 +2638,38 @@ Para resolver:
     return () => clearInterval(interval);
   }, [activeStudentId]);
 
-  // Proactively zero the XP of Professor Fábio (fabiosantanalima01@gmail.com) on load if requested
+  // Proactively zero the XP of Professor Fábio (fabiosantanalima01@gmail.com) on load if requested - Admin account only
   useEffect(() => {
     if (!activeStudentId) return;
     const targetId = activeStudentId;
     const currentStudentObj = students.find(s => s.id === targetId);
-    if (currentStudentObj && currentStudentObj.email === "fabiosantanalima01@gmail.com" && currentStudentObj.xp > 0) {
+    if (currentStudentObj && currentStudentObj.email === "fabiosantanalima01@gmail.com" && !currentStudentObj.isVeterano && currentStudentObj.id === "adm" && currentStudentObj.xp > 0) {
       setStudents(prev => prev.map(s => s.id === targetId ? { ...s, xp: 0 } : s));
       syncSetDoc("students", targetId, { xp: 0 }, { merge: true }).catch(console.error);
       console.log("XP of admin zeroed as requested!");
     }
   }, [activeStudentId, students]);
+
+  // Automatically restore/recalculate veteran student XP from their correct answers if there's a mismatch
+  useEffect(() => {
+    if (!activeStudentId || !activeStudent || !activeStudent.isVeterano) return;
+    
+    const correctChallengeIds = Object.entries(activeStudent.respostasDesafios || {})
+      .filter(([_, value]) => value === true)
+      .map(([id]) => id);
+
+    if (correctChallengeIds.length === 0) return;
+
+    const calculatedXp = allChallenges
+      .filter(c => correctChallengeIds.includes(c.id))
+      .reduce((acc, c) => acc + (c.xpRecompensa || 0), 0);
+
+    if (activeStudent.xp < calculatedXp) {
+      console.log(`Recalculating veteran XP: current is ${activeStudent.xp}, calculated base is ${calculatedXp}`);
+      setStudents(prev => prev.map(s => s.id === activeStudentId ? { ...s, xp: calculatedXp } : s));
+      syncSetDoc("students", activeStudentId, { xp: calculatedXp }, { merge: true }).catch(console.error);
+    }
+  }, [activeStudentId, activeStudent?.respostasDesafios, allChallenges]);
 
   // Student Activation workflow
   const handleActivationOrLogin = (e: React.FormEvent) => {

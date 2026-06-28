@@ -132,7 +132,10 @@ const isQueueableError = (err: any) => {
   return !navigator.onLine || 
          code === 'unavailable' || 
          code === 'deadline-exceeded' ||
+         code === 'resource-exhausted' ||
          code === 'auth/unauthorized-domain' || // Explicitly requested "domain" issues
+         msg.includes('quota') ||
+         msg.includes('exhausted') ||
          msg.includes('network') ||
          msg.includes('offline') ||
          msg.includes('domain') ||

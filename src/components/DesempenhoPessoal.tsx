@@ -46,6 +46,7 @@ import {
   Users,
   User,
 } from "lucide-react";
+import { exportCertificateToPDF } from "../utils/pdfExport";
 
 interface DesempenhoPessoalProps {
   activeStudent: Student;
@@ -943,7 +944,23 @@ export default function DesempenhoPessoal({
                 <button
                   onClick={() => {
                     playSoundEffect("success");
-                    window.print();
+                    exportCertificateToPDF({
+                      certType,
+                      displayName,
+                      displayMatricula,
+                      displayTurma,
+                      activeStudentMatricula: activeStudent.matricula,
+                      statusText,
+                      phaseName,
+                      stats,
+                      hasSquad,
+                      squadPartners,
+                      localEmissao,
+                      modalidadeText,
+                      dia,
+                      mesExtenso,
+                      ano
+                    });
                   }}
                   className="flex items-center gap-1.5 py-1.5 px-4 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-[11px] rounded-lg cursor-pointer transition-all hover:scale-102 shadow-lg"
                 >

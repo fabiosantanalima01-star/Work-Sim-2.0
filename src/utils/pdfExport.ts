@@ -493,3 +493,312 @@ export function exportTRCTToPDF(activeChallenge: any, appLanguage: "pt" | "en") 
   // Save the generated document
   doc.save(`TRCT_EP_${activeChallenge.id}_${activeChallenge.empregado.nome.replace(/\s+/g, "_")}.pdf`);
 }
+
+export interface CertificateExportData {
+  certType: "individual-self" | "individual-partner" | "squad";
+  displayName: string;
+  displayMatricula: string;
+  displayTurma: string;
+  activeStudentMatricula: string;
+  statusText: string;
+  phaseName: string;
+  stats: {
+    correctCount: number;
+    completedCount: number;
+    hh: number;
+    mm: number;
+    acertoReal: number;
+    acertoNota: number;
+    arredondamentoAplicado: boolean;
+    notaBase: number;
+    bonus: number;
+    notaFinal: number;
+    excedente: number | null;
+    approved: boolean;
+    verificationCode: string;
+  };
+  hasSquad: boolean;
+  squadPartners: { nomeCompleto: string; matricula: string }[];
+  localEmissao: string;
+  modalidadeText: string;
+  dia: number;
+  mesExtenso: string;
+  ano: number;
+}
+
+export function exportCertificateToPDF(data: CertificateExportData) {
+  const {
+    certType,
+    displayName,
+    displayMatricula,
+    displayTurma,
+    activeStudentMatricula,
+    statusText,
+    phaseName,
+    stats,
+    hasSquad,
+    squadPartners,
+    localEmissao,
+    modalidadeText,
+    dia,
+    mesExtenso,
+    ano
+  } = data;
+
+  // Initialize jsPDF A4 document [297mm x 210mm] in landscape
+  const doc = new jsPDF({
+    orientation: "landscape",
+    unit: "mm",
+    format: "a4",
+  });
+
+  // Main double border
+  doc.setDrawColor(180, 83, 9); // Amber 700
+  doc.setLineWidth(1.0);
+  doc.rect(8, 8, 281, 194, "D");
+  doc.setLineWidth(0.3);
+  doc.rect(10, 10, 277, 190, "D");
+
+  // Vintage corners
+  doc.setDrawColor(180, 83, 9);
+  doc.setLineWidth(0.4);
+  // Top-left
+  doc.line(14, 14, 14, 24);
+  doc.line(14, 14, 24, 14);
+  // Top-right
+  doc.line(283, 14, 283, 24);
+  doc.line(283, 14, 273, 14);
+  // Bottom-left
+  doc.line(14, 196, 14, 186);
+  doc.line(14, 196, 24, 196);
+  // Bottom-right
+  doc.line(283, 196, 283, 186);
+  doc.line(283, 196, 273, 196);
+
+  // Background Watermark "WORKSIM" in soft sand beige
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(110);
+  doc.setTextColor(244, 240, 230);
+  doc.text("WORKSIM", 148.5, 115, { align: "center" });
+
+  // Header Section
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(13);
+  doc.setTextColor(120, 53, 4); // Amber 900
+  doc.text("ESCOLA ESTADUAL PROFª FLORIANA LOPES", 148.5, 22, { align: "center" });
+
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(80, 80, 80);
+  doc.text("CURSO TÉCNICO EM RECURSOS HUMANOS – 1.º SEMESTRE", 148.5, 27, { align: "center" });
+
+  doc.setFont("Helvetica", "italic");
+  doc.setFontSize(8);
+  doc.setTextColor(110, 110, 110);
+  doc.text("Unidade Curricular Profissional 3: Legislação Aplicada a Negócios", 148.5, 31.5, { align: "center" });
+
+  // Divider Line
+  doc.setDrawColor(180, 83, 9);
+  doc.setLineWidth(0.35);
+  doc.line(40, 36, 257, 36);
+
+  // Certificate Title
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(18);
+  doc.setTextColor(67, 20, 7); // Amber 950
+  doc.text("CERTIFICADO DE CONCLUSÃO DE FASE", 148.5, 45, { align: "center" });
+
+  doc.setFont("Helvetica", "italic");
+  doc.setFontSize(9);
+  doc.setTextColor(100, 100, 100);
+  doc.text("Simulador Acadêmico de Legislação de RH – WorkSim", 148.5, 50, { align: "center" });
+
+  // Attribution Text Paragraphs
+  doc.setFont("Helvetica", "normal");
+  doc.setFontSize(9.5);
+  doc.setTextColor(30, 30, 30);
+
+  const text1 = `Certificamos que ${certType === "squad" ? "o grupo de estudantes do" : "o(a) aluno(a)"} ${displayName.toUpperCase()}` +
+    (certType !== "squad" ? `, N.º de matrícula: ${displayMatricula} | Turma: ${displayTurma}` : "") +
+    `, estudante da Escola Estadual Profª Floriana Lopes, regularmente matriculado(a) no Curso Técnico em Recursos Humanos – 1.º Semestre, e registrado(a) no sistema WorkSim sob a credencial de matrícula ${activeStudentMatricula},`;
+
+  const text2 = `${statusText} a fase ${phaseName}, com o desempenho técnico-legal registrado e aferido pelas regras do simulador em tempo real:`;
+
+  const lines1 = doc.splitTextToSize(text1, 250);
+  doc.text(lines1, 23.5, 59, { align: "justify" });
+
+  const lines1Height = lines1.length * 4.5;
+  const startText2Y = 59 + lines1Height + 1.5;
+
+  const lines2 = doc.splitTextToSize(text2, 250);
+  doc.text(lines2, 23.5, startText2Y, { align: "justify" });
+
+  const lines2Height = lines2.length * 4.5;
+  const startTableY = startText2Y + lines2Height + 3.5;
+
+  // Results Table
+  const tblX = 58.5; // Centered
+  const tblW = 180;
+  let currentY = startTableY;
+  const rowH = 6.8;
+
+  // Table Header
+  doc.setFillColor(242, 239, 234);
+  doc.rect(tblX, currentY, tblW, rowH, "F");
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(120, 53, 4);
+  doc.text("Indicador de Conformidade e Resolução", tblX + 4, currentY + 4.5);
+  doc.text("Resultado Registrado", tblX + tblW - 4, currentY + 4.5, { align: "right" });
+
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.15);
+  doc.line(tblX, currentY + rowH, tblX + tblW, currentY + rowH);
+  currentY += rowH;
+
+  const tableRows = [
+    { label: "Questões da fase", val: `${stats.correctCount} de ${stats.completedCount}` },
+    { label: "Tempo total de resposta", val: `${stats.hh}h ${stats.mm}min` },
+    { label: "Percentagem de acerto real", val: `${stats.acertoReal}%` },
+    { 
+      label: stats.arredondamentoAplicado ? "Percentagem para efeito de nota (Arredondada)" : "Percentagem para efeito de nota", 
+      val: `${stats.acertoNota}%` 
+    },
+    { label: "Nota base (percentagem de nota / 10)", val: `${stats.notaBase.toFixed(1)}` },
+    { 
+      label: "Bônus por agilidade (para >75% de acerto real)", 
+      val: stats.acertoReal > 75 ? `+${stats.bonus.toFixed(2)}` : "Não aplicável" 
+    },
+    { label: "Nota final consolidada", val: `${stats.notaFinal.toFixed(1)}`, isBold: true },
+    { label: "Excedente (desempenho extraordinário)", val: stats.excedente !== null ? `+${stats.excedente.toFixed(2)}` : "—" },
+    { label: "RESULTADO FINAL DA AVALIAÇÃO", val: stats.approved ? "APROVADO" : "REPROVADO", isResult: true }
+  ];
+
+  tableRows.forEach((r, idx) => {
+    // Alternate row styling
+    if (idx % 2 === 1) {
+      doc.setFillColor(251, 250, 247);
+      doc.rect(tblX, currentY, tblW, rowH, "F");
+    }
+    if (r.isResult) {
+      doc.setFillColor(241, 248, 243);
+      doc.rect(tblX, currentY, tblW, rowH, "F");
+    }
+
+    doc.line(tblX, currentY + rowH, tblX + tblW, currentY + rowH);
+
+    if (r.isBold || r.isResult) {
+      doc.setFont("Helvetica", "bold");
+      doc.setTextColor(15, 23, 42);
+    } else {
+      doc.setFont("Helvetica", "normal");
+      doc.setTextColor(60, 60, 60);
+    }
+    doc.setFontSize(7.5);
+    doc.text(r.label, tblX + 4, currentY + 4.5);
+
+    if (r.isResult) {
+      doc.setFont("Helvetica", "bold");
+      if (stats.approved) {
+        doc.setTextColor(21, 128, 61); // green-700
+      } else {
+        doc.setTextColor(190, 24, 74); // rose-700
+      }
+    } else {
+      doc.setFont("Helvetica", "bold");
+      doc.setTextColor(15, 23, 42);
+    }
+    doc.text(r.val, tblX + tblW - 4, currentY + 4.5, { align: "right" });
+
+    currentY += rowH;
+  });
+
+  // Outer border of table
+  doc.setDrawColor(180, 83, 9);
+  doc.setLineWidth(0.35);
+  doc.rect(tblX, startTableY, tblW, currentY - startTableY, "D");
+
+  // Squad details if applicable
+  if (certType === "squad" && hasSquad && squadPartners.length > 0) {
+    const squadY = currentY + 2.5;
+    const squadH = 10;
+    doc.setFillColor(253, 250, 242);
+    doc.rect(tblX, squadY, tblW, squadH, "F");
+    doc.rect(tblX, squadY, tblW, squadH, "D");
+
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(120, 53, 4);
+    doc.text("INTEGRANTES DO SQUAD HOMOLOGADOS CONJUNTAMENTE:", tblX + 4, squadY + 3.5);
+
+    doc.setFont("Helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(40, 40, 40);
+    const integrantsText = squadPartners.map((p) => `${p.nomeCompleto} (${p.matricula})`).join("  |  ");
+    doc.text(integrantsText, tblX + 4, squadY + 7.5, { maxWidth: tblW - 8 });
+
+    currentY = squadY + squadH;
+  }
+
+  // Footer Section
+  const footerY = 162;
+
+  // Separator Line
+  doc.setDrawColor(180, 83, 9);
+  doc.setLineWidth(0.25);
+  doc.line(22, footerY - 3, 275, footerY - 3);
+
+  // Column 1: Security
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(7.5);
+  doc.setTextColor(140, 140, 140);
+  doc.text("AUTENTICAÇÃO DE SEGURANÇA", 22, footerY);
+
+  doc.setFont("Courier", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(15, 23, 42);
+  doc.text(`CÓDIGO: ${stats.verificationCode.toUpperCase()}`, 22, footerY + 5);
+
+  doc.setFont("Helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(110, 110, 110);
+  doc.text("Verificável em worksim.com.br/verificar", 22, footerY + 9);
+
+  // Column 2: Date & Location
+  doc.setFont("Helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(60, 60, 60);
+  doc.text(`Emitido em ${localEmissao}, aos ${dia} de ${mesExtenso} de ${ano}.`, 148.5, footerY + 2.5, { align: "center" });
+
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(7);
+  doc.setTextColor(100, 100, 100);
+  // Remove "composto pelos..." to keep it short and elegant
+  const cleanedModalidade = modalidadeText.split(" composto pelos")[0];
+  doc.text(`MODALIDADE: ${cleanedModalidade.toUpperCase()}`, 148.5, footerY + 7, { align: "center" });
+
+  // Column 3: Signature
+  doc.setFont("Helvetica", "oblique");
+  doc.setFontSize(9.5);
+  doc.setTextColor(120, 53, 4);
+  doc.text("Fábio Santana Lima", 238, footerY + 1.5, { align: "center" });
+
+  doc.setDrawColor(160, 160, 160);
+  doc.setLineWidth(0.2);
+  doc.line(201, footerY + 4, 275, footerY + 4);
+
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(7.5);
+  doc.setTextColor(140, 140, 140);
+  doc.text("ASSINATURA DIGITAL DO RESPONSÁVEL", 238, footerY + 8, { align: "center" });
+
+  doc.setFont("Helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(110, 110, 110);
+  doc.text("Sistema WorkSim Acadêmico", 238, footerY + 11.5, { align: "center" });
+
+  // Save/Download PDF
+  const cleanedName = displayName.replace(/\s+/g, "_");
+  doc.save(`Certificado_WorkSim_${cleanedName}_Fase_${phaseName.split(" ")[1]}.pdf`);
+}
+

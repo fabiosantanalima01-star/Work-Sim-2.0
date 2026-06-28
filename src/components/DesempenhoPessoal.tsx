@@ -41,18 +41,171 @@ import {
   TrendingUp,
   Flame,
   FileBadge,
+  Printer,
+  Download,
+  Users,
+  User,
 } from "lucide-react";
 
 interface DesempenhoPessoalProps {
   activeStudent: Student;
   students: Student[];
+  initialSubTab?: "efficiency" | "skills" | "certification";
 }
 
 export default function DesempenhoPessoal({
   activeStudent,
   students,
+  initialSubTab,
 }: DesempenhoPessoalProps) {
-  const [activeSubTab, setActiveSubTab] = useState<"efficiency" | "skills" | "certification">("efficiency");
+  const [activeSubTab, setActiveSubTab] = useState<"efficiency" | "skills" | "certification">(initialSubTab || "efficiency");
+  const [selectedPhase, setSelectedPhase] = useState<number>(activeStudent.faseAtual);
+  const [certType, setCertType] = useState<"individual-self" | "individual-partner" | "squad">("individual-self");
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string>("");
+
+  // Safe synthesizer for localized sound feedback using HTML5 Web Audio API
+  const playSoundEffect = (type: string) => {
+    try {
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtxClass) return;
+      const audioCtx = new AudioCtxClass();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      
+      if (type === "success") {
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1); // A5
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.35);
+      } else {
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime); // A4
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.15);
+      }
+    } catch (e) {
+      // Ignored gracefully if audio environment is blocked/muted
+    }
+  };
+
+  // Helper functions for Phase Certificate calculations
+  const hashString = (str: string): number => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash |= 0;
+    }
+    return Math.abs(hash);
+  };
+
+  const calculatePhaseStats = (student: Student, phaseId: number) => {
+    const phaseChallenges = CHALLENGES_DATA.filter((c) => c.fase === phaseId);
+    const answers = student.respostasDesafios || {};
+    const answeredInPhase = phaseChallenges.filter((c) => answers[c.id] !== undefined);
+    const completedCount = answeredInPhase.length;
+    const correctCount = answeredInPhase.filter((c) => answers[c.id] === true).length;
+    
+    const acertoReal = completedCount > 0 ? Math.round((correctCount / completedCount) * 100) : 0;
+    
+    let acertoNota = acertoReal;
+    let arredondamentoAplicado = false;
+    if (acertoReal >= 55 && acertoReal < 60) {
+      acertoNota = 60;
+      arredondamentoAplicado = true;
+    }
+    
+    const approved = acertoReal >= 55;
+    const notaBase = Number((acertoNota / 10).toFixed(1));
+    
+    const secondsInPhase = answeredInPhase.reduce((acc, c) => acc + (student.temposRespostas?.[c.id] || 0), 0);
+    const hh = Math.floor(secondsInPhase / 3600);
+    const mm = Math.floor((secondsInPhase % 3600) / 60);
+    
+    let bonus = 0;
+    if (acertoReal > 75) {
+      bonus = secondsInPhase <= 3600 ? 1.5 : 0.5;
+    }
+    
+    const notaSoma = approved ? (notaBase + bonus) : notaBase;
+    const notaFinal = Number(Math.min(notaSoma, 10.0).toFixed(2));
+    const excedente = (notaSoma > 10.0 && acertoReal > 75) ? Number((notaSoma - 10.0).toFixed(2)) : null;
+    
+    const verificationCode = `WS-${hashString(student.id + "-" + phaseId).toString(16).slice(0, 8).toUpperCase()}`;
+
+    return {
+      completedCount,
+      correctCount,
+      acertoReal,
+      acertoNota,
+      arredondamentoAplicado,
+      approved,
+      notaBase,
+      secondsInPhase,
+      hh,
+      mm,
+      bonus,
+      notaFinal: Number(notaFinal.toFixed(1)),
+      excedente,
+      verificationCode
+    };
+  };
+
+  const calculateSquadPhaseStats = (partners: Student[], phaseId: number) => {
+    const partnerStats = partners.map(p => calculatePhaseStats(p, phaseId));
+    
+    const avgCorrect = partnerStats.reduce((acc, s) => acc + s.correctCount, 0) / partners.length;
+    const avgCompleted = partnerStats.reduce((acc, s) => acc + s.completedCount, 0) / partners.length;
+    
+    const avgAcertoReal = Math.round(partnerStats.reduce((acc, s) => acc + s.acertoReal, 0) / partners.length);
+    
+    let acertoNota = avgAcertoReal;
+    let arredondamentoAplicado = false;
+    if (avgAcertoReal >= 55 && avgAcertoReal < 60) {
+      acertoNota = 60;
+      arredondamentoAplicado = true;
+    }
+    
+    const approved = avgAcertoReal >= 55;
+    const notaBase = Number((acertoNota / 10).toFixed(1));
+    
+    const avgSeconds = partnerStats.reduce((acc, s) => acc + s.secondsInPhase, 0) / partners.length;
+    const hh = Math.floor(avgSeconds / 3600);
+    const mm = Math.floor((avgSeconds % 3600) / 60);
+    
+    let bonus = 0;
+    if (avgAcertoReal > 75) {
+      bonus = avgSeconds <= 3600 ? 1.5 : 0.5;
+    }
+    
+    const notaSoma = approved ? (notaBase + bonus) : notaBase;
+    const notaFinal = Number(Math.min(notaSoma, 10.0).toFixed(2));
+    const excedente = (notaSoma > 10.0 && avgAcertoReal > 75) ? Number((notaSoma - 10.0).toFixed(2)) : null;
+    
+    const verificationCode = `WS-SQ-${hashString(partners.map(p => p.id).join(",") + "-" + phaseId).toString(16).slice(0, 8).toUpperCase()}`;
+
+    return {
+      completedCount: Math.round(avgCompleted),
+      correctCount: Math.round(avgCorrect),
+      acertoReal: avgAcertoReal,
+      acertoNota,
+      arredondamentoAplicado,
+      approved,
+      notaBase,
+      secondsInPhase: Math.round(avgSeconds),
+      hh,
+      mm,
+      bonus,
+      notaFinal: Number(notaFinal.toFixed(1)),
+      excedente,
+      verificationCode
+    };
+  };
 
   // 1. Calculate Core Numbers
   const respostas = activeStudent.respostasDesafios || {};
@@ -552,95 +705,472 @@ export default function DesempenhoPessoal({
         </div>
       )}
 
-      {activeSubTab === "certification" && (
-        <div className="glass-panel p-6 rounded-2xl border border-indigo-550/20 bg-indigo-950/5 space-y-6">
-          <div className="flex flex-col md:flex-row gap-4 items-start justify-between border-b border-indigo-500/10 pb-4">
-            <div className="space-y-1 text-left">
-              <h3 className="text-sm font-bold text-gray-100 uppercase tracking-wide flex items-center gap-1.5">
-                <FileBadge className="w-5 h-5 text-sky-400" /> Espaço de Certificação de Veteranos
-              </h3>
-              <p className="text-xs text-text-secondary leading-normal">
-                Prancheta de auditoria dedicada para testadores homologados de rotinas do WorkSim.
-              </p>
-            </div>
+      {activeSubTab === "certification" && (() => {
+        const squadId = activeStudent.timeId?.trim() || "";
+        const hasSquad = squadId !== "";
+        const squadPartners = hasSquad
+          ? students.filter((s) => s.timeId && s.timeId.trim().toUpperCase() === squadId.toUpperCase())
+          : [];
+        const otherPartners = squadPartners.filter((s) => s.id !== activeStudent.id);
 
-            <div className="bg-sky-500/10 text-sky-400 border border-sky-400/20 text-[10px] font-mono px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-bold uppercase tracking-wider">
-              <Zap className="w-3.5 h-3.5 animate-bounce" /> MAT: {activeStudent.matricula}
-            </div>
-          </div>
+        // Ensure we default to a partner if any exists
+        const partnerToRender = otherPartners.find((p) => p.id === selectedPartnerId) || otherPartners[0] || activeStudent;
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs leading-relaxed text-left">
-            <div className="space-y-4">
-              <div className="p-4 bg-slate-950/45 rounded-xl border border-white/5 space-y-2">
-                <h4 className="font-bold text-xs uppercase text-gray-250 font-mono tracking-wider flex items-center gap-1">
-                  💡 Status de Homologação de CBO
-                </h4>
-                <p className="text-gray-400 text-[11px]">
-                  CBO ativo associado atualmente: <strong>{activeStudent.cargo}</strong>. Para as rotinas de conformidade de guias no e-Social de admissão e rescisão documental, as verbas de adicinal de periculosidade e adicionais noturnos calculam incidências automáticas parametrizadas.
-                </p>
-                <div className="grid grid-cols-2 gap-2 text-[10px] font-mono pt-1 text-gray-450">
-                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> CLT: OK (Fiel)</span>
-                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Sindicato: OK</span>
-                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Guias FGTS: OK</span>
-                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-sky-500" /> Dispositivo: iOS/Web</span>
+        // Determine current certificate entity info
+        let certTitle = "CERTIFICADO DE CONCLUSÃO DE FASE";
+        let stats = calculatePhaseStats(activeStudent, selectedPhase);
+        let displayName = activeStudent.nomeCompleto;
+        let displayMatricula = activeStudent.matricula;
+        let displayTurma = `${activeStudent.sala} (${activeStudent.ano})`;
+        let modalidadeText = "Individual";
+
+        if (certType === "individual-partner" && otherPartners.length > 0) {
+          stats = calculatePhaseStats(partnerToRender, selectedPhase);
+          displayName = partnerToRender.nomeCompleto;
+          displayMatricula = partnerToRender.matricula;
+          displayTurma = `${partnerToRender.sala} (${partnerToRender.ano})`;
+          modalidadeText = `Individual (Parceiro de Squad – "${squadId}")`;
+        } else if (certType === "squad" && hasSquad) {
+          stats = calculateSquadPhaseStats(squadPartners, selectedPhase);
+          displayName = `SQUAD ${squadId.toUpperCase()}`;
+          displayMatricula = squadPartners.map((p) => p.matricula).join(", ");
+          displayTurma = squadPartners[0]?.sala ? `${squadPartners[0].sala} (${squadPartners[0].ano})` : `${activeStudent.sala} (${activeStudent.ano})`;
+          modalidadeText = `Squad – "${squadId}" composto pelos alunos: ${squadPartners.map((p) => p.nomeCompleto).join(", ")}`;
+        }
+
+        const currentPhaseObj = CAREER_PHASES.find((p) => p.id === selectedPhase) || CAREER_PHASES[1];
+        const phaseName = `Fase ${selectedPhase === -1 ? "Revisão" : selectedPhase} – ${currentPhaseObj.moduloTecnico} (${currentPhaseObj.cargo})`;
+        const statusText = stats.approved
+          ? "concluiu com êxito"
+          : "concluiu a fase, porém com resultado insatisfatório";
+
+        // Current Date formatting
+        const currentDate = new Date();
+        const dia = currentDate.getDate();
+        const mesExtenso = currentDate.toLocaleString("pt-BR", { month: "long" });
+        const ano = currentDate.getFullYear();
+        const localEmissao = "São Paulo";
+
+        return (
+          <div className="space-y-6">
+            <style>{`
+              @media print {
+                @page {
+                  size: landscape;
+                  margin: 10mm;
+                }
+                body * {
+                  visibility: hidden;
+                }
+                #printable-certificate-card, #printable-certificate-card * {
+                  visibility: visible;
+                }
+                #printable-certificate-card {
+                  display: block !important;
+                  position: absolute !important;
+                  left: 0 !important;
+                  top: 0 !important;
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  height: auto !important;
+                  border: 12px double #b45309 !important; /* amber-700 */
+                  background: #fffdfa !important;
+                  color: #0f172a !important;
+                  padding: 30px !important;
+                  box-shadow: none !important;
+                  border-radius: 0 !important;
+                  margin: 0 !important;
+                  font-size: 11pt !important;
+                  box-sizing: border-box !important;
+                }
+                .print-table {
+                  border-collapse: collapse !important;
+                  width: 100% !important;
+                }
+                .print-table th, .print-table td {
+                  border: 1px solid #cbd5e1 !important;
+                  padding: 6px 10px !important;
+                }
+                * {
+                  -webkit-print-color-adjust: exact !important;
+                  print-color-adjust: exact !important;
+                }
+              }
+            `}</style>
+
+            {/* CONTROL PANEL */}
+            <div className="glass-panel p-6 rounded-2xl border border-indigo-500/15 bg-gradient-to-br from-slate-900/80 to-indigo-950/20 space-y-4">
+              <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between border-b border-white/5 pb-4">
+                <div className="space-y-1 text-left">
+                  <h3 className="text-sm font-bold text-gray-100 uppercase tracking-wide flex items-center gap-1.5">
+                    <FileBadge className="w-5 h-5 text-amber-500" /> Emissor de Certificados WorkSim
+                  </h3>
+                  <p className="text-xs text-text-secondary leading-normal">
+                    Selecione a fase concluída e emita seu certificado oficial individualizado ou por equipe (squad).
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2 items-center">
+                  <span className="text-[10px] font-mono text-gray-400 uppercase">Fase para emissão:</span>
+                  <select
+                    value={selectedPhase}
+                    onChange={(e) => {
+                      const pId = parseInt(e.target.value);
+                      setSelectedPhase(pId);
+                    }}
+                    className="bg-slate-950 border border-white/10 text-gray-200 rounded-lg px-3 py-1.5 text-xs font-mono font-bold focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  >
+                    {CAREER_PHASES.map((phase) => (
+                      <option key={phase.id} value={phase.id}>
+                        Fase {phase.id === -1 ? "Revisão" : phase.id}: {phase.moduloTecnico} ({phase.cargo})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-950/45 rounded-xl border border-white/5 space-y-2">
-                <h4 className="font-bold text-xs uppercase text-gray-250 font-mono tracking-wider">
-                  ⚠️ Metodologia de Punição Involuntária
-                </h4>
-                <p className="text-gray-400 text-[11px]">
-                  Para evitar trapaças e garantir o real aprendizado da legislação trabalhista, o WorkSim utiliza o sensor virtual de foco. Sair da tela para pesquisar com Inteligência Artificial externa reduz gradualmente o seu multiplicador de bônus na tela principal de desafios de 3.0x para até 0.5x. Mantenha o foco ativo!
-                </p>
-              </div>
+              {/* SQUAD INTERACTIVE OPTIONS */}
+              {hasSquad ? (
+                <div className="p-4 rounded-xl bg-slate-950/40 border border-indigo-500/10 space-y-3.5 text-left">
+                  <div className="flex items-center gap-2 text-indigo-400">
+                    <Users className="w-4 h-4 animate-pulse" />
+                    <span className="text-xs font-bold uppercase tracking-wider">Membro ativo de Equipe: Squad {squadId.toUpperCase()}</span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => {
+                        setCertType("individual-self");
+                        playSoundEffect("click");
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+                        certType === "individual-self"
+                          ? "bg-amber-600 text-slate-950 font-bold shadow-[0_0_12px_rgba(217,119,6,0.3)]"
+                          : "bg-slate-900 text-gray-350 hover:bg-slate-800"
+                      }`}
+                    >
+                      👤 Meu Certificado Individual
+                    </button>
+
+                    {otherPartners.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setCertType("individual-partner");
+                          if (otherPartners[0]) setSelectedPartnerId(otherPartners[0].id);
+                          playSoundEffect("click");
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+                          certType === "individual-partner"
+                            ? "bg-amber-600 text-slate-950 font-bold shadow-[0_0_12px_rgba(217,119,6,0.3)]"
+                            : "bg-slate-900 text-gray-350 hover:bg-slate-800"
+                        }`}
+                      >
+                        👥 Baixar Individual por Aluno (Links de Colegas)
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        setCertType("squad");
+                        playSoundEffect("click");
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+                        certType === "squad"
+                          ? "bg-amber-600 text-slate-950 font-bold shadow-[0_0_12px_rgba(217,119,6,0.3)]"
+                          : "bg-slate-900 text-gray-350 hover:bg-slate-800"
+                      }`}
+                    >
+                      🎖️ Certificado Coletivo (Por Squad)
+                    </button>
+                  </div>
+
+                  {/* Teammate Sub-selector if individual-partner is selected */}
+                  {certType === "individual-partner" && otherPartners.length > 0 && (
+                    <div className="pt-2 border-t border-white/5 flex flex-wrap items-center gap-3 animate-fade-in">
+                      <span className="text-[10px] font-mono text-gray-400 uppercase">Selecione o colega do squad:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {otherPartners.map((p) => (
+                          <button
+                            key={p.id}
+                            onClick={() => {
+                              setSelectedPartnerId(p.id);
+                              playSoundEffect("click");
+                            }}
+                            className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer transition-all ${
+                              selectedPartnerId === p.id || (!selectedPartnerId && otherPartners[0]?.id === p.id)
+                                ? "bg-indigo-500 text-slate-950"
+                                : "bg-slate-900 text-gray-400 hover:text-white"
+                            }`}
+                          >
+                            {p.nomeCompleto.split(" ")[0]} ({p.matricula})
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-xl bg-slate-950/20 border border-white/5 text-left text-xs text-text-secondary flex items-center gap-2">
+                  <User className="w-4 h-4 text-gray-400" />
+                  <span>Realização individual cadastrada. Associado à estação principal do estudante.</span>
+                </div>
+              )}
             </div>
 
-            {/* Premium Simulated Virtual Boarding pass for tester credential */}
-            <div className="flex flex-col justify-between p-5 rounded-2xl bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950 border border-white/10 relative overflow-hidden">
-              <div className="absolute top-0 right-0 bg-indigo-500/10 text-indigo-400 text-[8px] font-mono px-2 py-0.5 rounded-bl font-bold uppercase tracking-widest border-l border-b border-indigo-500/15">
-                VETERANO HOMOLOGADO
-              </div>
+            {/* LIVE CERTIFICATE DISPLAY PREVIEW */}
+            <div className="relative group/cert">
               
-              <div className="space-y-4">
-                <div className="flex gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-sky-500 flex items-center justify-center text-slate-950 font-bold text-lg select-none">
-                    WS
+              {/* PRINT BAR */}
+              <div className="flex justify-between items-center bg-slate-900/60 p-3 rounded-t-xl border-t border-x border-white/5 no-print">
+                <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Visualização de Impressão A4 (Paisagem)
+                </span>
+                
+                <button
+                  onClick={() => {
+                    playSoundEffect("success");
+                    window.print();
+                  }}
+                  className="flex items-center gap-1.5 py-1.5 px-4 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-[11px] rounded-lg cursor-pointer transition-all hover:scale-102 shadow-lg"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>GERAR CERTIFICADO / SALVAR PDF</span>
+                </button>
+              </div>
+
+              {/* CERTIFICATE CANVAS FRAME */}
+              <div
+                id="printable-certificate-card"
+                className="bg-[#faf7f0] text-slate-900 border-[14px] border-double border-[#b45309] p-8 sm:p-12 shadow-2xl relative font-serif text-left transition-all duration-300 overflow-hidden"
+                style={{ backgroundImage: "radial-gradient(#fcfaf4 1px, transparent 0)", backgroundSize: "24px 24px" }}
+              >
+                {/* Vintage Guilloche elements and background watermark seal */}
+                <div className="absolute inset-0 opacity-[0.02] pointer-events-none flex items-center justify-center select-none">
+                  <span className="text-[350px] font-black font-sans">WS</span>
+                </div>
+
+                <div className="absolute top-4 left-4 w-12 h-12 border-t-2 border-l-2 border-amber-600/40 pointer-events-none" />
+                <div className="absolute top-4 right-4 w-12 h-12 border-t-2 border-r-2 border-amber-600/40 pointer-events-none" />
+                <div className="absolute bottom-4 left-4 w-12 h-12 border-b-2 border-l-2 border-amber-600/40 pointer-events-none" />
+                <div className="absolute bottom-4 right-4 w-12 h-12 border-b-2 border-r-2 border-amber-600/40 pointer-events-none" />
+
+                {/* HEADER SECTION */}
+                <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-b-2 border-amber-800/20 pb-4">
+                  <div className="text-center md:text-left space-y-1">
+                    <h2 className="text-[17px] font-bold uppercase tracking-wider text-amber-900 leading-tight">
+                      Escola Estadual Profª Floriana Lopes
+                    </h2>
+                    <p className="text-[11px] font-sans text-stone-650 tracking-wide font-semibold uppercase">
+                      Curso Técnico em Recursos Humanos – 1.º Semestre
+                    </p>
+                    <p className="text-[10px] font-sans text-stone-500 italic">
+                      Unidade Curricular Profissional 3: Legislação Aplicada a Negócios
+                    </p>
                   </div>
-                  <div>
-                    <h4 className="font-black text-white text-sm uppercase leading-tight font-mono">WorkSim RH Certification</h4>
-                    <span className="text-[9.5px] text-sky-400 font-mono">Acreditação Fictícia para Docência</span>
+
+                  <div className="flex flex-col items-center shrink-0">
+                    <div className="w-11 h-11 rounded-full border-2 border-amber-600 flex items-center justify-center bg-amber-50">
+                      <Award className="w-6 h-6 text-amber-700" />
+                    </div>
+                    <span className="text-[9px] font-sans text-amber-800 font-bold uppercase tracking-widest mt-1">
+                      WorkSim RH
+                    </span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3.5 border-t border-b border-white/5 py-4 font-mono text-[10px]">
-                  <div>
-                    <span className="text-[8.5px] text-gray-500 block uppercase font-sans">Estudante Testador</span>
-                    <strong className="text-gray-350">{activeStudent.nomeCompleto}</strong>
+                {/* CERTIFICATE TITLE */}
+                <div className="text-center my-6 space-y-1.5">
+                  <h1 className="text-2xl sm:text-3xl font-black text-amber-950 uppercase tracking-tight leading-none">
+                    Certificado de Conclusão de Fase
+                  </h1>
+                  <p className="text-xs sm:text-sm font-sans italic text-stone-600 uppercase tracking-widest">
+                    Simulador Académico de Legislação de RH – WorkSim
+                  </p>
+                </div>
+
+                {/* ATTRIBUTION TEXT */}
+                <div className="space-y-4 text-[12px] sm:text-[13px] text-stone-850 leading-relaxed text-justify px-2 font-sans">
+                  <p>
+                    Certificamos que {certType === "squad" ? "o grupo de estudantes do" : "o(a) aluno(a)"}{" "}
+                    <strong className="text-stone-950 font-bold text-sm underline decoration-amber-600/55 underline-offset-4">
+                      {displayName}
+                    </strong>
+                    {certType !== "squad" && (
+                      <>
+                        , N.º de matrícula: <strong className="font-bold text-stone-950">{displayMatricula}</strong> | Turma: <strong className="font-bold text-stone-950">{displayTurma}</strong>
+                      </>
+                    )}
+                    {certType === "squad" ? ", do " : ", "}estudante da <strong className="font-bold text-stone-900">Escola Estadual Profª Floriana Lopes</strong>, regularmente matriculado(a) no <strong className="font-bold text-stone-900">Curso Técnico em Recursos Humanos – 1.º Semestre</strong>, e registrado(a) no sistema <strong className="font-bold text-amber-900">WorkSim</strong> sob a credencial de matrícula <strong className="font-mono text-stone-950">{activeStudent.matricula}</strong>,
+                  </p>
+
+                  <p>
+                    {statusText}{" "}
+                    a fase <strong className="font-bold text-amber-950 text-xs sm:text-sm font-mono border-b border-amber-700/25 pb-0.5">{phaseName}</strong>, com o desempenho técnico-legal registrado e aferido pelas regras do simulador em tempo real:
+                  </p>
+                </div>
+
+                {/* RESULTS TABLE */}
+                <div className="my-6">
+                  <table className="w-full text-left text-xs font-sans print-table border border-stone-300">
+                    <thead>
+                      <tr className="bg-stone-100/85 text-amber-950 font-bold border-b border-stone-300">
+                        <th className="py-2.5 px-4">Indicador de Conformidade e Resolução</th>
+                        <th className="py-2.5 px-4 text-right">Resultado Registrado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-200 text-stone-850 bg-white/50">
+                      <tr>
+                        <td className="py-2 px-4 font-semibold text-stone-900">Questões da fase</td>
+                        <td className="py-2 px-4 text-right font-mono font-bold text-stone-950">{stats.correctCount} de {stats.completedCount}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 px-4 font-semibold text-stone-900">Tempo total de resposta</td>
+                        <td className="py-2 px-4 text-right font-mono font-bold text-stone-950">{stats.hh}h {stats.mm}min</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 px-4 font-semibold text-stone-900">Percentagem de acerto real</td>
+                        <td className="py-2 px-4 text-right font-mono font-bold text-stone-950">{stats.acertoReal}%</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 px-4 font-semibold text-stone-900 flex items-center gap-1.5">
+                          <span>Percentagem para efeito de nota</span>
+                          {stats.arredondamentoAplicado && (
+                            <span className="text-[9px] bg-indigo-500/10 text-indigo-700 border border-indigo-400/20 py-0.5 px-1.5 rounded font-mono font-bold uppercase print:text-black">
+                              (Arredondada pelo sistema)
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 px-4 text-right font-mono font-bold text-stone-950">{stats.acertoNota}%</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 px-4 font-semibold text-stone-900">Nota base <span className="text-[10px] text-stone-500 font-normal">(percentagem de nota ÷ 10)</span></td>
+                        <td className="py-2 px-4 text-right font-mono font-bold text-stone-950">{stats.notaBase.toFixed(1)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 px-4 font-semibold text-stone-900">Bônus por agilidade <span className="text-[10px] text-stone-500 font-normal">(concedido apenas para &gt;75% de acertos reais)</span></td>
+                        <td className="py-2 px-4 text-right font-mono font-bold text-stone-950">
+                          {stats.acertoReal > 75 ? `+${stats.bonus.toFixed(2)}` : "Não aplicável"}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 px-4 font-bold text-stone-950 bg-stone-50/40">Nota final consolidada</td>
+                        <td className="py-2 px-4 text-right font-mono font-black text-amber-950 bg-stone-50/40 text-sm">{stats.notaFinal.toFixed(1)}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 px-4 font-semibold text-stone-900">Excedente <span className="text-[10px] text-stone-500 font-normal">(desempenho extraordinário acima de 10,0)</span></td>
+                        <td className="py-2 px-4 text-right font-mono font-bold text-stone-950">
+                          {stats.excedente !== null ? `+${stats.excedente.toFixed(2)}` : "—"}
+                        </td>
+                      </tr>
+                      <tr className="border-t-2 border-stone-350 bg-stone-100/50 font-bold">
+                        <td className="py-2.5 px-4 text-stone-950">RESULTADO FINAL DA AVALIAÇÃO</td>
+                        <td className={`py-2.5 px-4 text-right font-mono text-sm uppercase tracking-wider font-black ${
+                          stats.approved ? "text-emerald-700" : "text-rose-700"
+                        }`}>
+                          {stats.approved ? "APROVADO" : "REPROVADO"}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* SQUAD INTEGRANTS DETAIL BOX FOR SQUAD CERTIFICATES */}
+                {certType === "squad" && hasSquad && (
+                  <div className="p-3.5 bg-amber-50/45 rounded-lg border border-amber-600/20 text-[10px] font-sans text-stone-750 mb-6 flex flex-col gap-1">
+                    <span className="font-bold text-amber-900 uppercase font-mono tracking-wider">Integrantes do Squad homologados conjuntamente:</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 font-mono text-stone-950 pt-1">
+                      {squadPartners.map((p) => (
+                        <div key={p.id} className="flex items-center gap-1">
+                          <span className="text-amber-700">●</span>
+                          <span>{p.nomeCompleto} ({p.matricula})</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[8.5px] text-gray-500 block uppercase font-sans">Turma Registrada</span>
-                    <strong className="text-gray-350">{activeStudent.sala} ({activeStudent.ano})</strong>
+                )}
+
+                {/* ADDITIONAL INFO FOOTER */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end mt-8 border-t-2 border-amber-800/20 pt-6 font-sans text-[11px] text-stone-650">
+                  <div className="space-y-1.5 text-center md:text-left">
+                    <span className="text-[8.5px] uppercase tracking-widest text-stone-400 block font-bold">Autenticação de Segurança</span>
+                    <p className="font-mono text-stone-950 leading-none">
+                      Código de verificação: <strong className="font-bold uppercase">{stats.verificationCode}</strong>
+                    </p>
+                    <p className="text-[9.5px] text-stone-500 leading-tight">
+                      Autenticidade verificável em <span className="underline text-amber-850">worksim.com.br/verificar</span>
+                    </p>
                   </div>
-                  <div>
-                    <span className="text-[8.5px] text-gray-500 block uppercase font-sans">XP Acumulado</span>
-                    <strong className="text-emerald-400 font-bold">{activeStudent.xp} XP</strong>
+
+                  <div className="space-y-1 text-center font-sans">
+                    <p>
+                      Emitido em <strong className="font-semibold text-stone-900">{localEmissao}</strong>, aos{" "}
+                      <strong className="font-semibold text-stone-900">{dia}</strong> de{" "}
+                      <strong className="font-semibold text-stone-900">{mesExtenso}</strong> de{" "}
+                      <strong className="font-semibold text-stone-900">{ano}</strong>.
+                    </p>
+                    <div className="text-[9.5px] text-stone-500 italic">
+                      Modalidade: <span className="font-bold not-italic">{modalidadeText}</span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[8.5px] text-gray-500 block uppercase font-sans">Precisão e-Social</span>
-                    <strong className="text-indigo-400 font-bold">{precision}%</strong>
+
+                  <div className="flex flex-col items-center space-y-1 border-t md:border-t-0 border-stone-200 pt-3 md:pt-0">
+                    {/* SVG Stylized Signature placeholder */}
+                    <div className="h-8 w-32 relative flex items-center justify-center select-none font-sans text-xs italic text-amber-850 font-semibold opacity-85">
+                      Fábio Santana Lima
+                      <div className="absolute bottom-1 w-full border-b border-stone-400/60" />
+                    </div>
+                    <span className="text-[8.5px] uppercase tracking-wider text-stone-400 font-bold block text-center leading-none">
+                      Assinatura Digital do Responsável
+                    </span>
+                    <span className="text-[9px] text-stone-500 block text-center leading-tight">
+                      Sistema WorkSim Acadêmico
+                    </span>
                   </div>
+                </div>
+
+                {/* GOLD FOIL EMBOSSED SEAL DESIGN AS REQUESTED BY EMBELLISHMENT SPECS */}
+                <div className="absolute bottom-6 right-8 opacity-[0.25] pointer-events-none hidden md:block">
+                  <svg className="w-16 h-16 text-amber-700" viewBox="0 0 100 100" fill="currentColor">
+                    <path d="M50,0 C63.8,0 75,11.2 75,25 C75,38.8 63.8,50 50,50 C36.2,50 25,38.8 25,25 C25,11.2 36.2,0 50,0 Z" />
+                    <polygon points="50,45 35,90 50,75 65,90" />
+                  </svg>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5 text-[8.5px] text-gray-500 font-mono mt-3">
-                <GraduationCap className="w-3.5 h-3.5 text-gray-400" />
-                <span>Emitido por Mestre Fábio em {new Date().toLocaleDateString("pt-BR")}</span>
+              {/* USER IFRAME ADVISORY */}
+              <div className="mt-3 text-center text-[11px] text-gray-500 font-mono no-print">
+                💡 Dica: Se o seu navegador não carregar a janela de impressão diretamente, ou se estiver na janela incorporada do AI Studio, clique em <strong>"Abrir em nova aba"</strong> no menu superior da aplicação e clique no botão de gerar certificado de lá para poder baixar em formato PDF perfeitamente!
+              </div>
+            </div>
+
+            {/* RULES REFERENCE SHEET */}
+            <div className="p-5 rounded-2xl border border-white/5 bg-slate-900/40 text-left space-y-4 no-print">
+              <h4 className="text-xs font-mono font-bold text-gray-200 uppercase tracking-widest border-b border-white/5 pb-1">
+                Regras de Avaliação e Promoção Aplicadas pelo WorkSim
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-text-secondary leading-relaxed">
+                <div className="space-y-2">
+                  <h5 className="font-bold text-gray-200 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" /> 1. Aprovação & Notas
+                  </h5>
+                  <p className="text-gray-400 text-[11px]">
+                    Percentagem de acerto ≥ 55%: <strong>Aprovado</strong>. Percentagens de acerto real entre 55% e 59,99% são arredondadas para 60% para fins de nota (garantindo a aprovação). Abaixo de 55%: <strong>Reprovado</strong>, zerando quaisquer bônus de agilidade.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h5 className="font-bold text-gray-200 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" /> 2. Bônus por Agilidade
+                  </h5>
+                  <p className="text-gray-400 text-[11px]">
+                    Concedido exclusivamente para acertos reais <strong>superores a 75%</strong> (&gt;75%). Tempo acumulado total na fase ≤ 1 hora: <strong>+1,50 pontos</strong> de bônus na nota consolidada. Tempo &gt; 1 hora: <strong>+0,50 pontos</strong>.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
     </div>
   );

@@ -1061,6 +1061,10 @@ Para resolver:
     "challenges" | "metrics" | "sandbox" | "professor" | "feedback" | "linguajar" | "desempenho" | "ranking" | "badges"
   >("challenges");
 
+  const [desempenhoSubTab, setDesempenhoSubTab] = useState<
+    "efficiency" | "skills" | "certification"
+  >("efficiency");
+
   const [linguajarMode, setLinguajarMode] = useState<"formal" | "gira">(() => {
     const saved = localStorage.getItem("worksim_linguajar");
     return (saved as "formal" | "gira") || "formal";
@@ -8382,6 +8386,7 @@ Para resolver:
               <DesempenhoPessoal
                 activeStudent={activeStudent}
                 students={students}
+                initialSubTab={desempenhoSubTab}
               />
             )}
 
@@ -9088,6 +9093,21 @@ Para resolver:
               >
                 <Mail className="w-4 h-4 group-hover:scale-110" />
                 <span>{appLanguage === "en" ? "SEND REVIEW TO EMAIL" : "ENVIAR REVISÃO PARA EMAIL"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playSoundEffect("success");
+                  setDesempenhoSubTab("certification");
+                  setCurrentTab("desempenho");
+                  setCompletedPhaseTransition(null);
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl transition-all cursor-pointer font-bold text-xs group"
+                title={appLanguage === "en" ? "Generate Phase Completion Certificate" : "Gerar Certificado de Conclusão de Fase"}
+              >
+                <Award className="w-4 h-4 text-amber-500 group-hover:scale-110" />
+                <span>{appLanguage === "en" ? "GENERATE PHASE CERTIFICATE" : "EMITIR CERTIFICADO DA FASE"}</span>
               </button>
 
               <button

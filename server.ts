@@ -31,6 +31,51 @@ const ai = new GoogleGenAI({
   },
 });
 
+// Helper function to call Gemini with automatic retry and model fallback when encountering 503 or transient errors
+async function generateContentWithRetry(options: {
+  contents: any[];
+  config?: any;
+}) {
+  const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite"];
+  let lastError: any = null;
+
+  for (const model of modelsToTry) {
+    let delay = 500;
+    const maxRetries = 3;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const result = await ai.models.generateContent({
+          model,
+          contents: options.contents,
+          config: options.config,
+        });
+        if (result) {
+          return result;
+        }
+      } catch (error: any) {
+        lastError = error;
+        const status = error?.status || error?.statusCode || (error?.error && error.error.code);
+        const message = error?.message || "";
+        
+        console.warn(`Gemini generation failed for model ${model} (attempt ${attempt + 1}/${maxRetries}):`, message);
+
+        // If it's a 4xx error that is NOT a rate limit (429), don't retry this model
+        if (status && status >= 400 && status < 500 && status !== 429) {
+          break; 
+        }
+
+        if (attempt < maxRetries - 1) {
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          delay *= 2; // exponential backoff
+        }
+      }
+    }
+  }
+
+  throw lastError || new Error("Failed to generate content with Gemini API after all retries and fallbacks");
+}
+
 app.use(express.json({ limit: "10mb" })); // Increase limit for PDF base64
 
 // Email Sending Endpoint
@@ -98,8 +143,7 @@ Retorne um JSON no formato:
 Importante: O número deve ser sempre com 2 dígitos (ex: 01, 12).
 Ignore cabeçalhos ou rodapés, foque na lista de nomes e números.`;
 
-    const result = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+    const result = await generateContentWithRetry({
       contents: [
         {
           role: "user",
@@ -174,8 +218,7 @@ Return the translations in JSON format with exactly these fields:
 }`;
 
   try {
-    const result = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+    const result = await generateContentWithRetry({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         responseMimeType: "application/json"

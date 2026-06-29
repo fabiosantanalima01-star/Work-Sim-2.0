@@ -1081,7 +1081,7 @@ Para resolver:
   const [translatedChallengesCache, setTranslatedChallengesCache] = useState<Record<string, any>>({});
   const [isTranslatingChallenge, setIsTranslatingChallenge] = useState<boolean>(false);
 
-  // Dynamic AI translation hook for Phase -1 (f-1) challenges when English (gira) mode is active
+  // Local translation hook for Phase -1 (f-1) challenges when English (gira) mode is active, avoiding API keys
   useEffect(() => {
     if (appLanguage !== "en" || !selectedChallengeId) return;
     const rawChallenge = allChallenges.find((c) => c.id === selectedChallengeId);
@@ -1090,58 +1090,12 @@ Para resolver:
     // Check if already in cache
     if (translatedChallengesCache[selectedChallengeId]) return;
 
-    // Fetch translation on-the-fly
-    setIsTranslatingChallenge(true);
-    fetch("/api/translate-challenge", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ challenge: rawChallenge })
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Translation request failed");
-        return res.json();
-      })
-      .then((data) => {
-        // Construct the translated challenge structure
-        const translated = {
-          ...rawChallenge,
-          titulo: data.titulo,
-          queixa: data.queixa,
-          focoTecnico: data.focoTecnico,
-          opcoes: rawChallenge.opcoes ? rawChallenge.opcoes.map((opt) => {
-            const foundOpt = data.opcoes?.find((o: any) => o.id === opt.id);
-            return {
-              ...opt,
-              texto: foundOpt ? foundOpt.texto : opt.texto
-            };
-          }) : [],
-          gabarito: rawChallenge.gabarito ? {
-            ...rawChallenge.gabarito,
-            valoresCorretos: rawChallenge.gabarito.valoresCorretos ? {
-              ...rawChallenge.gabarito.valoresCorretos,
-              justificativa: data.justificativa || rawChallenge.gabarito.valoresCorretos.justificativa
-            } : undefined
-          } : undefined
-        };
-
-        setTranslatedChallengesCache((prev) => ({
-          ...prev,
-          [selectedChallengeId]: translated
-        }));
-      })
-      .catch((err) => {
-        console.error("Failed to translate challenge, using local fallback:", err);
-        const fallback = translateChallenge(rawChallenge, "en");
-        setTranslatedChallengesCache((prev) => ({
-          ...prev,
-          [selectedChallengeId]: fallback
-        }));
-      })
-      .finally(() => {
-        setIsTranslatingChallenge(false);
-      });
+    // Perform the standard local translation immediately
+    const translated = translateChallenge(rawChallenge, "en");
+    setTranslatedChallengesCache((prev) => ({
+      ...prev,
+      [selectedChallengeId]: translated
+    }));
   }, [selectedChallengeId, appLanguage, allChallenges, translatedChallengesCache]);
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);

@@ -7158,7 +7158,7 @@ Para resolver:
                                     Ir para Planilha de Holerite (Gestão) &rarr;
                                   </button>
                                 </div>
-                              ) : activeChallenge.fase === 5 ? (
+                              ) : (activeChallenge.fase === 5 || activeChallenge.id?.startsWith("5.")) ? (
                                 <div className="mt-6 border-t border-white/10 pt-4">
                                   <InteractiveSeveranceGrid
                                     activeChallenge={activeChallenge}

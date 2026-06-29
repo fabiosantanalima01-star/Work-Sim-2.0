@@ -64,10 +64,10 @@ export const CAREER_PHASES: CareerPhase[] = [
   { id: -1, cargo: "Simulado de Revisão", moduloTecnico: "Revisão Geral", focoPrincipal: "Preparação intensiva para a prova final", totalDesafios: 55, precisaoMinima: 0 },
   { id: 0, cargo: "Pré-Cadastro", moduloTecnico: "Admissão (ADM)", focoPrincipal: "Vínculo, FGTS e Noções de Direito", totalDesafios: 21, precisaoMinima: 100 },
   { id: 1, cargo: "Estagiário de RH (Primeiranista)", moduloTecnico: "Triagem e Conformidade", focoPrincipal: "Triagem, documentos básicos e regras de contratação", totalDesafios: 26, precisaoMinima: 85 },
-  { id: 2, cargo: "Estagiário de RH (Segundoanista)", moduloTecnico: "Liberação de FGTS (FGTS)", focoPrincipal: "Auditoria de contas vinculadas e carimbos de saque", totalDesafios: 7, precisaoMinima: 90 },
+  { id: 2, cargo: "Estagiário de RH (Segundoanista)", moduloTecnico: "FGTS & Rescisões (FGTS/RES)", focoPrincipal: "Contas vinculadas, carimbos de saque e verbas rescisórias (TRCT)", totalDesafios: 13, precisaoMinima: 90 },
   { id: 3, cargo: "Assistente de DP", moduloTecnico: "Conformidade CLT", focoPrincipal: "Análise de cartão de ponto, atestados e interjornada", totalDesafios: 8, precisaoMinima: 90 },
   { id: 4, cargo: "Analista de RH Pl.", moduloTecnico: "Contratos Especiais (CES)", focoPrincipal: "Contratos intermitentes, estágio e terceirização", totalDesafios: 3, precisaoMinima: 90 },
-  { id: 5, cargo: "Coordenador de RH", moduloTecnico: "Rescisões Contratuais (RES)", focoPrincipal: "Cálculo preciso de verbas rescisórias (TRCT)", totalDesafios: 6, precisaoMinima: 95 },
+  { id: 5, cargo: "Coordenador de RH", moduloTecnico: "Rescisões Contratuais (RES)", focoPrincipal: "Fase unificada com a Fase 2 para maior compatibilidade operacional", totalDesafios: 0, precisaoMinima: 95 },
   { id: 6, cargo: "Gerente de RH", moduloTecnico: "Pareceres e Compliance (PAR)", focoPrincipal: "Reenquadramento de CBOs, desvio de função", totalDesafios: 0, precisaoMinima: 95 },
   { id: 7, cargo: "Diretor de RH", moduloTecnico: "Estratégia e Realocamento (EST)", focoPrincipal: "Diagnóstico organizacional e realocamento", totalDesafios: 0, precisaoMinima: 95 }
 ];
@@ -3539,61 +3539,25 @@ export const CHALLENGES_DATA: Challenge[] = [
     opcoes: [
       {
         id: "opt_estag_01",
-        texto: "É proibido estagiário realizar horas extras, sob pena de descaracterização do estágio. Lucas tem direito indiscutível ao recesso proporcional remunerado de 15 dias pelo período de 6 meses trabalhado."
+        texto: "É proibido estagiário realizar horas extras, sob pena de descaracterização do estágio. Lucas tem direito indiscutível ao recesso proporcional remunerado de 15 dias pelo período de 6 meses trabalhados."
       },
       {
         id: "opt_estag_02",
-        texto: "O estágio prevê banco de compensações se houver interesse escolar recíproco e o recesso só devesse ser usufruído se o contrato atingisse 1 ano integral."
+        texto: "O estagiário pode realizar horas extras se houver comum acordo e pagamento 'por fora' para não onerar a folha oficial, mas o recesso remunerado só é garantido em contratos de 1 ano ou mais."
       },
       {
         id: "opt_estag_03",
-        texto: "As horas complementares de estagiários são amparadas no fechamento de folha, pagando-lhe o valor simples sem incidência de adicionais legais do contracheque."
-      }
-    ]
-  },
-  {
-    id: "4.3",
-    fase: 4,
-    titulo: "Conformidade do Contrato de Trabalho Intermitente",
-    tipo: "Explicativo",
-    focoTecnico: "Artigo 452-A da CLT (Reforma Trabalhista)",
-    tempoLimiteMinutos: 5,
-    xpRecompensa: 40,
-    empregado: {
-      nome: "Renata Neves",
-      cbo: "Auxiliar do Faturamento (Intermitente)",
-      salarioBase: 12.00,
-      dataAdmissao: "10/01/2026",
-      dataFato: "15/05/2026",
-      jornada: "Escala Convocada"
-    },
-    queixa: "Olá! Sou contratada como intermitente. A empresa me convocou por WhatsApp com 12 horas de antecedência para trabalhar no dia seguinte. Eu aceitei, mas por motivos de força maior não pude comparecer. A empresa agora quer me cobrar uma multa de 50% sobre o valor que eu receberia na diária por ter faltado. Isso é legal?",
-    gabarito: {
-      tipoAcao: "Apenas Explicar",
-      artigoLegal: "Artigo 452-A, §1º e §4º da CLT. Prazos de convocação e aceite no contrato intermitente.",
-      respostaEsperadaId: "opt_inter_01",
-      valoresCorretos: {
-        justificativa: "Sob o Artigo 452-A da CLT, a convocação deve ocorrer com no mínimo 3 dias de antecedência (§1º). O aceite gera responsabilidade mútua, e a desistência sem justo motivo por qualquer uma das partes enseja multa de 50% da remuneração que seria devida, compensável em 30 dias (§4º). Entretanto, como a convocação descumpriu o prazo legal mínimo de 3 dias, a cobrança da multa pela empresa é ilegal."
-      }
-    },
-    opcoes: [
-      {
-        id: "opt_inter_01",
-        texto: "A cobrança da multa é ilegal porque a convocação descumpriu o antecedente mínimo regulamentar de 3 dias estipulado pela CLT."
+        texto: "A jornada extraordinária do estagiário é limitada a 2 horas adicionais por dia, desde que compensadas no mesmo mês, e o recesso só é devido se o estágio for rescindido de forma antecipada pela empresa."
       },
       {
-        id: "opt_inter_02",
-        texto: "A penalidade de multa de 50% é inteiramente devida, uma vez que o aceite via aplicativo consolida a obrigação da jornada contratual independente de prazos."
-      },
-      {
-        id: "opt_inter_03",
-        texto: "O cancelamento pelo intermitente é livre de quaisquer ônus se feito por e-mail institucional corporativo até 4 horas antes do início da convocação acordada."
+        id: "opt_estag_04",
+        texto: "O estágio é equiparado ao contrato CLT para fins de jornada de trabalho, permitindo horas extras registradas no cartão de ponto, mas sem direito a férias antes de completar o período aquisitivo de 12 meses."
       }
     ]
   },
   {
     id: "5.1",
-    fase: 5,
+    fase: 2,
     titulo: "RES-001 — Filipe Santos: Dispensa Sem Justa Causa",
     tipo: "Misto",
     focoTecnico: "Direitos na Dispensa Sem Justa Causa (CLT)",
@@ -3619,7 +3583,7 @@ export const CHALLENGES_DATA: Challenge[] = [
   },
   {
     id: "5.2",
-    fase: 5,
+    fase: 2,
     titulo: "RES-002 — Mariana Costa: Despedida por Justa Causa",
     tipo: "Misto",
     focoTecnico: "Punição e Perda de Verbas Rescisórias (Art. 482 CLT)",
@@ -3636,7 +3600,7 @@ export const CHALLENGES_DATA: Challenge[] = [
     queixa: "Prezados, cometi uma infração grave de improbidade corporativa reiterada e acabo de receber a notificação de rescisão por Justa Causa sob o Artigo 482, alínea 'a'. Mesmo diante da penalidade severa, resta-me alguma verba a receber? Do que tenho direito?",
     gabarito: {
       tipoAcao: "Apenas Explicar",
-      artigoLegal: "Artigo 482 da CLT e Súmula 171 do TST. A justa causa afasta de forma severa as verbas proporcionais (décimo terceiro e férias) e os benefícios rescisórios de FGTS e seguro-desemprego.",
+      artigoLegal: "Artigo 482 da CLT and Súmula 171 do TST. A justa causa afasta de forma severa as verbas proporcionais (décimo terceiro e férias) e os benefícios rescisórios de FGTS e seguro-desemprego.",
       respostaEsperadaId: "saldo,feriasVenc",
       valoresCorretos: {
         justificativa: "Na demissão por justa causa, o empregado perde quase todas as verbas proporcionais e indenizações. Tem direito adquirido APENAS ao Saldo de Salário (dias trabalhados) e às Férias Vencidas + 1/3, se houver período aquisitivo completo e vencido na pasta."
@@ -3645,7 +3609,7 @@ export const CHALLENGES_DATA: Challenge[] = [
   },
   {
     id: "5.3",
-    fase: 5,
+    fase: 2,
     titulo: "RES-003 — Roberto Andrade: Pleito de Rescisão Indireta",
     tipo: "Misto",
     focoTecnico: "Infração Contratual do Empregador (Art. 483 CLT)",
@@ -3671,7 +3635,7 @@ export const CHALLENGES_DATA: Challenge[] = [
   },
   {
     id: "5.4",
-    fase: 5,
+    fase: 2,
     titulo: "RES-004 — Ana Júlia: Rescisão por Comum Acordo",
     tipo: "Misto",
     focoTecnico: "Rescisão de Consenso Mútuo (Art. 484-A CLT)",
@@ -3697,7 +3661,7 @@ export const CHALLENGES_DATA: Challenge[] = [
   },
   {
     id: "5.5",
-    fase: 5,
+    fase: 2,
     titulo: "RES-005 — Carlos Eduardo: Pedido de Demissão",
     tipo: "Misto",
     focoTecnico: "Iniciativa de Desligamento pelo Empregado (Art. 487 CLT)",
@@ -3723,7 +3687,7 @@ export const CHALLENGES_DATA: Challenge[] = [
   },
   {
     id: "5.6",
-    fase: 5,
+    fase: 2,
     titulo: "RES-006 — Beatriz Nogueira: Extinção por Culpa Recíproca",
     tipo: "Misto",
     focoTecnico: "Culpa Recíproca e Reduções Proporcionais (Art. 484 CLT)",
@@ -3740,7 +3704,7 @@ export const CHALLENGES_DATA: Challenge[] = [
     queixa: "Oi. Tive um desentendimento ríspido recíproco com agressões verbais mútuas com meu supervisor direto e fomos parar na Justiça do Trabalho. O juiz declarou a ocorrência de Culpa Recíproca na extinção do contrato (Artigo 484 CLT). Com essa decisão, quais verbas passarei a receber na folha do termo rescisório?",
     gabarito: {
       tipoAcao: "Apenas Explicar",
-      artigoLegal: "Artigo 484 CLT e Súmula 14 do TST. A culpa compartilhada na rescisão por decisão judicial rateia o décimo terceiro proporcional, as férias proporcionais, e o aviso prévio pela metade (50%), restando a multa rescisória reduzida a 20%.",
+      artigoLegal: "Artigo 484 CLT and Súmula 14 do TST. A culpa compartilhada na rescisão por decisão judicial rateia o décimo terceiro proporcional, as férias proporcionais, e o aviso prévio pela metade (50%), restando a multa rescisória reduzida a 20%.",
       respostaEsperadaId: "saldo,decimo,feriasVenc,feriasProp,saqueFgts,multa20,avisoParcial",
       valoresCorretos: {
         justificativa: "Na Culpa Recíproca judicialmente decretada, o empregado tem direito a: Saldo de Salário integral (SIM), 13º Proporcional (reduzido a 50%), Férias Vencidas + 1/3 integral (SIM), Férias Proporcionais + 1/3 (reduzido a 50%), Aviso Prévio parcial (reduzido a 50%), além da autorização de saque do FGTS com a multa rescisória reduzida a 20% (SIM). Ele NÃO tem direito ao Seguro-Desemprego."

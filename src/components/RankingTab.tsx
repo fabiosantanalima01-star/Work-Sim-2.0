@@ -28,15 +28,24 @@ export default function RankingTab({
   activeStudentId,
   isProfessorOrAdmin,
 }: RankingTabProps) {
+  const activeStudent = students.find((s) => s.id === activeStudentId);
+  const isAllowedAllRankings = isProfessorOrAdmin || !!activeStudent?.isVeterano;
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [rankingMode, setRankingMode] = useState<"GLOBAL" | "CLASS">("GLOBAL");
+  const [rankingMode, setRankingMode] = useState<"GLOBAL" | "CLASS">(
+    isAllowedAllRankings ? "GLOBAL" : "CLASS"
+  );
   const [classFilter, setClassFilter] = useState("ALL");
   const [newTeamIdInput, setNewTeamIdInput] = useState("");
   const [selectedStudentToAdd, setSelectedStudentToAdd] = useState("");
   const [joinError, setJoinError] = useState("");
   const [joinSuccess, setJoinSuccess] = useState("");
 
-  const activeStudent = students.find((s) => s.id === activeStudentId);
+  React.useEffect(() => {
+    if (!isAllowedAllRankings) {
+      setRankingMode("CLASS");
+    }
+  }, [isAllowedAllRankings]);
 
   // --- FILTER OUT PROFESSOR AND DATA PREPARATION ---
   // The professor/admin does not participate in the student rankings
@@ -109,7 +118,9 @@ export default function RankingTab({
   ).filter((c) => c !== "ADM");
 
   // Determine effective class filter
-  const effectiveClassFilter = rankingMode === "GLOBAL" ? "ALL" : (classFilter === "ALL" && activeStudent?.sala ? activeStudent.sala : classFilter);
+  const effectiveClassFilter = isAllowedAllRankings
+    ? (rankingMode === "GLOBAL" ? "ALL" : (classFilter === "ALL" && activeStudent?.sala ? activeStudent.sala : classFilter))
+    : (activeStudent?.sala || "Sem Turma");
 
   // Filter ranks
   const filteredRankList = rankedStudents.filter((item) => {
@@ -632,33 +643,40 @@ export default function RankingTab({
             </h3>
             
             {/* TOGGLE BUTTONS */}
-            <div className="flex bg-slate-950/50 p-1 rounded-xl border border-white/10 w-fit">
-              <button
-                onClick={() => setRankingMode("GLOBAL")}
-                className={`px-4 py-1.5 rounded-lg text-[10px] font-sans font-black uppercase tracking-wider transition-all ${
-                  rankingMode === "GLOBAL"
-                    ? "bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                Ranking Global
-              </button>
-              <button
-                onClick={() => setRankingMode("CLASS")}
-                className={`px-4 py-1.5 rounded-lg text-[10px] font-sans font-black uppercase tracking-wider transition-all ${
-                  rankingMode === "CLASS"
-                    ? "bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                Ranking por Turma
-              </button>
-            </div>
+            {isAllowedAllRankings ? (
+              <div className="flex bg-slate-950/50 p-1 rounded-xl border border-white/10 w-fit">
+                <button
+                  onClick={() => setRankingMode("GLOBAL")}
+                  className={`px-4 py-1.5 rounded-lg text-[10px] font-sans font-black uppercase tracking-wider transition-all ${
+                    rankingMode === "GLOBAL"
+                      ? "bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  Ranking Global
+                </button>
+                <button
+                  onClick={() => setRankingMode("CLASS")}
+                  className={`px-4 py-1.5 rounded-lg text-[10px] font-sans font-black uppercase tracking-wider transition-all ${
+                    rankingMode === "CLASS"
+                      ? "bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  Ranking por Turma
+                </button>
+              </div>
+            ) : (
+              <div className="bg-cyan-550/10 border border-cyan-500/20 rounded-xl px-4 py-1.5 text-[10px] font-sans font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" />
+                <span>Ranking Restrito à sua Turma: {activeStudent?.sala || "Sem Turma"}</span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3 flex-wrap w-full md:w-auto justify-end">
             {/* Class filter - Only shown if in CLASS mode or if admin want to switch classes */}
-            {rankingMode === "CLASS" && (
+            {rankingMode === "CLASS" && isAllowedAllRankings && (
               <div className="flex flex-col gap-1">
                 <span className="text-[9px] font-mono text-gray-500 uppercase ml-1">Selecionar Turma:</span>
                 <select
@@ -695,7 +713,7 @@ export default function RankingTab({
 
         {/* Ranking Table */}
         <div className="overflow-x-auto pr-1">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse hidden md:table">
             <thead>
               <tr className="border-b border-white/5 text-[10px] font-mono text-gray-400 uppercase tracking-wider">
                 <th className="pb-3 text-center w-14">Class.</th>
@@ -832,6 +850,97 @@ export default function RankingTab({
                 }))}
             </tbody>
           </table>
+
+          {/* Mobile Card/List View */}
+          <div className="space-y-3 md:hidden">
+            {filteredRankList.length === 0 ? (
+              <div className="py-10 text-center font-mono text-xs text-text-secondary bg-white/5 rounded-xl border border-white/5">
+                🔍 Nenhum aluno correspondente aos filtros foi localizado no placar do e-Social.
+              </div>
+            ) : (
+              filteredRankList.map((item, index) => {
+                const s = item.student;
+                const medalMap: Record<number, string> = {
+                  1: "🥇",
+                  2: "🥈",
+                  3: "🥉",
+                };
+                const hasMedal = item.rank <= 3;
+                const isS = s.id === activeStudentId;
+
+                return (
+                  <div
+                    key={s.id}
+                    className={`p-4 rounded-xl border flex items-center justify-between gap-3 text-xs transition-all ${
+                      isS 
+                        ? "bg-cyan-500/10 border-cyan-400/30 font-bold shadow-md" 
+                        : "bg-slate-900/40 border-white/5"
+                    }`}
+                  >
+                    {/* Left Rank & Call Number */}
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-slate-800/80 border border-white/10 flex items-center justify-center font-mono text-xs font-black">
+                        {hasMedal ? medalMap[item.rank] : `${item.rank}º`}
+                      </div>
+                      <div className="text-center font-mono text-[10px] text-gray-500 font-bold w-6">
+                        #{s.chamadaNumero || "—"}
+                      </div>
+                    </div>
+
+                    {/* Middle Info */}
+                    <div className="flex-grow min-w-0">
+                      <div className="truncate">
+                        {item.rank === 1 ? (
+                          <span className="fire-level-1 block truncate font-black text-white">
+                            👑 {s.nomeCompleto}
+                          </span>
+                        ) : item.rank === 2 ? (
+                          <span className="fire-level-2 block truncate font-bold text-white">
+                            🔥 {s.nomeCompleto}
+                          </span>
+                        ) : item.rank === 3 ? (
+                          <span className="fire-level-3 block truncate font-bold text-white">
+                            ⭐ {s.nomeCompleto}
+                          </span>
+                        ) : (
+                          <span className="text-gray-150 block truncate">
+                            {s.nomeCompleto}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400 font-mono">
+                        <span>MAT: {s.matricula}</span>
+                        <span>•</span>
+                        <span className="font-bold text-gray-300">TURMA: {s.sala || "Sem Turma"}</span>
+                      </div>
+                      {s.timeId && (
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <span className="bg-cyan-500/10 text-cyan-400 border border-cyan-500/15 font-mono px-1.5 py-0.2 rounded text-[9px] font-bold">
+                            💻 {s.timeId}
+                          </span>
+                          <span className="text-[9px] text-gray-500 uppercase font-mono tracking-wider">
+                            {s.timeLider ? "Líder" : s.timeViceLider ? "Vice" : "Membro"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right XP */}
+                    <div className="shrink-0 text-right">
+                      <span className="text-amber-400 font-mono font-bold text-xs bg-amber-450/10 px-2.5 py-1 rounded border border-amber-450/20 whitespace-nowrap inline-flex items-center gap-1">
+                        ⭐ {s.xp} XP
+                      </span>
+                      {isS && (
+                        <div className="text-[9px] text-cyan-400 font-bold uppercase tracking-wider mt-1 text-center font-sans">
+                          Você
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
     </div>

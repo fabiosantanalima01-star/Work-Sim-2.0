@@ -100,6 +100,7 @@ interface ProfessorCockpitProps {
   }[];
   appLanguage?: "pt" | "en";
   themeMode?: "dark" | "light";
+  clockOffset?: number;
 }
 
 export default function ProfessorCockpit({ 
@@ -125,7 +126,8 @@ export default function ProfessorCockpit({
   onDeleteStudents,
   chatNotifications = [],
   appLanguage = "pt",
-  themeMode = "dark"
+  themeMode = "dark",
+  clockOffset = 0
 }: ProfessorCockpitProps) {
   const [globalClassroomFilter, setGlobalClassroomFilter] = useState<string>("TODAS");
   const [activeTabPanel, setActiveTabPanel] = useState<"operations" | "telemetry" | "feedbacks" | "analytics" | "scenarios" | "activity" | "auditoria">("analytics");
@@ -876,7 +878,10 @@ export default function ProfessorCockpit({
   // --- TELEMETRY CALCULATIONS ---
   
   // 1. Average XP Progression of the Class grouped by Fase Atual
-  const phasesCohort = [-1, 0, 1, 2, 3, 4, 5, 6, 7];
+  const maxPhaseInClass = filteredStudentsByClass.length > 0
+    ? Math.max(...filteredStudentsByClass.map((s) => s.faseAtual), 0)
+    : 0;
+  const phasesCohort = [-1, 0, 1, 2, 3, 4, 5, 6, 7].filter((p) => p <= maxPhaseInClass);
   const xpProgressionData = phasesCohort.map((phaseNum) => {
     const studentsInPhase = filteredStudentsByClass.filter((s) => s.faseAtual === phaseNum);
     const avgXp = studentsInPhase.length > 0
@@ -2823,14 +2828,29 @@ export default function ProfessorCockpit({
 
                           <div className="space-y-0.5 max-w-[140px]">
                             <div className="flex items-center gap-1.5">
-                              <div 
-                                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                  student.lastSeen && (Date.now() - student.lastSeen) < 35000
-                                    ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)] animate-pulse"
-                                    : "bg-gray-700"
-                                }`} 
-                                title={student.lastSeen && (Date.now() - student.lastSeen) < 35000 ? "Online" : "Offline / Ausente"}
-                              />
+                              {(() => {
+                                const compNow = Date.now() + clockOffset;
+                                const isOnline = student.lastSeen && Math.abs(compNow - student.lastSeen) < 35000;
+                                const isFocused = isOnline && student.focoStatus === "Ativo";
+                                return (
+                                  <div 
+                                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                      isOnline
+                                        ? isFocused
+                                          ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)] animate-pulse"
+                                          : "bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.7)] animate-pulse"
+                                        : "bg-gray-700"
+                                    }`} 
+                                    title={
+                                      isOnline
+                                        ? isFocused
+                                          ? "Online (Focado na Tela)"
+                                          : "Online (Fora da Tela / Minimizou)"
+                                        : "Offline / Ausente"
+                                    }
+                                  />
+                                );
+                              })()}
                               <button
                                 onClick={() => onOpenChat(student)}
                                 className="text-gray-200 block truncate font-sans font-medium hover:text-accent-primary transition-colors text-left"
@@ -3676,14 +3696,29 @@ export default function ProfessorCockpit({
                         <tr key={student.id} className="border-b border-white/5 hover:bg-slate-900/40 hover:text-white transition-colors">
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2">
-                            <div 
-                              className={`w-2 h-2 rounded-full shrink-0 ${
-                                student.lastSeen && (Date.now() - student.lastSeen) < 35000
-                                  ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)] animate-pulse"
-                                  : "bg-gray-700"
-                              }`} 
-                              title={student.lastSeen && (Date.now() - student.lastSeen) < 35000 ? "● Na Tela" : "Offline / Ausente"}
-                            />
+                            {(() => {
+                              const compNow = Date.now() + clockOffset;
+                              const isOnline = student.lastSeen && Math.abs(compNow - student.lastSeen) < 35000;
+                              const isFocused = isOnline && student.focoStatus === "Ativo";
+                              return (
+                                <div 
+                                  className={`w-2 h-2 rounded-full shrink-0 ${
+                                    isOnline
+                                      ? isFocused
+                                        ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)] animate-pulse"
+                                        : "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.7)] animate-pulse"
+                                      : "bg-gray-700"
+                                  }`} 
+                                  title={
+                                    isOnline
+                                      ? isFocused
+                                        ? "Online e Focado"
+                                        : "Online (Em outra aba / Desfocado)"
+                                      : "Offline / Ausente"
+                                  }
+                                />
+                              );
+                            })()}
                             <span className="font-sans font-semibold text-gray-100 block">{student.nomeCompleto}</span>
                             {(student.tentativaFraude || 0) > 0 && (
                               <span className="bg-red-500/20 text-red-500 text-[8px] px-1.5 py-0.5 rounded-full border border-red-500/30 animate-pulse font-bold uppercase">

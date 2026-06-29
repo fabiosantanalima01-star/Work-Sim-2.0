@@ -319,7 +319,13 @@ export default function StudentMetricsTab({
 
   // 2. Generate dynamic classroom average per phase.
   // We compute the average XP of students in each phase, or standard expectations.
-  const chartData = REFERENCE_XP_CURVE.map((refItem) => {
+  const maxPhaseInClass = students.length > 0 
+    ? Math.max(...students.map((s) => s.faseAtual), activeStudent?.faseAtual || 0) 
+    : (activeStudent?.faseAtual || 0);
+
+  const visibleReferenceCurve = REFERENCE_XP_CURVE.filter((refItem) => refItem.pId <= maxPhaseInClass);
+
+  const chartData = visibleReferenceCurve.map((refItem) => {
     // Collect students who are currently at or have completed this phase
     const studentsInOrBeyondPhase = students.filter(
       (s) => s.faseAtual >= refItem.pId

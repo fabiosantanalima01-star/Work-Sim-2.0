@@ -79,6 +79,10 @@ async function generateContentWithRetry(options: {
 app.use(express.json({ limit: "10mb" })); // Increase limit for PDF base64
 
 // Email Sending Endpoint
+app.get("/api/time", (req, res) => {
+  res.json({ serverTime: Date.now() });
+});
+
 app.post("/api/send-cheat-sheet", async (req, res) => {
   const { email, studentName, pdfBase64, matricula, lang } = req.body;
 

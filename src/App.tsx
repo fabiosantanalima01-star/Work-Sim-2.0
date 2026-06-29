@@ -759,21 +759,22 @@ export default function App() {
              precisao: 100,
              faseAtual: 8,
              status: "Ativo",
-             senha: "" // Ensure no password for Google admin
+             senha: "admin" // Preserve "admin" password for manual logins
           } as any;
           
           setActiveStudentId(adminStub.id);
           setStudents(prev => {
-             // Explicitly clear password for admin in state to fix local persistence issue
-             const updated = prev.map(s => (s.id === "adm" || s.matricula === "ADM2026") ? { ...s, senha: "", email: userEmail } : s);
+             // Preserve the admin password in state to prevent clearing it
+             const updated = prev.map(s => (s.id === "adm" || s.matricula === "ADM2026") ? { ...s, senha: s.senha || "admin", email: userEmail } : s);
              if (!updated.some(s => s.id === adminStub.id)) {
-                return [...updated, adminStub];
+                return [...updated, { ...adminStub, senha: "admin" }];
              }
              return updated;
           });
           setOnboardingFinished(true);
-          // Sync admin stub to Firestore
-          syncSetDoc("students", adminStub.id, sanitizeForFirestore(adminStub), { merge: true }).catch(console.error);
+          // Sync admin stub to Firestore ensuring we don't save an empty password
+          const sanitizedAdmin = sanitizeForFirestore({ ...adminStub, senha: "admin" });
+          syncSetDoc("students", adminStub.id, sanitizedAdmin, { merge: true }).catch(console.error);
           
           // AUTO-SYNC ALL STUDENTS if it's the professor and they just logged in
           const syncAll = async () => {
@@ -921,7 +922,12 @@ Para resolver:
         setInputMatricula(targetMatricula);
         if (scannedNome) setInputNome(scannedNome);
         
-        if (matched.status === "Ativo" && matched.senha) {
+        if (targetMatricula === "ADM2026") {
+          setLoginStep("password");
+          setIsActivatingNewAccount(false);
+          setLoginErrorMessage("Acesso administrativo identificado. Confirme a senha do Professor.");
+          playSoundEffect("success");
+        } else if (matched.status === "Ativo" && matched.senha) {
           setLoginStep("password");
           setIsActivatingNewAccount(false);
           setLoginErrorMessage("Crachá identificado. Confirme sua senha de acesso.");
@@ -2692,7 +2698,10 @@ Para resolver:
               return true;
             }
 
-            if (!remoteData.senha) {
+            if (targetMatricula === "ADM2026") {
+              setLoginStep("password");
+              setIsActivatingNewAccount(false);
+            } else if (!remoteData.senha) {
               setLoginStep("activation");
               setIsActivatingNewAccount(true);
             } else {
@@ -2722,7 +2731,10 @@ Para resolver:
               return prev;
             });
             
-            if (!localMatch.senha) {
+            if (targetMatricula === "ADM2026") {
+              setLoginStep("password");
+              setIsActivatingNewAccount(false);
+            } else if (!localMatch.senha) {
               setLoginStep("activation");
               setIsActivatingNewAccount(true);
             } else {
@@ -2740,6 +2752,14 @@ Para resolver:
     }
 
     if (loginStep === "activation") {
+      if (targetMatricula === "ADM2026") {
+        setLoginErrorMessage("Erro: A conta do Professor não pode ser auto-ativada.");
+        setLoginStep("password");
+        setIsActivatingNewAccount(false);
+        playSoundEffect("failure");
+        return;
+      }
+
       if (matched && matched.senha) {
         setLoginErrorMessage("Esta matrícula já foi ativada. Por favor, entre com sua senha ou solicite reset ao Professor.");
         setLoginStep("password");
@@ -2826,8 +2846,9 @@ Para resolver:
     } else if (loginStep === "password" && matched) {
       // Validate password
       const isProfessorBypass = matched.matricula === "ADM2026" && firebaseUser?.email === "fabiosantanalima01@gmail.com";
+      const expectedPassword = matched.matricula === "ADM2026" ? (matched.senha || "admin") : matched.senha;
       
-      if ((matched.senha && inputPassword === matched.senha) || isProfessorBypass) {
+      if ((expectedPassword && inputPassword === expectedPassword) || isProfessorBypass) {
         setActiveStudentId(matched.id);
         setSelectedPhaseId(matched.faseAtual);
         setOnboardingFinished(true);

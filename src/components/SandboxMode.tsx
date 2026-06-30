@@ -850,10 +850,12 @@ export default function SandboxMode() {
                         </div>
                       )}
 
-                      <div className="flex justify-between border-b border-slate-50 pb-1">
-                        <span>055 - 13º Salário Proporcional ({mesesTrabalhadosAno}/12)</span>
-                        <span className="font-bold">R$ {trctDecimoTerceiroProp.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-                      </div>
+                      {trctDecimoTerceiroProp > 0 && (
+                        <div className="flex justify-between border-b border-slate-50 pb-1">
+                          <span>055 - 13º Salário Proporcional ({mesesTrabalhadosAno}/12)</span>
+                          <span className="font-bold">R$ {trctDecimoTerceiroProp.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
 
                       {trctDecimoTerceiroAviso > 0 && (
                         <div className="flex justify-between border-b border-slate-50 pb-1">

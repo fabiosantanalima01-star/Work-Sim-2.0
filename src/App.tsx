@@ -2191,13 +2191,13 @@ Para resolver:
     return (completedInPhase / phaseChallenges.length) * 100;
   }, [activeStudent, allChallenges, completedChallenges]);
 
-  // Guarantee that Laboratório (sandbox) is only accessible in Phase 2 or higher
+  // Guarantee that Laboratório (sandbox) is only accessible in Phase 6 or higher (experimental phase, TRCT emission)
   useEffect(() => {
     if (
       activeStudent &&
       currentTab === "sandbox" &&
       !isProfessorOrAdmin &&
-      maxAllowedPhase < 2
+      maxAllowedPhase < 6
     ) {
       setCurrentTab("challenges");
     }
@@ -4680,7 +4680,7 @@ Para resolver:
       return isNaN(num) ? 0 : num;
     };
 
-    if (activeChallenge.fase === 3) {
+    if (activeChallenge.fase === 3 || activeChallenge.isLaboratorio) {
       // Phase 3 granular checks for all 15 manual calculations
       const userVals = {
         salario: parseFormattedFloat(crisisInputs.salario || "0"),
@@ -5804,7 +5804,7 @@ Para resolver:
                     })}
 
                     {/* Special Tabs */}
-                    {(isProfessorOrAdmin || maxAllowedPhase >= 2) && (
+                    {(isProfessorOrAdmin || maxAllowedPhase >= 6) && (
                       <button
                         type="button"
                         onClick={() => {
@@ -6928,34 +6928,50 @@ Para resolver:
                             </blockquote>
                           </div>
 
-                          {/* Phase 3, 4 & 5 Tabs Navigation */}
-                          {(activeChallenge.fase === 3 || activeChallenge.fase === 4 || activeChallenge.fase === 5) && (
+                          {/* Phase 3 Tabs Navigation */}
+                          {(activeChallenge.fase === 3 || activeChallenge.isLaboratorio) && (
                             <div className="space-y-4 mt-2">
                               {/* Operational Crisis Alert Banner */}
-                              <div className="bg-rose-950/40 border border-rose-500/30 rounded-xl p-4 flex flex-col md:flex-row items-start gap-3 text-left animate-pulse">
-                                <div className="p-2 bg-rose-500/10 text-rose-400 rounded-lg shrink-0">
-                                  <AlertTriangle className="w-5 h-5" />
+                              {activeChallenge.isLaboratorio ? (
+                                <div className="bg-amber-950/40 border border-amber-500/30 rounded-xl p-4 flex flex-col md:flex-row items-start gap-3 text-left">
+                                  <div className="p-2 bg-amber-500/10 text-amber-400 rounded-lg shrink-0">
+                                    <Sparkles className="w-5 h-5 animate-pulse" />
+                                  </div>
+                                  <div className="space-y-1 font-sans">
+                                    <h4 className="text-amber-400 font-sans font-black text-xs uppercase tracking-wider">
+                                      🔬 DESAFIO EXTRAORDINÁRIO DO LABORATÓRIO DO PROFESSOR
+                                    </h4>
+                                    <p className="text-[11px] text-gray-300 leading-relaxed">
+                                      Este caso foi estruturado sob medida pelo docente! Use as abas <strong>Contrato de Trab.</strong>, <strong>Ficha Financeira</strong> e <strong>Folha de Ponto</strong> acima para auditar as variáveis de CLT inseridas e preencha o <strong>Holerite</strong>.
+                                    </p>
+                                  </div>
                                 </div>
-                                <div className="space-y-1">
-                                  <h4 className="text-rose-400 font-sans font-bold text-xs uppercase tracking-wider">
-                                    🚨 INCIDENTE CRÍTICO: BACKEND CLOUD FORA DO
-                                    AR (DOWNTIME COPRIME)
-                                  </h4>
-                                  <p className="text-[11px] text-gray-300 font-sans leading-relaxed">
-                                    O integrador do e-Social e de cálculos
-                                    rescisórios automáticos falhou devido a uma
-                                    instabilidade nacional. Vários funcionários
-                                    estão de prontidão exigindo as homologações
-                                    e impressões manuais de seus termos (TRCT).
-                                    Use os anexos de{" "}
-                                    <strong>Contrato de Trabalho</strong> e{" "}
-                                    <strong>Ficha Financeira</strong> acima para
-                                    auditar os vínculos e a{" "}
-                                    <strong>Calculadora de Apoio CLIPS</strong>{" "}
-                                    à direita para calcular os valores na unha!
-                                  </p>
+                              ) : (
+                                <div className="bg-rose-950/40 border border-rose-500/30 rounded-xl p-4 flex flex-col md:flex-row items-start gap-3 text-left animate-pulse">
+                                  <div className="p-2 bg-rose-500/10 text-rose-400 rounded-lg shrink-0">
+                                    <AlertTriangle className="w-5 h-5" />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <h4 className="text-rose-400 font-sans font-bold text-xs uppercase tracking-wider">
+                                      🚨 INCIDENTE CRÍTICO: BACKEND CLOUD FORA DO
+                                      AR (DOWNTIME COPRIME)
+                                    </h4>
+                                    <p className="text-[11px] text-gray-300 font-sans leading-relaxed">
+                                      O integrador do e-Social e de cálculos
+                                      rescisórios automáticos falhou devido a uma
+                                      instabilidade nacional. Vários funcionários
+                                      estão de prontidão exigindo as homologações
+                                      e impressões manuais de seus termos (TRCT).
+                                      Use os anexos de{" "}
+                                      <strong>Contrato de Trabalho</strong> e{" "}
+                                      <strong>Ficha Financeira</strong> acima para
+                                      auditar os vínculos e a{" "}
+                                      <strong>Calculadora de Apoio CLIPS</strong>{" "}
+                                      à direita para calcular os valores na unha!
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
+                              )}
 
                               <div className="flex flex-wrap gap-2 border-b border-white/10 mb-6">
                                 <button
@@ -7001,7 +7017,7 @@ Para resolver:
                           )}
 
                           {/* Render Content Based on Tabs (or standard view for phase 0-2 and simple MCQ) */}
-                          {((activeChallenge.fase < 3) ||
+                          {(!(activeChallenge.fase === 3 || activeChallenge.isLaboratorio) ||
                             phase3Tab === "caso") && (
                             <div className="mt-4">
                               {/* Split view: Employee bio card versus Employee Grievance/Medical Cert */}
@@ -7103,21 +7119,18 @@ Para resolver:
                                 )}
                               </div>
 
-                              {activeChallenge.fase === 3 ? (
-                                <div className="bg-slate-950/60 p-6 rounded-xl border border-accent-primary/20 space-y-4 text-left font-sans mt-6">
-                                  <div className="flex items-center gap-2 text-accent-primary">
-                                    <AlertTriangle className="w-5 h-5 animate-bounce" />
-                                    <h4 className="font-bold text-xs font-mono uppercase tracking-wider">
-                                      REGIME DE CONTINGÊNCIA ATIVO
+                              {(activeChallenge.fase === 3 || activeChallenge.isLaboratorio) ? (
+                                <div className="bg-slate-950/60 p-6 rounded-xl border border-amber-500/20 space-y-4 text-left font-sans mt-6">
+                                  <div className="flex items-center gap-2 text-amber-400">
+                                    <Sparkles className="w-5 h-5 animate-bounce" />
+                                    <h4 className="font-black text-xs font-mono uppercase tracking-wider">
+                                      {activeChallenge.isLaboratorio ? "🔬 CASO DO LABORATÓRIO ATIVO" : "REGIME DE CONTINGÊNCIA ATIVO"}
                                     </h4>
                                   </div>
                                   <p className="text-xs text-gray-300 leading-relaxed">
-                                    Esta folha de pagamento exige a apuração
-                                    integral de{" "}
-                                    <strong>15 variáveis financeiras</strong>. O
-                                    cálculo de saldo, médias, adicionais,
-                                    descontos e tributos (INSS/IRRF/FGTS) está
-                                    sob sua responsabilidade.
+                                    {activeChallenge.isLaboratorio 
+                                      ? "Este caso prático do Laboratório do Professor exige a apuração integral de 15 variáveis financeiras da CLT com base nos parâmetros configurados."
+                                      : "Esta folha de pagamento exige a apuração integral de 15 variáveis financeiras. O cálculo de saldo, médias, adicionais, descontos e tributos (INSS/IRRF/FGTS) está sob sua responsabilidade."}
                                   </p>
                                   <div className="bg-white/5 border border-white/10 p-4 rounded-lg space-y-2">
                                     <span className="text-[10px] text-text-secondary font-mono tracking-widest block uppercase">
@@ -7272,8 +7285,8 @@ Para resolver:
                             </div>
                           )}
 
-                          {/* TAB RENDERERS FOR PHASE 3, 4 & 5 */}
-                          {(activeChallenge.fase === 3 || activeChallenge.fase === 4 || activeChallenge.fase === 5) &&
+                          {/* TAB RENDERERS FOR PHASE 3 */}
+                          {(activeChallenge.fase === 3 || activeChallenge.isLaboratorio) &&
                             phase3Tab === "contrato" && (
                               <div className="bg-slate-950/40 p-6 rounded-xl border border-white/5 font-mono text-sm animate-fade-in text-left mt-4 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-accent-primary/5 rounded-bl-full pointer-events-none"></div>
@@ -7282,6 +7295,51 @@ Para resolver:
                                   Contrato de Trabalho
                                 </h4>
                                 <div className="space-y-4 text-gray-300 text-xs">
+                                  {activeChallenge.isLaboratorio && activeChallenge.extraordinaryVariables && (
+                                    <div className="mb-4 p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl space-y-2 font-sans text-gray-250">
+                                      <span className="text-[10px] text-amber-400 font-mono tracking-widest block uppercase font-bold text-left">
+                                        ⚙️ VARIÁVEIS EXTRAORDINÁRIAS ADICIONADAS PELO PROFESSOR
+                                      </span>
+                                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-[11px] text-left">
+                                        <div>
+                                          <span className="text-gray-500">Horas Extras 50%:</span> <strong className="text-amber-400">{activeChallenge.extraordinaryVariables.horasExtras50 || 0} horas</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-500">Horas Extras 100%:</span> <strong className="text-amber-400">{activeChallenge.extraordinaryVariables.horasExtras100 || 0} horas</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-500">Adicional Noturno:</span> <strong className="text-amber-400">{activeChallenge.extraordinaryVariables.adicionalNoturno || 0} horas</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-500">Faltas Injustificadas:</span> <strong className="text-rose-400">{activeChallenge.extraordinaryVariables.faltasInjustificadas || 0} dias</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-500">Atrasos de Jornada:</span> <strong className="text-rose-400">{activeChallenge.extraordinaryVariables.atrasosHoras || 0} horas</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-500">Faltas Justificadas:</span> <strong className="text-emerald-400">{activeChallenge.extraordinaryVariables.faltasJustificadas || 0} dias</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-500">Feriado Trabalhado:</span> <strong className="text-amber-400">{activeChallenge.extraordinaryVariables.trabalhoFeriado ? "Sim" : "Não"}</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-500">Comissões Acordadas:</span> <strong className="text-emerald-400">R$ {(activeChallenge.extraordinaryVariables.comissao || 0).toFixed(2)}</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-500">Insalubridade:</span> <strong className="text-amber-400">{activeChallenge.extraordinaryVariables.insalubridade === "minimo" ? "Mínimo (10%)" : activeChallenge.extraordinaryVariables.insalubridade === "medio" ? "Médio (20%)" : activeChallenge.extraordinaryVariables.insalubridade === "maximo" ? "Máximo (40%)" : "Nenhum"}</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-500">Periculosidade:</span> <strong className="text-amber-400">{activeChallenge.extraordinaryVariables.periculosidade ? "Sim (30%)" : "Não"}</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-500">Horas Semanais:</span> <strong className="text-amber-400 font-bold">{activeChallenge.extraordinaryVariables.horasSemanais || 44}h</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-500">Divisor Mensal:</span> <strong className="text-amber-400 font-bold">{activeChallenge.extraordinaryVariables.divisor || 220}h</strong>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                   <div className="grid grid-cols-2 gap-4">
                                     <div>
                                       <span className="text-gray-500 block">
@@ -7396,7 +7454,7 @@ Para resolver:
                               </div>
                             )}
 
-                          {(activeChallenge.fase === 3 || activeChallenge.fase === 4 || activeChallenge.fase === 5) &&
+                          {(activeChallenge.fase === 3 || activeChallenge.isLaboratorio) &&
                             phase3Tab === "remuneracao" && (
                               <div className="bg-slate-950/40 p-6 rounded-xl border border-white/5 font-mono text-sm animate-fade-in text-left mt-4 relative overflow-hidden">
                                 <h4 className="text-emerald-400 font-bold mb-1 border-b border-white/10 pb-2 uppercase tracking-wide flex items-center gap-2">
@@ -7487,7 +7545,7 @@ Para resolver:
                               </div>
                             )}
 
-                          {(activeChallenge.fase === 3 || activeChallenge.fase === 4 || activeChallenge.fase === 5) &&
+                          {(activeChallenge.fase === 3 || activeChallenge.isLaboratorio) &&
                             phase3Tab === "ponto" && (
                               <div className="bg-slate-950/40 p-6 rounded-xl border border-white/5 font-mono text-sm animate-fade-in text-left mt-4 relative overflow-hidden">
                                 <h4 className="text-accent-primary font-bold mb-1 border-b border-white/10 pb-2 uppercase tracking-wide flex items-center gap-2">
@@ -7622,7 +7680,7 @@ Para resolver:
                               </div>
                             )}
 
-                          {(activeChallenge.fase === 3 || activeChallenge.fase === 4 || activeChallenge.fase === 5) &&
+                          {(activeChallenge.fase === 3 || activeChallenge.isLaboratorio) &&
                             phase3Tab === "holerite" && (
                               <div className="bg-slate-900 border border-white/15 p-6 rounded-2xl animate-fade-in text-left mt-4 text-gray-100 space-y-6">
                                 <div className="border-b border-white/15 pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -8124,7 +8182,7 @@ Para resolver:
                               </div>
                             )}
 
-                          {(activeChallenge.fase === 3 || activeChallenge.fase === 4 || activeChallenge.fase === 5) &&
+                          {(activeChallenge.fase === 3 || activeChallenge.isLaboratorio) &&
                             phase3Tab === "atestados" && (
                               <div className="animate-fade-in mt-4">
                                 {activeChallenge.empregado.detalhesAtestado ? (
@@ -8288,7 +8346,7 @@ Para resolver:
                                 </div>
 
                                 {/* Central Submit Button */}
-                                {!(activeChallenge.fase === 3 && phase3Tab === "holerite") && activeChallenge.fase !== 5 && (
+                                {!((activeChallenge.fase === 3 || activeChallenge.isLaboratorio) && phase3Tab === "holerite") && activeChallenge.fase !== 5 && (
                                   <button
                                     id="footer-mcq-submit-btn"
                                     type="button"
@@ -9520,7 +9578,7 @@ Para resolver:
   )}
 </div>
       {/* Sibling container for printing only (Holerite Original) */}
-    {activeChallenge && activeChallenge.fase === 3 && activeChallenge.gabarito?.valoresCorretos && (
+    {activeChallenge && (activeChallenge.fase === 3 || activeChallenge.isLaboratorio) && activeChallenge.gabarito?.valoresCorretos && (
       <div className="hidden print:block bg-white text-black p-8 font-sans text-xs w-[21cm] h-[29.7cm] mx-auto space-y-6">
         {(() => {
           const gab = activeChallenge.gabarito.valoresCorretos;

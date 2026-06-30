@@ -111,6 +111,23 @@ export interface Challenge {
   
   queixa: string;
   
+  // Custom lab and extraordinary challenge flags
+  isLaboratorio?: boolean;
+  extraordinaryVariables?: {
+    horasExtras50?: number;
+    horasExtras100?: number;
+    faltasInjustificadas?: number;
+    faltasJustificadas?: number;
+    atrasosHoras?: number;
+    comissao?: number;
+    adicionalNoturno?: number;
+    insalubridade?: "minimo" | "medio" | "maximo" | "none";
+    periculosidade?: boolean;
+    trabalhoFeriado?: boolean;
+    horasSemanais?: number;
+    divisor?: number;
+  };
+  
   // Options or Calculation template
   gabarito: {
     tipoAcao: "Apenas Explicar" | "Descontar Falta" | "Abonar Falta" | "Aplicar Justa Causa" | "Retificar Folha" | "Aviso Prévio Indenizado";

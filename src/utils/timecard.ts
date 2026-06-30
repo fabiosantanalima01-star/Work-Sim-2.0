@@ -431,6 +431,19 @@ export function getPointParamsForChallenge(challenge: any) {
   const id = challenge.id;
   params.challengeId = id;
   
+  if (challenge.isLaboratorio && challenge.extraordinaryVariables) {
+    const vars = challenge.extraordinaryVariables;
+    params.horas_extras_50 = vars.horasExtras50 || 0;
+    params.horas_extras_100 = vars.horasExtras100 || 0;
+    params.horas_noturnas = vars.adicionalNoturno || 0;
+    params.faltas_injustificadas = vars.faltasInjustificadas || 0;
+    params.faltas_justificadas = vars.faltasJustificadas || 0;
+    params.atrasos_minutos = Math.round((vars.atrasosHoras || 0) * 60);
+    params.jornada_semanal = vars.horasSemanais || 44;
+    params.mes_referencia = "05/2026";
+    return params;
+  }
+  
   if (id === "3.2") { // Fernanda Costa
     params.mes_referencia = "06/2026";
   } else if (id === "3.3") { // Ricardo Alves
@@ -495,7 +508,14 @@ export function getFichaFinanceiraDataForChallenge(challenge: any): FichaFinance
     let heVal = 0;
     let addVal = 0;
 
-    if (id === "3.2") { // Fernanda Costa
+    if (challenge.isLaboratorio && challenge.extraordinaryVariables) {
+      const vars = challenge.extraordinaryVariables;
+      heVal = (vars.horasExtras50 || 0) * (baseSal / (vars.divisor || 220)) * 1.5 + (vars.horasExtras100 || 0) * (baseSal / (vars.divisor || 220)) * 2;
+      addVal = (vars.periculosidade ? baseSal * 0.3 : 0) + (vars.insalubridade === "minimo" ? 141.20 : vars.insalubridade === "medio" ? 282.40 : vars.insalubridade === "maximo" ? 564.80 : 0);
+      if (vars.comissao) {
+        heVal += vars.comissao; // include commission in variable values
+      }
+    } else if (id === "3.2") { // Fernanda Costa
       heVal = 200.00;
       addVal = 0;
     } else if (id === "3.3") { // Ricardo Alves

@@ -234,7 +234,7 @@ export default function TopNavbar({
               ))}
 
               {/* Special Tabs (Laboratório and Professor) also part of the full width menu */}
-              {(isProfessorOrAdmin || maxAllowedPhase >= 2) && (
+              {(isProfessorOrAdmin || maxAllowedPhase >= 6) && (
                 <button
                   onClick={() => onTabChange("sandbox")}
                   className={`relative flex-1 px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 group cursor-pointer ${
@@ -313,7 +313,7 @@ export default function TopNavbar({
         })}
         
         {/* Sandbox and Professor tabs if allowed */}
-        {(isProfessorOrAdmin || maxAllowedPhase >= 2) && (
+        {(isProfessorOrAdmin || maxAllowedPhase >= 6) && (
           <button
             onClick={() => onTabChange("sandbox")}
             className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 ${

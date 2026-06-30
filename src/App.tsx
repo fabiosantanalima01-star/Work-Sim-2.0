@@ -44,7 +44,7 @@ import autoTable from "jspdf-autotable";
 import QRScanner from "./components/QRScanner";
 
 // Firebase Integration Client
-import { db, auth, syncSetDoc, syncAddDoc, syncDeleteDoc, syncUpdateDoc, arrayUnion, OperationType, handleFirestoreError, SyncManager } from "./lib/firebase";
+import { db, auth, syncSetDoc, syncAddDoc, syncDeleteDoc, syncUpdateDoc, arrayUnion, OperationType, handleFirestoreError, SyncManager, checkQuotaExceeded, setQuotaExceeded } from "./lib/firebase";
 import { onAuthStateChanged, signInWithPopup, signOut, GoogleAuthProvider } from "firebase/auth";
 import { collection, doc, setDoc, onSnapshot, deleteDoc, query, where, addDoc, getDocs } from "firebase/firestore";
 
@@ -131,6 +131,14 @@ export default function App() {
     }
   });
 
+  useEffect(() => {
+    try {
+      localStorage.setItem("worksim_students", JSON.stringify(students));
+    } catch (e) {
+      console.error("Failed to save students to localStorage", e);
+    }
+  }, [students]);
+
   const [activeStudentId, setActiveStudentId] = useState<string | null>(() => {
     try {
       const cached = localStorage.getItem("worksim_active_student_id");
@@ -150,6 +158,52 @@ export default function App() {
   });
 
   const [firebaseUser, setFirebaseUser] = useState<any>(null);
+
+  // --- Google Chat Integration States ---
+  const [googleChatAccessToken, setGoogleChatAccessToken] = useState<string | null>(null);
+  const [selectedGoogleChatSpaceId, setSelectedGoogleChatSpaceId] = useState<string>(() => {
+    try {
+      return localStorage.getItem("worksim_google_chat_space_id") || "";
+    } catch (e) {
+      return "";
+    }
+  });
+  const [selectedGoogleChatSpaceName, setSelectedGoogleChatSpaceName] = useState<string>(() => {
+    try {
+      return localStorage.getItem("worksim_google_chat_space_name") || "";
+    } catch (e) {
+      return "";
+    }
+  });
+  const [googleChatWebhookUrl, setGoogleChatWebhookUrl] = useState<string>(() => {
+    try {
+      return localStorage.getItem("worksim_google_chat_webhook_url") || "";
+    } catch (e) {
+      return "";
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("worksim_google_chat_space_id", selectedGoogleChatSpaceId);
+      localStorage.setItem("worksim_google_chat_space_name", selectedGoogleChatSpaceName);
+      localStorage.setItem("worksim_google_chat_webhook_url", googleChatWebhookUrl);
+    } catch (e) {
+      console.error("Failed to save google chat settings", e);
+    }
+  }, [selectedGoogleChatSpaceId, selectedGoogleChatSpaceName, googleChatWebhookUrl]);
+
+  const [firebaseQuotaActive, setFirebaseQuotaActive] = useState<boolean>(() => checkQuotaExceeded());
+
+  useEffect(() => {
+    const handleQuotaExceededEvent = (e: any) => {
+      setFirebaseQuotaActive(e.detail);
+    };
+    window.addEventListener("firebase-quota-exceeded", handleQuotaExceededEvent);
+    return () => {
+      window.removeEventListener("firebase-quota-exceeded", handleQuotaExceededEvent);
+    };
+  }, []);
 
   const [onboardingFinished, setOnboardingFinished] = useState<boolean>(() => {
     try {
@@ -438,11 +492,20 @@ export default function App() {
         setStudents((localStudents) => {
           // Source of truth for students that have been in Firestore is the remote snapshot.
           const remoteIds = new Set(remoteStudents.map(r => r.id));
-          const previouslySyncedIds = new Set(Object.keys(lastFirestoreSyncedRef.current));
+          const pendingSyncIds = new Set(SyncManager.getQueue().map(q => q.docId).filter(Boolean));
+          const initialIds = new Set(INITIAL_STUDENTS.map(s => s.id));
 
           const filteredLocal = localStudents.filter(local => {
+            // Keep if present on Firestore
             if (remoteIds.has(local.id)) return true;
-            if (!previouslySyncedIds.has(local.id)) return true;
+            // Keep if it is a protected/initial student
+            if (initialIds.has(local.id)) return true;
+            // Keep if there is a pending sync action in the offline queue for this student
+            if (pendingSyncIds.has(local.id)) return true;
+            // Keep if Firebase write quota is currently active (operating in local fallback offline mode)
+            if (checkQuotaExceeded()) return true;
+
+            // Otherwise, it was deleted on the server, so filter it out!
             return false;
           });
 
@@ -1310,6 +1373,44 @@ Para resolver:
       })
     );
   };
+  const sendToGoogleChat = async (studentName: string, sender: string, text: string) => {
+    const formattedText = `💬 *[WorkSim - IntraChat]*\n*Conversa com*: *${studentName}*\n*Remetente*: *${sender}*\n*Mensagem*: ${text}`;
+    
+    // 1. Try Webhook first (if configured)
+    if (googleChatWebhookUrl && googleChatWebhookUrl.trim()) {
+      try {
+        await fetch(googleChatWebhookUrl.trim(), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ text: formattedText })
+        });
+        return;
+      } catch (err) {
+        console.error("Erro ao enviar mensagem via Webhook do Google Chat:", err);
+      }
+    }
+
+    // 2. Try OAuth fallback
+    if (!googleChatAccessToken || !selectedGoogleChatSpaceId) return;
+    try {
+      const url = `https://chat.googleapis.com/v1/${selectedGoogleChatSpaceId}/messages`;
+      await fetch(url, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${googleChatAccessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          text: formattedText
+        })
+      });
+    } catch (err) {
+      console.error("Erro ao enviar mensagem para o Google Chat:", err);
+    }
+  };
+
   const handleSendChatMessage = (studentId: string, text: string) => {
     if (!text.trim()) return;
     
@@ -1340,6 +1441,11 @@ Para resolver:
       syncUpdateDoc("students", studentId, {
         mensagensChat: arrayUnion(newMsg)
       }).catch(console.error);
+    }
+
+    const targetStudent = students.find(x => x.id === studentId);
+    if (targetStudent) {
+      sendToGoogleChat(targetStudent.nomeCompleto, "Professor Fábio", text.trim());
     }
   };
 
@@ -1378,6 +1484,7 @@ Para resolver:
     // Add alert notification for professor
     const targetStudent = students.find(x => x.id === studentId);
     if (targetStudent) {
+      sendToGoogleChat(targetStudent.nomeCompleto, targetStudent.nomeCompleto, text.trim());
       setChatNotifications((prev) => [
         ...prev,
         {
@@ -6488,6 +6595,71 @@ Para resolver:
 
           {/* B. CENTER PIECE: THE ACTIVE TAB DYNAMICAL LAYOUT */}
           <main className="flex-1 p-3.5 sm:p-6 overflow-y-auto space-y-4 sm:space-y-6">
+            {/* FIREBASE QUOTA EXCEEDED FALLBACK BANNER */}
+            {firebaseQuotaActive && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-amber-950/20 border border-amber-500/20 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg shadow-amber-950/5 relative overflow-hidden"
+              >
+                <div className="absolute top-0 left-0 w-1 h-full bg-amber-500 animate-pulse" />
+                <div className="space-y-1.5 flex-1 pr-0 sm:pr-4">
+                  <div className="flex items-center gap-2 text-amber-400 font-bold font-sans uppercase tracking-wider text-xs">
+                    <span>⚠️</span>
+                    <span>
+                      {appLanguage === "en"
+                        ? "Firebase Firestore Quota Limit Exceeded"
+                        : "Limite de Gravação Diária do Firebase Atingido"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-amber-200/80 leading-relaxed font-mono">
+                    {appLanguage === "en"
+                      ? "The database has reached its daily free write quota. Don't worry! Your progress is being saved fully and securely in offline mode (LocalStorage). No action is required; sync will resume automatically once quota resets."
+                      : "O simulador atingiu o limite de gravações diárias gratuitas da cota do Firebase. Fique tranquilo! Suas respostas, notas e progresso estão sendo salvos normalmente de forma segura no seu navegador (LocalStorage). O simulador continuará sincronizando na nuvem assim que a cota for reiniciada pelo Google."}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 self-stretch sm:self-center">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setQuotaExceeded(false);
+                      try {
+                        await SyncManager.drainQueue();
+                        if (!checkQuotaExceeded()) {
+                          alert(
+                            appLanguage === "en"
+                              ? "Synchronized successfully! Offline changes are now synced to the cloud."
+                              : "Sincronizado com sucesso! Suas alterações offline foram enviadas para o Firebase."
+                          );
+                        } else {
+                          alert(
+                            appLanguage === "en"
+                              ? "Database quota is still exceeded. Your changes remain saved locally."
+                              : "O Firebase ainda está com limite de cota ativo. Suas alterações continuam salvas localmente com segurança."
+                          );
+                        }
+                      } catch (err: any) {
+                        alert("Erro: " + err.message);
+                      }
+                    }}
+                    className="flex-1 sm:flex-none text-center bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-slate-950 border border-amber-500/20 px-3 py-1.5 rounded-xl text-[10px] font-sans font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap"
+                  >
+                    {appLanguage === "en" ? "Retry Cloud Sync" : "Tentar Sincronizar"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuotaExceeded(false);
+                    }}
+                    className="p-1.5 text-amber-400/60 hover:text-amber-300 transition-all cursor-pointer"
+                    title={appLanguage === "en" ? "Dismiss" : "Dispensar"}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
             {/* HEADER METRIC BANNER */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-950/20 p-3.5 sm:p-4 rounded-2xl border border-white/5 relative overflow-hidden">
               <div className="absolute top-0 right-0 bg-accent-primary/10 px-3 py-1 text-[10px] font-mono rounded-bl text-accent-primary uppercase font-bold tracking-widest hidden sm:block">
@@ -8829,6 +9001,14 @@ Para resolver:
                 onSendMessage={handleSendChatMessage}
                 themeMode={themeMode}
                 clockOffset={clockOffsetRef.current}
+                googleChatAccessToken={googleChatAccessToken}
+                setGoogleChatAccessToken={setGoogleChatAccessToken}
+                selectedGoogleChatSpaceId={selectedGoogleChatSpaceId}
+                setSelectedGoogleChatSpaceId={setSelectedGoogleChatSpaceId}
+                selectedGoogleChatSpaceName={selectedGoogleChatSpaceName}
+                setSelectedGoogleChatSpaceName={setSelectedGoogleChatSpaceName}
+                googleChatWebhookUrl={googleChatWebhookUrl}
+                setGoogleChatWebhookUrl={setGoogleChatWebhookUrl}
               />
             )}
           </main>

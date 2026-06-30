@@ -101,6 +101,14 @@ interface ProfessorCockpitProps {
   appLanguage?: "pt" | "en";
   themeMode?: "dark" | "light";
   clockOffset?: number;
+  googleChatAccessToken?: string | null;
+  setGoogleChatAccessToken?: (token: string | null) => void;
+  selectedGoogleChatSpaceId?: string;
+  setSelectedGoogleChatSpaceId?: (spaceId: string) => void;
+  selectedGoogleChatSpaceName?: string;
+  setSelectedGoogleChatSpaceName?: (spaceName: string) => void;
+  googleChatWebhookUrl?: string;
+  setGoogleChatWebhookUrl?: (url: string) => void;
 }
 
 export default function ProfessorCockpit({ 
@@ -127,9 +135,23 @@ export default function ProfessorCockpit({
   chatNotifications = [],
   appLanguage = "pt",
   themeMode = "dark",
-  clockOffset = 0
+  clockOffset = 0,
+  googleChatAccessToken,
+  setGoogleChatAccessToken,
+  selectedGoogleChatSpaceId,
+  setSelectedGoogleChatSpaceId,
+  selectedGoogleChatSpaceName,
+  setSelectedGoogleChatSpaceName,
+  googleChatWebhookUrl = "",
+  setGoogleChatWebhookUrl
 }: ProfessorCockpitProps) {
   const [globalClassroomFilter, setGlobalClassroomFilter] = useState<string>("TODAS");
+  const [googleChatTab, setGoogleChatTab] = useState<"webhook" | "oauth">(() => {
+    if (googleChatWebhookUrl) return "webhook";
+    if (googleChatAccessToken) return "oauth";
+    return "webhook";
+  });
+  const [isTestWebhookLoading, setIsTestWebhookLoading] = useState<boolean>(false);
   const [activeTabPanel, setActiveTabPanel] = useState<"operations" | "telemetry" | "feedbacks" | "analytics" | "scenarios" | "activity" | "auditoria">("analytics");
   const [selectedIdsForDeletion, setSelectedIdsForDeletion] = useState<string[]>([]);
   const [isDeletingSelection, setIsDeletingSelection] = useState<boolean>(false);
@@ -210,6 +232,124 @@ export default function ProfessorCockpit({
       setIsLoadingCourses(false);
     }
   };
+
+  // --- Google Chat States & Functions ---
+  const [googleChatSpaces, setGoogleChatSpaces] = useState<any[]>([]);
+  const [isGoogleChatLoading, setIsGoogleChatLoading] = useState<boolean>(false);
+  const [googleChatError, setGoogleChatError] = useState<string | null>(null);
+
+  const handleConnectGoogleChat = async () => {
+    setIsGoogleChatLoading(true);
+    setGoogleChatError(null);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.addScope("https://www.googleapis.com/auth/chat.spaces.readonly");
+      provider.addScope("https://www.googleapis.com/auth/chat.messages.create");
+      
+      const result = await signInWithPopup(auth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (!credential || !credential.accessToken) {
+        throw new Error("Não foi possível obter o token de acesso da conta Google.");
+      }
+      
+      if (setGoogleChatAccessToken) {
+        setGoogleChatAccessToken(credential.accessToken);
+      }
+      await fetchGoogleChatSpaces(credential.accessToken);
+    } catch (err: any) {
+      console.error("Erro ao conectar ao Google Chat:", err);
+      setGoogleChatError(err.message || "Falha na autenticação com o Google Chat.");
+    } finally {
+      setIsGoogleChatLoading(false);
+    }
+  };
+
+  const fetchGoogleChatSpaces = async (token: string) => {
+    setIsGoogleChatLoading(true);
+    setGoogleChatError(null);
+    try {
+      const res = await fetch("https://chat.googleapis.com/v1/spaces", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          if (setGoogleChatAccessToken) setGoogleChatAccessToken(null);
+          throw new Error("Sessão expirada ou sem permissões suficientes. Por favor, reconecte o Google Chat.");
+        }
+        throw new Error("Erro ao buscar espaços do Google Chat.");
+      }
+      const data = await res.json();
+      setGoogleChatSpaces(data.spaces || []);
+      
+      if (data.spaces && data.spaces.length > 0 && !selectedGoogleChatSpaceId && setSelectedGoogleChatSpaceId && setSelectedGoogleChatSpaceName) {
+        setSelectedGoogleChatSpaceId(data.spaces[0].name);
+        setSelectedGoogleChatSpaceName(data.spaces[0].displayName || data.spaces[0].name);
+      }
+    } catch (err: any) {
+      setGoogleChatError(err.message);
+    } finally {
+      setIsGoogleChatLoading(false);
+    }
+  };
+
+  const handleSendTestGoogleChatMessage = async () => {
+    if (!googleChatAccessToken || !selectedGoogleChatSpaceId) return;
+    setIsGoogleChatLoading(true);
+    try {
+      const url = `https://chat.googleapis.com/v1/${selectedGoogleChatSpaceId}/messages`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${googleChatAccessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          text: `🚀 *[WorkSim - Google Chat]* Canal de Atendimento integrado com sucesso! Mensagem de teste enviada às ${new Date().toLocaleTimeString("pt-BR")}.`
+        })
+      });
+      if (!res.ok) {
+        throw new Error(`Erro ao enviar mensagem de teste. Código: ${res.status}`);
+      }
+      alert("Mensagem de teste enviada com sucesso para o canal do Google Chat!");
+    } catch (err: any) {
+      alert("Falha ao enviar mensagem de teste: " + err.message);
+    } finally {
+      setIsGoogleChatLoading(false);
+    }
+  };
+
+  const handleSendTestWebhookMessage = async () => {
+    if (!googleChatWebhookUrl || !googleChatWebhookUrl.trim()) {
+      alert("Por favor, insira uma URL de Webhook válida antes de enviar o teste.");
+      return;
+    }
+    setIsTestWebhookLoading(true);
+    try {
+      const res = await fetch(googleChatWebhookUrl.trim(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          text: `🚀 *[WorkSim - Google Chat Webhook]* Canal de Atendimento integrado com sucesso! Mensagem de teste enviada às ${new Date().toLocaleTimeString("pt-BR")}.`
+        })
+      });
+      if (!res.ok) {
+        throw new Error(`Erro de resposta do servidor: Código ${res.status}`);
+      }
+      alert("Mensagem de teste enviada com sucesso para o Webhook do Google Chat!");
+    } catch (err: any) {
+      alert("Falha ao enviar mensagem de teste via Webhook: " + err.message + "\n\nVerifique se o seu Webhook do Google Chat está ativo e configurado corretamente.");
+    } finally {
+      setIsTestWebhookLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (googleChatAccessToken && googleChatSpaces.length === 0) {
+      fetchGoogleChatSpaces(googleChatAccessToken);
+    }
+  }, [googleChatAccessToken]);
 
   const fetchClassroomStudents = async (courseId: string) => {
     if (!classroomAccessToken) return;
@@ -2491,6 +2631,196 @@ export default function ProfessorCockpit({
                     return hasFormalDoubt || isUnreplied || chatNotifications.some(n => n.studentId === s.id);
                   }).length} Aguardando
                 </span>
+              </div>
+
+              {/* GOOGLE CHAT INTEGRATION SUB-PANEL */}
+              <div className="bg-slate-900/60 border border-indigo-500/15 rounded-xl p-4 space-y-4 text-xs font-mono">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse" />
+                    <span className="text-[11px] font-sans font-extrabold text-indigo-300 uppercase tracking-wider">
+                      Integração com Google Chat (Notificações)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 font-sans">
+                    {(googleChatWebhookUrl || googleChatAccessToken) ? (
+                      <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold uppercase">
+                        Integrado ({googleChatWebhookUrl ? "Webhook" : "OAuth"})
+                      </span>
+                    ) : (
+                      <span className="text-[9px] bg-slate-950 text-gray-500 border border-white/5 px-2 py-0.5 rounded-full font-bold uppercase">
+                        Inativo
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-gray-400 leading-normal font-sans">
+                  Espelhe as dúvidas e mensagens do IntraChat direto no Google Chat para receber alertas no celular e responder de forma ágil. Escolha o método de conexão abaixo:
+                </p>
+
+                {/* Integration Tab Headers */}
+                <div className="flex border-b border-white/5 font-sans">
+                  <button
+                    type="button"
+                    onClick={() => setGoogleChatTab("webhook")}
+                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
+                      googleChatTab === "webhook"
+                        ? "border-indigo-500 text-indigo-300"
+                        : "border-transparent text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    🔗 Webhook (Recomendado & Sem Restrições)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGoogleChatTab("oauth")}
+                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
+                      googleChatTab === "oauth"
+                        ? "border-indigo-500 text-indigo-300"
+                        : "border-transparent text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    🔑 Login Google (OAuth)
+                  </button>
+                </div>
+
+                {/* Tab Content: Webhook */}
+                {googleChatTab === "webhook" && (
+                  <div className="space-y-3 pt-1">
+                    <p className="text-[9.5px] text-gray-400 font-sans leading-relaxed">
+                      💡 <strong>Como criar:</strong> No Google Chat pelo computador, acesse as configurações do Espaço desejado, clique em <strong>Aplicativos e Integrações</strong> &gt; <strong>Webhooks</strong> &gt; <strong>Adicionar Webhook</strong>. Dê um nome, copie a URL gerada e cole abaixo. Este método funciona em qualquer conta Google sem restrições corporativas!
+                    </p>
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] text-indigo-300 uppercase font-bold block mb-1 font-sans">URL do Webhook do Google Chat:</label>
+                      <input
+                        type="url"
+                        placeholder="https://chat.googleapis.com/v1/spaces/..."
+                        value={googleChatWebhookUrl}
+                        onChange={(e) => setGoogleChatWebhookUrl && setGoogleChatWebhookUrl(e.target.value)}
+                        className="w-full bg-slate-950 border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] focus:outline-none focus:border-indigo-500 text-white font-mono placeholder:text-gray-600"
+                      />
+                    </div>
+                    {googleChatWebhookUrl && (
+                      <div className="flex items-center gap-1.5 pt-1 font-sans">
+                        <button
+                          type="button"
+                          onClick={handleSendTestWebhookMessage}
+                          disabled={isTestWebhookLoading}
+                          className="bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-slate-950 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer font-sans"
+                        >
+                          {isTestWebhookLoading ? "Enviando..." : "Enviar Mensagem de Teste"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setGoogleChatWebhookUrl && setGoogleChatWebhookUrl("")}
+                          className="bg-slate-950 hover:bg-slate-800 text-gray-400 border border-white/5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer font-sans"
+                        >
+                          Remover Webhook
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Tab Content: OAuth */}
+                {googleChatTab === "oauth" && (
+                  <div className="space-y-3 pt-1">
+                    {googleChatError && (
+                      <div className="bg-rose-950/20 text-rose-400 border border-rose-500/15 p-2.5 rounded-lg text-[10px] space-y-1">
+                        <div>⚠️ <strong>Erro ao carregar do Google Chat:</strong> {googleChatError}</div>
+                        <div className="text-[9px] text-gray-400 font-sans leading-relaxed">
+                          Se o seu Workspace institucional bloquear o acesso da API, use a aba <strong>Webhook (Recomendado)</strong> acima, que ignora qualquer bloqueio corporativo e funciona instantaneamente!
+                        </div>
+                      </div>
+                    )}
+
+                    {!googleChatAccessToken ? (
+                      <div className="space-y-3 font-sans">
+                        <p className="text-[9.5px] text-gray-400 leading-relaxed">
+                          Conecte-se com sua conta Google para listar os espaços/canais disponíveis em que você é membro.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleConnectGoogleChat}
+                          disabled={isGoogleChatLoading}
+                          className="bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-sans font-bold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                            <path d="M12.24 10.285V13.4h6.887c-.275 1.564-1.88 4.59-6.887 4.59-4.33 0-7.859-3.578-7.859-8s3.53-8 7.859-8c2.46 0 4.105 1.025 5.047 1.926l2.427-2.334C17.955 2.192 15.34 1 12.24 1 5.92 1 1 5.92 1 12.24s4.92 11.24 11.24 11.24c6.6 0 11.01-4.64 11.01-11.24 0-.756-.08-1.333-.18-1.955H12.24z"/>
+                          </svg>
+                          {isGoogleChatLoading ? "Conectando..." : "Sincronizar com Google Chat"}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 font-sans">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <div className="flex-1 min-w-[200px]">
+                            <label className="text-[9px] text-gray-400 uppercase font-bold block mb-1">Selecione o Canal/Espaço do Google Chat:</label>
+                            {googleChatSpaces.length > 0 ? (
+                              <select
+                                value={selectedGoogleChatSpaceId}
+                                onChange={(e) => {
+                                  const selectedId = e.target.value;
+                                  const selectedSpace = googleChatSpaces.find(s => s.name === selectedId);
+                                  if (setSelectedGoogleChatSpaceId && setSelectedGoogleChatSpaceName && selectedSpace) {
+                                    setSelectedGoogleChatSpaceId(selectedId);
+                                    setSelectedGoogleChatSpaceName(selectedSpace.displayName || selectedSpace.name);
+                                  }
+                                }}
+                                className="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] focus:outline-none focus:border-indigo-500 text-white font-sans"
+                              >
+                                <option value="">-- Selecione um canal --</option>
+                                {googleChatSpaces.map((space) => (
+                                  <option key={space.name} value={space.name}>
+                                    {space.displayName || space.name}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <div className="text-[10px] text-gray-500 italic space-y-1 font-sans">
+                                <div>Buscando espaços do seu Google Chat...</div>
+                                <div className="text-[9px] text-indigo-400/80">
+                                  Dica: se esta lista demorar ou falhar, você pode usar a aba <strong>Webhook</strong> para configurar o canal manualmente em segundos.
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-end gap-1.5 pt-3">
+                            <button
+                              type="button"
+                              onClick={handleSendTestGoogleChatMessage}
+                              disabled={isGoogleChatLoading || !selectedGoogleChatSpaceId}
+                              className="bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-slate-950 border border-emerald-500/20 px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer font-sans"
+                            >
+                              {isGoogleChatLoading ? "Enviando..." : "Enviar Teste"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (setGoogleChatAccessToken && setSelectedGoogleChatSpaceId && setSelectedGoogleChatSpaceName) {
+                                  setGoogleChatAccessToken(null);
+                                  setSelectedGoogleChatSpaceId("");
+                                  setSelectedGoogleChatSpaceName("");
+                                  setGoogleChatSpaces([]);
+                                }
+                              }}
+                              className="bg-slate-950 hover:bg-slate-800 text-gray-400 border border-white/5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer font-sans"
+                            >
+                              Desconectar
+                            </button>
+                          </div>
+                        </div>
+                        {selectedGoogleChatSpaceName && (
+                          <div className="text-[9.5px] text-emerald-400/80 leading-normal flex items-center gap-1 font-sans">
+                            <span>✓ Canal selecionado: <strong>{selectedGoogleChatSpaceName}</strong>. Mensagens do IntraChat serão espelhadas neste espaço!</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* List of pending student doubts and chat messages */}

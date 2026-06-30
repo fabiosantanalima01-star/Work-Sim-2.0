@@ -44,6 +44,33 @@ export interface SyncAction {
   timestamp: number;
 }
 
+let isQuotaExceededInternal = false;
+
+export function checkQuotaExceeded(): boolean {
+  try {
+    return isQuotaExceededInternal || localStorage.getItem("firebase_quota_exceeded") === "true";
+  } catch {
+    return isQuotaExceededInternal;
+  }
+}
+
+export function setQuotaExceeded(exceeded: boolean) {
+  isQuotaExceededInternal = exceeded;
+  try {
+    if (exceeded) {
+      localStorage.setItem("firebase_quota_exceeded", "true");
+    } else {
+      localStorage.removeItem("firebase_quota_exceeded");
+    }
+  } catch (e) {
+    console.error("Failed to write quota state to localStorage", e);
+  }
+  
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("firebase-quota-exceeded", { detail: exceeded }));
+  }
+}
+
 export const SyncManager = {
   getQueue(): SyncAction[] {
     try {
@@ -82,12 +109,16 @@ export const SyncManager = {
     this.saveQueue(filtered);
     
     // Notify user or log
-    console.log(`[Queue] Action ${type} for ${collection} enqueued due to connectivity/domain issues.`);
+    console.log(`[Queue] Action ${type} for ${collection} enqueued due to connectivity/domain/quota issues.`);
   },
 
   async drainQueue() {
-    // Attempt drain even if navigator.onLine is false, as it's unreliable.
-    // The Firebase SDK will handle the actual connectivity check.
+    // If quota is active, we completely pause automatic attempts to avoid spamming the console
+    if (checkQuotaExceeded()) {
+      console.log("[Queue] Sync queue draining paused: Firestore Daily Free Write Quota Exceeded. Safely keeping updates in offline storage.");
+      return;
+    }
+
     const queue = this.getQueue();
     if (queue.length === 0) return;
 
@@ -108,6 +139,22 @@ export const SyncManager = {
         }
       } catch (err: any) {
         console.error(`[Queue] FAILED to process ${action.type} for ${action.collection} (ID: ${action.docId}):`, err.message);
+        
+        // Check if failed due to quota limit during drainage
+        const msg = err.message?.toLowerCase() || "";
+        const code = err.code || "";
+        if (code === "resource-exhausted" || msg.includes("quota") || msg.includes("exhausted")) {
+          setQuotaExceeded(true);
+          console.warn("[Queue] Pausing remaining queue processing due to quota exhaustion.");
+          remaining.push(action);
+          // Append the rest of the queue without executing to keep it intact
+          const index = queue.indexOf(action);
+          if (index !== -1) {
+            remaining.push(...queue.slice(index + 1));
+          }
+          break;
+        }
+        
         remaining.push(action);
       }
     }
@@ -129,13 +176,19 @@ if (typeof window !== 'undefined') {
 const isQueueableError = (err: any) => {
   const msg = err.message?.toLowerCase() || "";
   const code = err.code || "";
+  const isQuota = code === 'resource-exhausted' || 
+                  msg.includes('quota') || 
+                  msg.includes('exhausted') ||
+                  msg.includes('free daily write units');
+  if (isQuota) {
+    setQuotaExceeded(true);
+  }
   return !navigator.onLine || 
          code === 'unavailable' || 
          code === 'deadline-exceeded' ||
          code === 'resource-exhausted' ||
          code === 'auth/unauthorized-domain' || // Explicitly requested "domain" issues
-         msg.includes('quota') ||
-         msg.includes('exhausted') ||
+         isQuota ||
          msg.includes('network') ||
          msg.includes('offline') ||
          msg.includes('domain') ||

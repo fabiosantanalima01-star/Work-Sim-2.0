@@ -159,6 +159,11 @@ export default function App() {
 
   const [firebaseUser, setFirebaseUser] = useState<any>(null);
 
+  const activeStudent = students.find((s) => s.id === activeStudentId) || null;
+  const isProfessorOrAdmin =
+    (activeStudent?.matricula === "ADM2026") ||
+    firebaseUser?.email?.toLowerCase() === "fabiosantanalima01@gmail.com";
+
   // --- Google Chat Integration States ---
   const [googleChatAccessToken, setGoogleChatAccessToken] = useState<string | null>(null);
   const [selectedGoogleChatSpaceId, setSelectedGoogleChatSpaceId] = useState<string>(() => {
@@ -188,10 +193,22 @@ export default function App() {
       localStorage.setItem("worksim_google_chat_space_id", selectedGoogleChatSpaceId);
       localStorage.setItem("worksim_google_chat_space_name", selectedGoogleChatSpaceName);
       localStorage.setItem("worksim_google_chat_webhook_url", googleChatWebhookUrl);
+
+      // Also persist to Firebase Firestore in the cloud so it's shared across devices
+      if (db && firebaseUser && isProfessorOrAdmin) {
+        syncSetDoc("settings", "google_chat_webhook", {
+          url: googleChatWebhookUrl,
+          spaceId: selectedGoogleChatSpaceId,
+          spaceName: selectedGoogleChatSpaceName,
+          updatedAt: new Date().toISOString()
+        }, { merge: true }).catch((err) => {
+          console.error("Failed to sync google chat settings to cloud:", err);
+        });
+      }
     } catch (e) {
       console.error("Failed to save google chat settings", e);
     }
-  }, [selectedGoogleChatSpaceId, selectedGoogleChatSpaceName, googleChatWebhookUrl]);
+  }, [selectedGoogleChatSpaceId, selectedGoogleChatSpaceName, googleChatWebhookUrl, firebaseUser, isProfessorOrAdmin]);
 
   const [firebaseQuotaActive, setFirebaseQuotaActive] = useState<boolean>(() => checkQuotaExceeded());
 
@@ -213,10 +230,6 @@ export default function App() {
     }
   });
 
-  const activeStudent = students.find((s) => s.id === activeStudentId) || null;
-  const isProfessorOrAdmin =
-    (activeStudent?.matricula === "ADM2026") ||
-    firebaseUser?.email?.toLowerCase() === "fabiosantanalima01@gmail.com";
 
   // --- OTHER STATES ---
   const appLoadedAt = useRef(Date.now());
@@ -656,6 +669,29 @@ export default function App() {
 
     return unsubscribe;
   }, [firebaseUser]);
+
+  // Sync Google Chat webhook settings from Firestore if logged in (for multi-device sync)
+  useEffect(() => {
+    if (!firebaseUser || !isProfessorOrAdmin) return;
+
+    const unsubscribe = onSnapshot(
+      doc(db, "settings", "google_chat_webhook"),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data) {
+            if (data.url !== undefined) setGoogleChatWebhookUrl(data.url);
+            if (data.spaceId !== undefined) setSelectedGoogleChatSpaceId(data.spaceId);
+            if (data.spaceName !== undefined) setSelectedGoogleChatSpaceName(data.spaceName);
+          }
+        }
+      },
+      (error) => {
+        console.error("Firestore loading google chat webhook settings error:", error);
+      }
+    );
+    return unsubscribe;
+  }, [firebaseUser, isProfessorOrAdmin]);
 
   // Daily Reset Check: reset bathroom breaks and screen exits each new day
   useEffect(() => {
@@ -5559,7 +5595,7 @@ Para resolver:
             {/* Isolated Highlighted Version (Only Login Gate) */}
             <div className="pt-4 flex justify-center">
               <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
-                Versão v7.27.2026
+                Versão v7.30.2026
               </span>
             </div>
           </div>

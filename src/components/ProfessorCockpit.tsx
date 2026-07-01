@@ -451,12 +451,19 @@ export default function ProfessorCockpit({
   const classrooms = Array.from(new Set(students.map(s => s.sala))).filter(Boolean).sort();
   const filteredStudentsByClass = students
     .filter(s => s.id !== "adm") // Always filter out ADM
-    .filter(s => globalClassroomFilter === "TODAS" || s.sala === globalClassroomFilter);
+    .filter(s => {
+      if (globalClassroomFilter === "TODAS") return true;
+      if (globalClassroomFilter === "ATIVOS") {
+        const compNow = Date.now() + clockOffset;
+        return s.lastSeen && Math.abs(compNow - s.lastSeen) < 35000;
+      }
+      return s.sala === globalClassroomFilter;
+    });
 
   const studentsToDisplay = filteredStudentsByClass.filter(s => {
     if (!profSearchQuery.trim()) return true;
     const q = profSearchQuery.toLowerCase();
-    return s.nomeCompleto.toLowerCase().includes(q) || s.matricula.toLowerCase().includes(q);
+    return s.nomeCompleto.toLowerCase().includes(q) || s.matricula.toLowerCase().includes(q) || s.id.toLowerCase().includes(q);
   });
 
   // --- ANALYTICS CALCULATIONS ---
@@ -1320,6 +1327,7 @@ export default function ProfessorCockpit({
             className="bg-slate-900 border border-white/10 rounded-lg px-3 py-1.5 text-[10px] font-mono text-accent-primary focus:outline-none focus:border-accent-primary/40 transition-all cursor-pointer"
           >
             <option value="TODAS">TODAS AS TURMAS</option>
+            <option value="ATIVOS" className="text-emerald-400 font-bold">● ONLINE AGORA (ATIVOS)</option>
             {classrooms.map(c => (
               <option key={c} value={c}>{c.toUpperCase()}</option>
             ))}
@@ -1373,7 +1381,11 @@ export default function ProfessorCockpit({
         });
 
         const activeDeviators = students.filter(
-          s => s.status === "Ativo" && (s.focoStatus === "Fora da Tela" || (s.saidasTela || 0) > 0)
+          s => {
+            const compNow = Date.now() + clockOffset;
+            const isOnline = s.lastSeen && Math.abs(compNow - s.lastSeen) < 35000;
+            return isOnline && s.status === "Ativo" && (s.focoStatus === "Fora da Tela" || (s.saidasTela || 0) > 0);
+          }
         );
 
         return (
@@ -3102,6 +3114,7 @@ export default function ProfessorCockpit({
                   className="bg-slate-950/80 border border-white/5 rounded-lg py-1 px-2 text-[10px] font-mono text-gray-300 focus:border-accent-primary focus:outline-none transition-all w-24"
                 >
                   <option value="TODAS">{appLanguage === "en" ? "All Classes" : "Turmas"}</option>
+                  <option value="ATIVOS" className="text-emerald-400 font-bold">{appLanguage === "en" ? "● Online Now" : "● Online"}</option>
                   {classrooms.map(c => (
                     <option key={c} value={c}>{c}</option>
                   ))}
@@ -3129,6 +3142,8 @@ export default function ProfessorCockpit({
                     id => student.respostasDesafios?.[id] === true
                   ).length;
                   const isReadyToHire = student.faseAtual === 0 && phase0CompletedCount === 21;
+                  const compNow = Date.now() + clockOffset;
+                  const isOnline = student.lastSeen && Math.abs(compNow - student.lastSeen) < 35000;
 
                   return (
                     <div 
@@ -3202,11 +3217,15 @@ export default function ProfessorCockpit({
                               </button>
                             </div>
                           <span className={`text-[9px] uppercase font-bold px-1.5 py-0.2 rounded inline-block ${
-                            student.status === "Ativo" ? "bg-emerald-950/35 text-emerald-400" : "bg-slate-900 text-gray-500"
+                            student.status === "Ativo" 
+                              ? isOnline 
+                                ? "bg-emerald-950/35 text-emerald-400" 
+                                : "bg-slate-900 text-gray-400"
+                              : "bg-slate-900 text-gray-500"
                           }`}>
-                            {student.status}
+                            {student.status === "Ativo" && !isOnline ? "Ausente" : student.status}
                           </span>
-                          {student.status === "Ativo" && (
+                          {student.status === "Ativo" && isOnline && (
                             student.focoStatus === "Fora da Tela" ? (
                               <div className="flex flex-col items-start gap-1 mt-1">
                                 <span className="text-[9px] bg-rose-500/15 text-rose-450 border border-rose-500/30 px-1.5 py-0.2 rounded font-sans font-bold uppercase tracking-wider animate-pulse inline-block">
@@ -3349,6 +3368,7 @@ export default function ProfessorCockpit({
                     className="bg-slate-950 border-none text-[10px] font-mono text-accent-warning focus:outline-none cursor-pointer pr-1 font-bold"
                   >
                     <option value="TODAS" className="bg-slate-900 text-white">TODAS</option>
+                    <option value="ATIVOS" className="bg-slate-900 text-emerald-400 font-bold">● ATIVOS</option>
                     {classrooms.map(c => (
                       <option key={c} value={c} className="bg-slate-900 text-white">{c.toUpperCase()}</option>
                     ))}
@@ -3773,6 +3793,7 @@ export default function ProfessorCockpit({
                 className="bg-slate-950 border border-white/10 rounded-lg px-3 py-1.5 text-[10px] font-mono text-accent-primary font-bold focus:outline-none focus:border-accent-primary/60 transition-all cursor-pointer"
               >
                 <option value="TODAS" className="bg-slate-900 text-white">TODAS AS TURMAS</option>
+                <option value="ATIVOS" className="bg-slate-900 text-emerald-400 font-bold">● ONLINE AGORA (ATIVOS)</option>
                 {classrooms.map(c => (
                   <option key={c} value={c} className="bg-slate-900 text-white">{c.toUpperCase()}</option>
                 ))}
@@ -3943,6 +3964,7 @@ export default function ProfessorCockpit({
                     className="bg-transparent border-none text-[10px] font-mono text-gray-200 font-bold focus:outline-none cursor-pointer"
                   >
                     <option value="TODAS" className="bg-slate-900 text-white">TODAS AS TURMAS</option>
+                    <option value="ATIVOS" className="bg-slate-900 text-emerald-400 font-bold">● ONLINE AGORA (ATIVOS)</option>
                     {classrooms.map(c => (
                       <option key={c} value={c} className="bg-slate-900 text-white">{c.toUpperCase()}</option>
                     ))}
@@ -4008,6 +4030,9 @@ export default function ProfessorCockpit({
                       return s.nomeCompleto.toLowerCase().includes(q) || s.matricula.toLowerCase().includes(q) || s.id.toLowerCase().includes(q);
                     })
                     .map((student) => {
+                      const compNow = Date.now() + clockOffset;
+                      const isOnline = student.lastSeen && Math.abs(compNow - student.lastSeen) < 35000;
+                      
                       const phaseConfig = CAREER_PHASES.find(p => p.id === student.faseAtual);
                       const totalInPhase = phaseConfig?.totalDesafios || 7;
                       
@@ -4073,10 +4098,16 @@ export default function ProfessorCockpit({
                           {finishedInPhase} / {totalInPhase}
                         </td>
                         <td className="py-3 px-3 text-center">
-                          {student.status === "Ativo" ? (
+                          {!isOnline ? (
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="text-[9px] bg-slate-800/40 text-gray-400 border border-white/5 px-1.5 py-0.5 rounded font-bold tracking-wider inline-block text-center uppercase font-mono">
+                                ● Ausente
+                              </span>
+                            </div>
+                          ) : student.status === "Ativo" ? (
                             student.focoStatus === "Fora da Tela" ? (
                               <div className="flex flex-col items-center gap-1">
-                                <span className="text-[9px] bg-rose-500/15 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded font-black tracking-wider animate-pulse inline-block text-center uppercase font-mono">
+                                <span className="text-[9px] bg-rose-500/15 text-rose-450 border border-rose-500/20 px-1.5 py-0.5 rounded font-black tracking-wider animate-pulse inline-block text-center uppercase font-mono">
                                   🚫 Fora da Tela
                                 </span>
                                 <span className="text-[8px] text-gray-500 font-mono">
@@ -4086,7 +4117,7 @@ export default function ProfessorCockpit({
                                   <button
                                     type="button"
                                     onClick={() => onResetStudentFocus(student.id)}
-                                    className="text-[8px] text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-500 px-1.5 py-0.5 rounded transition-all font-mono font-bold uppercase mt-0.5 cursor-pointer border border-rose-500/25"
+                                    className="text-[8px] text-rose-450 hover:text-white bg-rose-500/10 hover:bg-rose-500 px-1.5 py-0.5 rounded transition-all font-mono font-bold uppercase mt-0.5 cursor-pointer border border-rose-500/25"
                                   >
                                     {(student.saidasTela || 0) >= 7 ? "Destravar" : "Zerar"}
                                   </button>
@@ -4880,6 +4911,9 @@ export default function ProfessorCockpit({
         const student = students.find((s) => s.id === selectedTelemetryStudentId);
         if (!student) return null;
 
+        const compNow = Date.now() + clockOffset;
+        const isOnline = student.lastSeen && Math.abs(compNow - student.lastSeen) < 35000;
+
         // Calculate TMA: Total Active Seconds divided by number of answered questions
         const solvedCount = Object.keys(student.respostasDesafios || {}).length;
         const totalSecs = student.tempoAtivoSegundos || 0;
@@ -5232,7 +5266,7 @@ export default function ProfessorCockpit({
                     <div>
                       <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest block border-b border-white/5 pb-1 mb-2">📊 CONTROLE OPERACIONAL</span>
                       <div className="text-sm font-mono font-bold text-amber-500 tracking-tight uppercase truncate">
-                        {student.focoStatus === "Fora da Tela" ? "🚫 Desfocado Temporário" : "● Operando Ativo"}
+                        {!isOnline ? "● Ausente / Offline" : student.focoStatus === "Fora da Tela" ? "🚫 Desfocado Temporário" : "● Operando Ativo"}
                       </div>
                       <p className="text-[10px] text-gray-400 mt-1">
                         Desvios de foco: <strong className="text-white">{student.saidasTela || 0} alertas</strong>

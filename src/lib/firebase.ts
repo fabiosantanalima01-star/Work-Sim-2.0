@@ -100,6 +100,33 @@ export function setQuotaExceeded(exceeded: boolean) {
   }
 }
 
+export function computeStudentDiff(baseline: any, current: any): any {
+  if (!baseline) return current;
+  const diff: any = {};
+  let hasChanges = false;
+
+  const keys = Object.keys(current);
+  for (const key of keys) {
+    if (key === "id") continue;
+    const valCurrent = current[key];
+    const valBaseline = baseline[key];
+
+    const changed = JSON.stringify(valCurrent) !== JSON.stringify(valBaseline);
+    if (changed) {
+      diff[key] = valCurrent;
+      hasChanges = true;
+    }
+  }
+
+  if (hasChanges) {
+    if (current.id) {
+      diff.id = current.id;
+    }
+    return diff;
+  }
+  return null;
+}
+
 export const SyncManager = {
   getQueue(): SyncAction[] {
     try {
@@ -115,6 +142,35 @@ export const SyncManager = {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
     } catch (e) {
       console.error("Sync Error:", e);
+    }
+  },
+
+  getBaselines(): Record<string, any> {
+    try {
+      const raw = localStorage.getItem("simulabor_sync_baselines");
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
+    }
+  },
+
+  getBaseline(collection: string, docId: string): any {
+    return this.getBaselines()[`${collection}/${docId}`] || null;
+  },
+
+  setBaseline(collection: string, docId: string, data: any, overwrite: boolean = false) {
+    try {
+      const baselines = this.getBaselines();
+      const key = `${collection}/${docId}`;
+      if (overwrite) {
+        baselines[key] = data;
+      } else {
+        const existing = baselines[key] || {};
+        baselines[key] = { ...existing, ...data };
+      }
+      localStorage.setItem("simulabor_sync_baselines", JSON.stringify(baselines));
+    } catch (e) {
+      console.error("Failed to save baseline", e);
     }
   },
 
@@ -156,9 +212,37 @@ export const SyncManager = {
     for (const action of queue) {
       try {
         if (action.type === SyncActionType.SET && action.docId) {
-          await setDoc(doc(db, action.collection, action.docId), action.data, { merge: action.merge });
+          let dataToSend = action.data;
+          if (action.collection === "students") {
+            const baseline = this.getBaseline(action.collection, action.docId);
+            const diff = computeStudentDiff(baseline, action.data);
+            if (diff === null) {
+              console.log(`[Queue Diff-Sync] No changes for student ${action.docId}. Skipping.`);
+              continue;
+            }
+            dataToSend = diff;
+            console.log(`[Queue Diff-Sync] Syncing diff for student ${action.docId}:`, Object.keys(diff));
+          }
+          await setDoc(doc(db, action.collection, action.docId), dataToSend, { merge: action.merge });
+          if (action.collection === "students") {
+            this.setBaseline(action.collection, action.docId, action.data);
+          }
         } else if (action.type === SyncActionType.UPDATE && action.docId) {
-          await updateDoc(doc(db, action.collection, action.docId), action.data);
+          let dataToSend = action.data;
+          if (action.collection === "students") {
+            const baseline = this.getBaseline(action.collection, action.docId);
+            const diff = computeStudentDiff(baseline, action.data);
+            if (diff === null) {
+              console.log(`[Queue Diff-Sync] No changes for student ${action.docId}. Skipping.`);
+              continue;
+            }
+            dataToSend = diff;
+            console.log(`[Queue Diff-Sync] Syncing diff update for student ${action.docId}:`, Object.keys(diff));
+          }
+          await updateDoc(doc(db, action.collection, action.docId), dataToSend);
+          if (action.collection === "students") {
+            this.setBaseline(action.collection, action.docId, action.data);
+          }
         } else if (action.type === SyncActionType.DELETE && action.docId) {
           const { deleteDoc } = await import("firebase/firestore");
           await deleteDoc(doc(db, action.collection, action.docId));
@@ -226,7 +310,23 @@ const isQueueableError = (err: any) => {
 
 export async function syncSetDoc(collectionName: string, docId: string, data: any, options: { merge?: boolean } = {}) {
   try {
-    await setDoc(doc(db, collectionName, docId), data, options);
+    let dataToSend = data;
+    if (collectionName === "students") {
+      const baseline = SyncManager.getBaseline(collectionName, docId);
+      const diff = computeStudentDiff(baseline, data);
+      if (diff === null) {
+        console.log(`[Diff-Sync] No changes detected for student ${docId}. Skipping Firestore setDoc.`);
+        return;
+      }
+      dataToSend = diff;
+      console.log(`[Diff-Sync] Sending setDoc diff for student ${docId}:`, Object.keys(diff));
+    }
+
+    await setDoc(doc(db, collectionName, docId), dataToSend, options);
+
+    if (collectionName === "students") {
+      SyncManager.setBaseline(collectionName, docId, data);
+    }
     SyncManager.drainQueue().catch(() => {});
   } catch (err: any) {
     if (isQueueableError(err)) {
@@ -267,7 +367,23 @@ export async function syncDeleteDoc(collectionName: string, docId: string) {
 
 export async function syncUpdateDoc(collectionName: string, docId: string, data: any) {
   try {
-    await updateDoc(doc(db, collectionName, docId), data);
+    let dataToSend = data;
+    if (collectionName === "students") {
+      const baseline = SyncManager.getBaseline(collectionName, docId);
+      const diff = computeStudentDiff(baseline, data);
+      if (diff === null) {
+        console.log(`[Diff-Sync] No changes detected for student ${docId}. Skipping Firestore updateDoc.`);
+        return;
+      }
+      dataToSend = diff;
+      console.log(`[Diff-Sync] Sending updateDoc diff for student ${docId}:`, Object.keys(diff));
+    }
+
+    await updateDoc(doc(db, collectionName, docId), dataToSend);
+
+    if (collectionName === "students") {
+      SyncManager.setBaseline(collectionName, docId, data);
+    }
     SyncManager.drainQueue().catch(() => {});
   } catch (err: any) {
     if (isQueueableError(err)) {

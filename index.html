@@ -6,7 +6,96 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>⭐</text></svg>" />
     <title>My Google AI Studio App</title>
     <script>
+      // --- Vite HMR Connection Guard: Exponential Backoff with Jitter ---
+      (function() {
+        const nativeFetch = window.fetch;
+        let pingFailureCount = 0;
+        const BASE_DELAY = 1000; // 1s base
+        const MAX_DELAY = 30000;  // 30s max cap
+
+        window.fetch = function(input, init) {
+          const url = typeof input === 'string' ? input : (input && input.url) ? input.url : '';
+          
+          if (url.includes('__vite_ping')) {
+            // Calculate exponential backoff: min(MAX_DELAY, BASE_DELAY * 2^pingFailureCount)
+            const temp = Math.min(MAX_DELAY, BASE_DELAY * Math.pow(2, pingFailureCount));
+            // Apply equal jitter: delay is half-temp + random(half-temp)
+            const halfTemp = temp / 2;
+            const jitterDelay = halfTemp + Math.random() * halfTemp;
+            
+            if (pingFailureCount > 0) {
+              console.warn(`[Vite Guard] Connection lost. Reconnecting in ${(jitterDelay / 1000).toFixed(2)}s (exponential backoff + jitter)...`);
+            }
+
+            return new Promise((resolve, reject) => {
+              setTimeout(() => {
+                nativeFetch.call(window, input, init)
+                  .then(response => {
+                    if (response.ok) {
+                      if (pingFailureCount > 0) {
+                        console.log('[Vite Guard] Connected successfully! Resetting backoff.');
+                      }
+                      pingFailureCount = 0;
+                    } else {
+                      pingFailureCount++;
+                    }
+                    resolve(response);
+                  })
+                  .catch(error => {
+                    pingFailureCount++;
+                    reject(error);
+                  });
+              }, jitterDelay);
+            });
+          }
+          
+          return nativeFetch.apply(this, arguments);
+        };
+
+        const NativeWebSocket = window.WebSocket;
+        if (NativeWebSocket) {
+          window.WebSocket = new Proxy(NativeWebSocket, {
+            construct(target, args) {
+              const [url, protocols] = args;
+              const isViteHMR = (protocols && (protocols === 'vite-hmr' || (Array.isArray(protocols) && protocols.includes('vite-hmr')))) || (url && url.includes('vite'));
+              
+              if (isViteHMR) {
+                console.log('[Vite Guard] Custom connection initialized for Vite HMR WebSocket.');
+              }
+              return Reflect.construct(target, args);
+            }
+          });
+        }
+      })();
+
+      function isBenignViteError(message, stack, reason) {
+        const msgStr = String(message || '').toLowerCase();
+        const stackStr = String(stack || '').toLowerCase();
+        const reasonStr = String(reason || '').toLowerCase();
+        const indicators = [
+          'websocket',
+          'hmr',
+          'vite',
+          '__vite_ping',
+          'connection closed',
+          'closed without opened',
+          'failed to connect'
+        ];
+        return indicators.some(ind => 
+          msgStr.includes(ind) || 
+          stackStr.includes(ind) || 
+          reasonStr.includes(ind)
+        );
+      }
+
       window.addEventListener('error', function(event) {
+        const msg = event.message || '';
+        const stack = event.error ? event.error.stack : '';
+        if (isBenignViteError(msg, stack)) {
+          console.warn('[Vite Guard] Ignored benign development environment error:', msg);
+          return;
+        }
+
         var root = document.getElementById('root');
         if (root) {
           root.innerHTML = '<div style="padding: 20px; color: #721c24; font-family: monospace; background-color: #f8d7da; border: 1px solid #f5c6cb; margin: 20px; border-radius: 4px;">' +
@@ -18,6 +107,13 @@
         }
       });
       window.addEventListener('unhandledrejection', function(event) {
+        const reasonMsg = event.reason ? (event.reason.message || String(event.reason)) : '';
+        const reasonStack = event.reason && event.reason.stack ? event.reason.stack : '';
+        if (isBenignViteError(reasonMsg, reasonStack, String(event.reason))) {
+          console.warn('[Vite Guard] Ignored benign development promise rejection:', reasonMsg);
+          return;
+        }
+
         var root = document.getElementById('root');
         if (root) {
           root.innerHTML = '<div style="padding: 20px; color: #721c24; font-family: monospace; background-color: #f8d7da; border: 1px solid #f5c6cb; margin: 20px; border-radius: 4px;">' +

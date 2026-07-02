@@ -484,6 +484,7 @@ export default function App() {
           }
           
           lastFirestoreSyncedRef.current[remote.id] = remote;
+          SyncManager.setBaseline("students", remote.id, remote, true);
         });
 
         setStudents((localStudents) => {

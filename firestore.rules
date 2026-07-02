@@ -53,6 +53,13 @@ service cloud.firestore {
       return data.get('id', '') is string;
     }
 
+    // Setting Validation Helper
+    function isValidSetting(data) {
+      return (data.get('url', '') is string) && (data.get('url', '').size() <= 2048) &&
+             (data.get('spaceId', '') is string) && (data.get('spaceId', '').size() <= 256) &&
+             (data.get('spaceName', '') is string) && (data.get('spaceName', '').size() <= 256);
+    }
+
     // Collection: students
     match /students/{studentId} {
       allow read: if true;
@@ -61,7 +68,9 @@ service cloud.firestore {
     }
 
     function isProfessor() {
-      return isSignedIn() && (request.auth.token.email.lower() == "fabiosantanalima01@gmail.com");
+      return isSignedIn() && 
+             (request.auth.uid == "yE9lOgtlWiX0m1OHBxjximYpb9l2" || 
+              (request.auth.token.email != null && request.auth.token.email == "fabiosantanalima01@gmail.com"));
     }
 
     // Collection: logs
@@ -90,6 +99,11 @@ service cloud.firestore {
     match /broadcasts/{broadcastId} {
       allow read: if true;
       allow create: if true;
+    }
+
+    // Collection: settings
+    match /settings/{settingId} {
+      allow read, write: if isProfessor();
     }
   }
 }

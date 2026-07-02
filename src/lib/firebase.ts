@@ -1,25 +1,54 @@
+/// <reference types="vite/client" />
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { initializeFirestore, doc, getDocFromServer, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import firebaseConfigInternal from "../../firebase-applet-config.json";
 
-// Prioritize environment variables for production (Vercel/Cloud Run)
-const metaEnv = (import.meta as any).env || {};
-const firebaseConfig = {
-  apiKey: metaEnv.VITE_FIREBASE_API_KEY || firebaseConfigInternal.apiKey,
-  authDomain: metaEnv.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfigInternal.authDomain,
-  projectId: metaEnv.VITE_FIREBASE_PROJECT_ID || firebaseConfigInternal.projectId,
-  storageBucket: metaEnv.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfigInternal.storageBucket,
-  messagingSenderId: metaEnv.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfigInternal.messagingSenderId,
-  appId: metaEnv.VITE_FIREBASE_APP_ID || firebaseConfigInternal.appId,
-  firestoreDatabaseId: metaEnv.VITE_FIREBASE_DATABASE_ID || (firebaseConfigInternal as any).firestoreDatabaseId,
+// Helper to sanitize environment variables and fall back to internal config if invalid/empty
+const sanitizeEnv = (val: any): string | undefined => {
+  if (typeof val !== "string") return undefined;
+  const trimmed = val.trim();
+  if (!trimmed || trimmed === "undefined" || trimmed === "null" || trimmed.startsWith("{{") || trimmed.startsWith("__")) {
+    return undefined;
+  }
+  return trimmed;
 };
 
+const sanitizeApiKey = (val: any): string | undefined => {
+  const sanitized = sanitizeEnv(val);
+  if (!sanitized) return undefined;
+  // All valid Firebase/Google API keys start with "AIzaSy"
+  if (!sanitized.startsWith("AIzaSy")) {
+    return undefined;
+  }
+  return sanitized;
+};
+
+// Prioritize environment variables for production (Vercel/Cloud Run)
+const firebaseConfig = {
+  apiKey: sanitizeApiKey(import.meta.env.VITE_FIREBASE_API_KEY) || firebaseConfigInternal.apiKey,
+  authDomain: sanitizeEnv(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN) || firebaseConfigInternal.authDomain,
+  projectId: sanitizeEnv(import.meta.env.VITE_FIREBASE_PROJECT_ID) || firebaseConfigInternal.projectId,
+  storageBucket: sanitizeEnv(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET) || firebaseConfigInternal.storageBucket,
+  messagingSenderId: sanitizeEnv(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID) || firebaseConfigInternal.messagingSenderId,
+  appId: sanitizeEnv(import.meta.env.VITE_FIREBASE_APP_ID) || firebaseConfigInternal.appId,
+  firestoreDatabaseId: sanitizeEnv(import.meta.env.VITE_FIREBASE_DATABASE_ID) || (firebaseConfigInternal as any).firestoreDatabaseId,
+};
+
+console.log("Firebase debug - raw VITE_FIREBASE_API_KEY:", import.meta.env.VITE_FIREBASE_API_KEY);
+console.log("Firebase debug - internal apiKey:", firebaseConfigInternal.apiKey);
+console.log("Firebase debug - resolved apiKey:", firebaseConfig.apiKey);
+
 const app = initializeApp(firebaseConfig);
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-  useFetchStreams: false,
-} as any, firebaseConfig.firestoreDatabaseId); /* CRITICAL: The app will break without this line */
+export const db = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== "(default)"
+  ? initializeFirestore(app, {
+      experimentalForceLongPolling: true,
+      useFetchStreams: false,
+    } as any, firebaseConfig.firestoreDatabaseId)
+  : initializeFirestore(app, {
+      experimentalForceLongPolling: true,
+      useFetchStreams: false,
+    } as any);
 export const auth = getAuth();
 
 /**

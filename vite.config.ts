@@ -11,6 +11,27 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    build: {
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('firebase')) {
+                return 'firebase-vendor';
+              }
+              if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('purify')) {
+                return 'pdf-vendor';
+              }
+              if (id.includes('recharts') || id.includes('d3')) {
+                return 'chart-vendor';
+              }
+              return 'vendor';
+            }
+          },
+        },
+      },
+    },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.

@@ -124,7 +124,26 @@ export default function App() {
   const [students, setStudents] = useState<Student[]>(() => {
     try {
       const cached = localStorage.getItem("worksim_students");
-      return cached ? JSON.parse(cached) : INITIAL_STUDENTS;
+      const rawList: Student[] = cached ? JSON.parse(cached) : INITIAL_STUDENTS;
+      const unique: Student[] = [];
+      const seen = new Set<string>();
+      rawList.forEach((s) => {
+        const mat = s.matricula?.toUpperCase().trim();
+        if (mat) {
+          if (!seen.has(mat)) {
+            seen.add(mat);
+            unique.push(s);
+          } else {
+            const idx = unique.findIndex((x) => x.matricula?.toUpperCase().trim() === mat);
+            if (idx !== -1 && (s.xp || 0) > (unique[idx].xp || 0)) {
+              unique[idx] = s;
+            }
+          }
+        } else {
+          unique.push(s);
+        }
+      });
+      return unique;
     } catch (e) {
       console.error("Local storage students error", e);
       return INITIAL_STUDENTS;
@@ -169,52 +188,6 @@ export default function App() {
   const isProfessorOrAdmin =
     (activeStudent?.matricula === "ADM2026") ||
     firebaseUser?.email?.toLowerCase() === "fabiosantanalima01@gmail.com";
-
-  // --- Google Chat Integration States ---
-  const [googleChatAccessToken, setGoogleChatAccessToken] = useState<string | null>(null);
-  const [selectedGoogleChatSpaceId, setSelectedGoogleChatSpaceId] = useState<string>(() => {
-    try {
-      return localStorage.getItem("worksim_google_chat_space_id") || "";
-    } catch (e) {
-      return "";
-    }
-  });
-  const [selectedGoogleChatSpaceName, setSelectedGoogleChatSpaceName] = useState<string>(() => {
-    try {
-      return localStorage.getItem("worksim_google_chat_space_name") || "";
-    } catch (e) {
-      return "";
-    }
-  });
-  const [googleChatWebhookUrl, setGoogleChatWebhookUrl] = useState<string>(() => {
-    try {
-      return localStorage.getItem("worksim_google_chat_webhook_url") || "";
-    } catch (e) {
-      return "";
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("worksim_google_chat_space_id", selectedGoogleChatSpaceId);
-      localStorage.setItem("worksim_google_chat_space_name", selectedGoogleChatSpaceName);
-      localStorage.setItem("worksim_google_chat_webhook_url", googleChatWebhookUrl);
-
-      // Also persist to Firebase Firestore in the cloud so it's shared across devices
-      if (db && firebaseUser && isProfessorOrAdmin) {
-        syncSetDoc("settings", "google_chat_webhook", {
-          url: googleChatWebhookUrl,
-          spaceId: selectedGoogleChatSpaceId,
-          spaceName: selectedGoogleChatSpaceName,
-          updatedAt: new Date().toISOString()
-        }, { merge: true }).catch((err) => {
-          console.error("Failed to sync google chat settings to cloud:", err);
-        });
-      }
-    } catch (e) {
-      console.error("Failed to save google chat settings", e);
-    }
-  }, [selectedGoogleChatSpaceId, selectedGoogleChatSpaceName, googleChatWebhookUrl, firebaseUser, isProfessorOrAdmin]);
 
   const [firebaseQuotaActive, setFirebaseQuotaActive] = useState<boolean>(() => checkQuotaExceeded());
 
@@ -516,18 +489,25 @@ export default function App() {
         setStudents((localStudents) => {
           // Source of truth for students that have been in Firestore is the remote snapshot.
           // To prevent accidental deletions of students due to slow networks, quota issues, or login switches,
-          // we treat local state as a highly secure, persistent backup. Local students are NEVER deleted automatically.
-          // They can only be deleted explicitly via the "Apagar Aluno" or "Limpar Geral" buttons in the admin dashboard.
-          const filteredLocal = [...localStudents];
-
+          // we treat local state as a highly secure, persistent backup. Local students are NEVER deleted automatically,
+          // unless they are NOT in remoteStudents and NOT in INITIAL_STUDENTS and NOT the active student and NOT pending sync.
           const remoteIds = new Set(remoteStudents.map(r => r.id));
           const pendingSyncIds = new Set(SyncManager.getQueue().map(q => q.docId).filter(Boolean));
           const initialIds = new Set(INITIAL_STUDENTS.map(s => s.id));
 
+          const filteredLocal = localStudents.filter((s) => {
+            const isRemote = remoteIds.has(s.id);
+            const isInitial = initialIds.has(s.id) || (s.matricula && INITIAL_STUDENTS.some(init => init.matricula === s.matricula));
+            const isActive = s.id === activeStudentId;
+            const isPending = pendingSyncIds.has(s.id);
+            return isRemote || isInitial || isActive || isPending;
+          });
+
           const merged = [...filteredLocal];
 
           remoteStudents.forEach((remote) => {
-            const localIdx = merged.findIndex((s) => s.id === remote.id);
+            // Find by ID OR by matricula to prevent duplicates!
+            const localIdx = merged.findIndex((s) => s.id === remote.id || (s.matricula && remote.matricula && s.matricula.toUpperCase().trim() === remote.matricula.toUpperCase().trim()));
             if (localIdx === -1) {
               merged.push(remote);
             } else {
@@ -584,7 +564,32 @@ export default function App() {
             }
           });
 
-          return merged;
+          // Final safety de-duplication pass by matricula
+          const finalMerged: Student[] = [];
+          const seenMatriculas = new Set<string>();
+          merged.forEach((s) => {
+            const mat = s.matricula?.toUpperCase().trim();
+            if (mat) {
+              if (!seenMatriculas.has(mat)) {
+                seenMatriculas.add(mat);
+                finalMerged.push(s);
+              } else {
+                const existingIdx = finalMerged.findIndex(x => x.matricula?.toUpperCase().trim() === mat);
+                if (existingIdx !== -1) {
+                  const existing = finalMerged[existingIdx];
+                  const isCurrentActive = s.id === activeStudentId;
+                  const isExistingActive = existing.id === activeStudentId;
+                  if (isCurrentActive || (!isExistingActive && (s.xp || 0) > (existing.xp || 0))) {
+                    finalMerged[existingIdx] = s;
+                  }
+                }
+              }
+            } else {
+              finalMerged.push(s);
+            }
+          });
+
+          return finalMerged;
         });
         setHasInitialStudentsLoaded(true);
         setIsFirebaseSyncing(false);
@@ -671,29 +676,6 @@ export default function App() {
 
     return unsubscribe;
   }, [firebaseUser]);
-
-  // Sync Google Chat webhook settings from Firestore if logged in (for multi-device sync)
-  useEffect(() => {
-    if (!firebaseUser || !isProfessorOrAdmin) return;
-
-    const unsubscribe = onSnapshot(
-      doc(db, "settings", "google_chat_webhook"),
-      (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data) {
-            if (data.url !== undefined) setGoogleChatWebhookUrl(data.url);
-            if (data.spaceId !== undefined) setSelectedGoogleChatSpaceId(data.spaceId);
-            if (data.spaceName !== undefined) setSelectedGoogleChatSpaceName(data.spaceName);
-          }
-        }
-      },
-      (error) => {
-        console.error("Firestore loading google chat webhook settings error:", error);
-      }
-    );
-    return unsubscribe;
-  }, [firebaseUser, isProfessorOrAdmin]);
 
   // Daily Reset Check: reset bathroom breaks and screen exits each new day
   useEffect(() => {
@@ -1411,44 +1393,6 @@ Para resolver:
       })
     );
   };
-  const sendToGoogleChat = async (studentName: string, sender: string, text: string) => {
-    const formattedText = `💬 *[WorkSim - IntraChat]*\n*Conversa com*: *${studentName}*\n*Remetente*: *${sender}*\n*Mensagem*: ${text}`;
-    
-    // 1. Try Webhook first (if configured)
-    if (googleChatWebhookUrl && googleChatWebhookUrl.trim()) {
-      try {
-        await fetch(googleChatWebhookUrl.trim(), {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ text: formattedText })
-        });
-        return;
-      } catch (err) {
-        console.error("Erro ao enviar mensagem via Webhook do Google Chat:", err);
-      }
-    }
-
-    // 2. Try OAuth fallback
-    if (!googleChatAccessToken || !selectedGoogleChatSpaceId) return;
-    try {
-      const url = `https://chat.googleapis.com/v1/${selectedGoogleChatSpaceId}/messages`;
-      await fetch(url, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${googleChatAccessToken}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          text: formattedText
-        })
-      });
-    } catch (err) {
-      console.error("Erro ao enviar mensagem para o Google Chat:", err);
-    }
-  };
-
   const handleSendChatMessage = (studentId: string, text: string) => {
     if (!text.trim()) return;
     
@@ -1479,11 +1423,6 @@ Para resolver:
       syncUpdateDoc("students", studentId, {
         mensagensChat: arrayUnion(newMsg)
       }).catch(console.error);
-    }
-
-    const targetStudent = students.find(x => x.id === studentId);
-    if (targetStudent) {
-      sendToGoogleChat(targetStudent.nomeCompleto, "Professor Fábio", text.trim());
     }
   };
 
@@ -1522,7 +1461,6 @@ Para resolver:
     // Add alert notification for professor
     const targetStudent = students.find(x => x.id === studentId);
     if (targetStudent) {
-      sendToGoogleChat(targetStudent.nomeCompleto, targetStudent.nomeCompleto, text.trim());
       setChatNotifications((prev) => [
         ...prev,
         {
@@ -9087,14 +9025,6 @@ Para resolver:
                 onSendMessage={handleSendChatMessage}
                 themeMode={themeMode}
                 clockOffset={clockOffsetRef.current}
-                googleChatAccessToken={googleChatAccessToken}
-                setGoogleChatAccessToken={setGoogleChatAccessToken}
-                selectedGoogleChatSpaceId={selectedGoogleChatSpaceId}
-                setSelectedGoogleChatSpaceId={setSelectedGoogleChatSpaceId}
-                selectedGoogleChatSpaceName={selectedGoogleChatSpaceName}
-                setSelectedGoogleChatSpaceName={setSelectedGoogleChatSpaceName}
-                googleChatWebhookUrl={googleChatWebhookUrl}
-                setGoogleChatWebhookUrl={setGoogleChatWebhookUrl}
               />
             )}
           </main>

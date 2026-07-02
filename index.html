@@ -5,6 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>⭐</text></svg>" />
     <title>My Google AI Studio App</title>
+    <script>
+      window.addEventListener('error', function(event) {
+        var root = document.getElementById('root');
+        if (root) {
+          root.innerHTML = '<div style="padding: 20px; color: #721c24; font-family: monospace; background-color: #f8d7da; border: 1px solid #f5c6cb; margin: 20px; border-radius: 4px;">' +
+            '<h3 style="margin-top: 0;">Unhandled Runtime Error</h3>' +
+            '<p><strong>Message:</strong> ' + event.message + '</p>' +
+            '<p><strong>Source:</strong> ' + event.filename + ':' + event.lineno + ':' + event.colno + '</p>' +
+            '<pre style="white-space: pre-wrap; background: #fff; padding: 10px; border: 1px solid #eee; margin-top: 10px; font-size: 12px; max-height: 400px; overflow: auto;">' + (event.error ? event.error.stack : 'No stack trace available') + '</pre>' +
+            '</div>';
+        }
+      });
+      window.addEventListener('unhandledrejection', function(event) {
+        var root = document.getElementById('root');
+        if (root) {
+          root.innerHTML = '<div style="padding: 20px; color: #721c24; font-family: monospace; background-color: #f8d7da; border: 1px solid #f5c6cb; margin: 20px; border-radius: 4px;">' +
+            '<h3 style="margin-top: 0;">Unhandled Promise Rejection</h3>' +
+            '<p><strong>Reason:</strong> ' + (event.reason ? (event.reason.message || event.reason) : 'Unknown reason') + '</p>' +
+            '<pre style="white-space: pre-wrap; background: #fff; padding: 10px; border: 1px solid #eee; margin-top: 10px; font-size: 12px; max-height: 400px; overflow: auto;">' + (event.reason && event.reason.stack ? event.reason.stack : 'No stack trace available') + '</pre>' +
+            '</div>';
+        }
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

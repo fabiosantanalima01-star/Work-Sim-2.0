@@ -98,6 +98,17 @@
         "status": { "type": "string" }
       },
       "required": ["id", "veteranName", "veteranUser", "category", "text", "timestamp", "status"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "Application configurations and settings, such as Google Chat webhooks",
+      "type": "object",
+      "properties": {
+        "url": { "type": "string" },
+        "spaceId": { "type": "string" },
+        "spaceName": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
     }
   },
   "firestore": {
@@ -116,6 +127,10 @@
     "/feedbacks/{feedbackId}": {
       "schema": "Feedback",
       "description": "Feedback reports submitted by veteran students"
+    },
+    "/settings/{settingId}": {
+      "schema": "Setting",
+      "description": "Application configurations and settings"
     }
   }
 }

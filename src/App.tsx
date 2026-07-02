@@ -134,6 +134,12 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem("worksim_students", JSON.stringify(students));
+      // Automated Safety Backup: Only save if we have more than the base initial students
+      // This ensures the backup contains actual registered students and is not overwritten by a sync wipe.
+      if (students.length > INITIAL_STUDENTS.length) {
+        localStorage.setItem("worksim_students_safety_backup", JSON.stringify(students));
+        localStorage.setItem("worksim_students_backup_timestamp", Date.now().toString());
+      }
     } catch (e) {
       console.error("Failed to save students to localStorage", e);
     }
@@ -236,7 +242,10 @@ export default function App() {
   const clockOffsetRef = useRef<number>(0);
   useEffect(() => {
     fetch("/api/time")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
         if (data && typeof data.serverTime === "number") {
           const clientNow = Date.now();
@@ -245,7 +254,9 @@ export default function App() {
           console.log(`[Clock Sync] Compensated clock drift offset: ${offset}ms`);
         }
       })
-      .catch((err) => console.error("Error syncing clock with server:", err));
+      .catch((err) => {
+        console.warn("[Clock Sync] Server time synchronization skipped, falling back to local client time:", err.message || err);
+      });
   }, []);
   const [activeBroadcast, setActiveBroadcast] = useState<{ id: string, text: string } | null>(null);
   const loginBroadcastRef = useRef(false);
@@ -504,23 +515,14 @@ export default function App() {
 
         setStudents((localStudents) => {
           // Source of truth for students that have been in Firestore is the remote snapshot.
+          // To prevent accidental deletions of students due to slow networks, quota issues, or login switches,
+          // we treat local state as a highly secure, persistent backup. Local students are NEVER deleted automatically.
+          // They can only be deleted explicitly via the "Apagar Aluno" or "Limpar Geral" buttons in the admin dashboard.
+          const filteredLocal = [...localStudents];
+
           const remoteIds = new Set(remoteStudents.map(r => r.id));
           const pendingSyncIds = new Set(SyncManager.getQueue().map(q => q.docId).filter(Boolean));
           const initialIds = new Set(INITIAL_STUDENTS.map(s => s.id));
-
-          const filteredLocal = localStudents.filter(local => {
-            // Keep if present on Firestore
-            if (remoteIds.has(local.id)) return true;
-            // Keep if it is a protected/initial student
-            if (initialIds.has(local.id)) return true;
-            // Keep if there is a pending sync action in the offline queue for this student
-            if (pendingSyncIds.has(local.id)) return true;
-            // Keep if Firebase write quota is currently active (operating in local fallback offline mode)
-            if (checkQuotaExceeded()) return true;
-
-            // Otherwise, it was deleted on the server, so filter it out!
-            return false;
-          });
 
           const merged = [...filteredLocal];
 
@@ -3177,22 +3179,52 @@ Para resolver:
     setIsScreenBlocked(false);
   };
 
-  // Add new students discovered or processed in OCR
+  // Add new students discovered or processed in OCR, or enrolled in batch
   const handleAddStudentsFromOCR = async (newStudents: Student[]) => {
     setStudents((prev) => {
-      // Avoid duplicated matricula items
-      const filteredNew = newStudents.filter(
-        (ns) => !prev.some((p) => p.matricula === ns.matricula),
-      );
-      
+      const updated = [...prev];
+      const syncedDocs: Promise<any>[] = [];
+
+      newStudents.forEach((ns) => {
+        const existingIdx = updated.findIndex((p) => p.matricula === ns.matricula);
+        if (existingIdx !== -1) {
+          // Student already exists with this matricula - update their profile details
+          // but preserve their performance metrics (XP, answers, phase, password, etc.)
+          const oldStudent = updated[existingIdx];
+          const updatedStudent = {
+            ...oldStudent,
+            nomeCompleto: ns.nomeCompleto || oldStudent.nomeCompleto,
+            sala: ns.sala || oldStudent.sala,
+            ano: ns.ano || oldStudent.ano,
+            chamadaNumero: ns.chamadaNumero || oldStudent.chamadaNumero,
+            email: ns.email || oldStudent.email || "",
+            status: ns.status || oldStudent.status || "Ativo",
+          };
+          updated[existingIdx] = updatedStudent;
+          
+          if (firebaseUser) {
+            syncedDocs.push(
+              syncSetDoc("students", updatedStudent.id, sanitizeForFirestore(updatedStudent), { merge: true })
+            );
+          }
+        } else {
+          // Completely new student - add to the list
+          updated.push(ns);
+          if (firebaseUser) {
+            syncedDocs.push(
+              syncSetDoc("students", ns.id, sanitizeForFirestore(ns))
+            );
+          }
+        }
+      });
+
       // Save locally first
-      const updated = [...prev, ...filteredNew];
       localStorage.setItem("worksim_students", JSON.stringify(updated));
 
-      // Sync to Firestore if logged in
-      if (firebaseUser) {
-        filteredNew.forEach((student) => {
-          syncSetDoc("students", student.id, sanitizeForFirestore(student)).catch(console.error);
+      // Asynchronously sync to Firestore if logged in
+      if (syncedDocs.length > 0) {
+        Promise.all(syncedDocs).catch((err) => {
+          console.error("Error syncing batch students to Firestore:", err);
         });
       }
 
@@ -3254,6 +3286,23 @@ Para resolver:
         : (appLanguage === "pt" ? `Deseja realmente apagar os ${deletableIds.length} alunos selecionados?` : `Are you sure you want to delete the ${deletableIds.length} selected students?`),
       onConfirm: executeDeletion
     });
+  };
+
+  const handleRestoreStudentsBackup = async (restoredStudents: Student[]) => {
+    setStudents(restoredStudents);
+    localStorage.setItem("worksim_students", JSON.stringify(restoredStudents));
+    
+    // Sync to Firestore if logged in
+    if (firebaseUser) {
+      try {
+        const syncPromises = restoredStudents.map(student =>
+          syncSetDoc("students", student.id, sanitizeForFirestore(student))
+        );
+        await Promise.all(syncPromises);
+      } catch (e) {
+        console.error("Erro ao sincronizar backup restaurado para o Firestore:", e);
+      }
+    }
   };
 
   const handleManualSyncToFirestore = async () => {
@@ -5595,7 +5644,7 @@ Para resolver:
             {/* Isolated Highlighted Version (Only Login Gate) */}
             <div className="pt-4 flex justify-center">
               <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
-                Versão v7.30.2026
+                Versão v8.0.2026
               </span>
             </div>
           </div>
@@ -9017,6 +9066,7 @@ Para resolver:
                 appLanguage={appLanguage}
                 onAddStudents={handleAddStudentsFromOCR}
                 onDeleteAllStudents={handleDeleteAllStudents}
+                onRestoreStudentsBackup={handleRestoreStudentsBackup}
                 onSyncAllStudents={handleSyncAllStudents}
                 onDeleteStudents={handleDeleteStudents}
                 onUnlockSquad={handleUnlockSquadMachine}

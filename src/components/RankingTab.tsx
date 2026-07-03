@@ -85,7 +85,7 @@ export default function RankingTab({
     }
 
     // 4. Default: Alphabetical name order
-    return a.nomeCompleto.localeCompare(b.nomeCompleto);
+    return (a.nomeCompleto || "").localeCompare(b.nomeCompleto || "");
   };
 
   // Compile sorted list

@@ -185,9 +185,10 @@ export default function App() {
   const [firebaseUser, setFirebaseUser] = useState<any>(null);
 
   const activeStudent = students.find((s) => s.id === activeStudentId) || null;
-  const isProfessorOrAdmin =
+  const hasProfessorAccess =
     (activeStudent?.matricula === "ADM2026") ||
     firebaseUser?.email?.toLowerCase() === "fabiosantanalima01@gmail.com";
+  const isProfessorOrAdmin = activeStudent?.matricula === "ADM2026";
 
   const [firebaseQuotaActive, setFirebaseQuotaActive] = useState<boolean>(() => checkQuotaExceeded());
 
@@ -418,15 +419,17 @@ export default function App() {
   useEffect(() => {
     if (firebaseUser && firebaseUser.email && !activeStudentId) {
       const userEmail = firebaseUser.email.toLowerCase();
-      const matched = students.find(s => s.email?.toLowerCase() === userEmail) || 
-                      INITIAL_STUDENTS.find(s => s.email?.toLowerCase() === userEmail);
-      if (matched) {
-        setActiveStudentId(matched.id);
-        setSelectedPhaseId(matched.faseAtual);
-        setOnboardingFinished(true);
-      } else if (userEmail === "fabiosantanalima01@gmail.com") {
+      if (userEmail === "fabiosantanalima01@gmail.com") {
         setActiveStudentId("adm");
         setOnboardingFinished(true);
+      } else {
+        const matched = students.find(s => s.email?.toLowerCase() === userEmail && s.id !== "adm") || 
+                        INITIAL_STUDENTS.find(s => s.email?.toLowerCase() === userEmail && s.id !== "adm");
+        if (matched) {
+          setActiveStudentId(matched.id);
+          setSelectedPhaseId(matched.faseAtual);
+          setOnboardingFinished(true);
+        }
       }
     }
   }, [firebaseUser, students, activeStudentId]);
@@ -651,7 +654,7 @@ export default function App() {
 
         if (remoteFeedbacks.length > 0) {
           // Sort reverse-chronologically by id
-          remoteFeedbacks.sort((a, b) => b.id.localeCompare(a.id));
+          remoteFeedbacks.sort((a, b) => (b.id || "").localeCompare(a.id || ""));
           setVeteranFeedbacks(remoteFeedbacks);
         } else {
           // Seed the sample if empty
@@ -830,25 +833,12 @@ export default function App() {
       playSoundEffect("success");
       
       // Attempt to auto-login if email matches a student record
-      const userEmail = result.user.email;
+      const userEmail = result.user.email?.toLowerCase();
       if (userEmail) {
-        // If students list is empty or doesn't have the email, we might need to wait for sync 
-        // or check INITIAL_STUDENTS directly as a fallback
-        const matched = students.find(s => s.email === userEmail) || INITIAL_STUDENTS.find(s => s.email === userEmail);
-        if (matched) {
-          setActiveStudentId(matched.id);
-          setSelectedPhaseId(matched.faseAtual);
-          setOnboardingFinished(true);
-          
-          // Force a sync of this student to Firestore if it's missing
-          if (!students.find(s => s.id === matched.id)) {
-            setStudents(prev => prev.some(s => s.id === matched.id) ? prev : [...prev, matched]);
-            // Ensure the matched student from INITIAL_STUDENTS is pushed to Firestore immediately
-            syncSetDoc("students", matched.id, sanitizeForFirestore(matched), { merge: true }).catch(console.error);
-          }
-        } else if (userEmail === "fabiosantanalima01@gmail.com") {
+        if (userEmail === "fabiosantanalima01@gmail.com") {
           // Special case for admin if not in list
-          const adminStub = INITIAL_STUDENTS.find(s => s.id === "adm") || {
+          const adminStub = students.find(s => s.id === "adm" || s.matricula === "ADM2026") || 
+                            INITIAL_STUDENTS.find(s => s.id === "adm") || {
              id: "adm",
              nomeCompleto: "Professor Fábio",
              matricula: "ADM2026",
@@ -884,33 +874,49 @@ export default function App() {
           };
           syncAll().catch(console.error);
         } else {
-          // AUTO-REGISTER NEW STUDENT (Fixes black screen for unknown Google logins)
-          const newId = result.user.uid;
-          const newMatricula = `RH-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-          const newStudent: Student = {
-            id: newId,
-            nomeCompleto: result.user.displayName || "Novo Aluno(a)",
-            matricula: newMatricula,
-            email: userEmail,
-            xp: 0,
-            precisao: 0,
-            faseAtual: -1,
-            status: "Ativo",
-            sala: "Online",
-            cargo: "Estudante",
-            mensagensChat: [],
-            respostasDesafios: {},
-            badges: [],
-            ultimaDataAcesso: new Date().toISOString().split("T")[0],
-          } as any;
-          
-          setActiveStudentId(newId);
-          setStudents(prev => [...prev, newStudent]);
-          setOnboardingFinished(true);
-          syncSetDoc("students", newId, sanitizeForFirestore(newStudent), { merge: true }).catch(console.error);
-          
-          // Show Matrix Intro for new students
-          setShowMatrixIntro(true);
+          // Normal student path
+          const matched = students.find(s => s.email?.toLowerCase() === userEmail && s.id !== "adm") || 
+                          INITIAL_STUDENTS.find(s => s.email?.toLowerCase() === userEmail && s.id !== "adm");
+          if (matched) {
+            setActiveStudentId(matched.id);
+            setSelectedPhaseId(matched.faseAtual);
+            setOnboardingFinished(true);
+            
+            // Force a sync of this student to Firestore if it's missing
+            if (!students.find(s => s.id === matched.id)) {
+              setStudents(prev => prev.some(s => s.id === matched.id) ? prev : [...prev, matched]);
+              // Ensure the matched student from INITIAL_STUDENTS is pushed to Firestore immediately
+              syncSetDoc("students", matched.id, sanitizeForFirestore(matched), { merge: true }).catch(console.error);
+            }
+          } else {
+            // AUTO-REGISTER NEW STUDENT (Fixes black screen for unknown Google logins)
+            const newId = result.user.uid;
+            const newMatricula = `RH-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+            const newStudent: Student = {
+              id: newId,
+              nomeCompleto: result.user.displayName || "Novo Aluno(a)",
+              matricula: newMatricula,
+              email: userEmail,
+              xp: 0,
+              precisao: 0,
+              faseAtual: -1,
+              status: "Ativo",
+              sala: "Online",
+              cargo: "Estudante",
+              mensagensChat: [],
+              respostasDesafios: {},
+              badges: [],
+              ultimaDataAcesso: new Date().toISOString().split("T")[0],
+            } as any;
+            
+            setActiveStudentId(newId);
+            setStudents(prev => [...prev, newStudent]);
+            setOnboardingFinished(true);
+            syncSetDoc("students", newId, sanitizeForFirestore(newStudent), { merge: true }).catch(console.error);
+            
+            // Show Matrix Intro for new students
+            setShowMatrixIntro(true);
+          }
         }
       }
     } catch (err: any) {
@@ -1295,7 +1301,7 @@ Para resolver:
     if (numA !== numB) {
       return numA - numB;
     }
-    return a.nomeCompleto.localeCompare(b.nomeCompleto);
+    return (a.nomeCompleto || "").localeCompare(b.nomeCompleto || "");
   };
 
   const sortedLeaderboardStudents = [...students].sort(sortStudentsForLeaderboard);
@@ -2893,7 +2899,7 @@ Para resolver:
           senha: inputPassword,
           status: "Ativo" as const,
           dispositivoVinculado: "Chrome-Agent-PC04",
-          email: firebaseUser?.email || matched.email,
+          email: (firebaseUser?.email && firebaseUser.email.toLowerCase() !== "fabiosantanalima01@gmail.com") ? firebaseUser.email : matched.email,
         };
 
         setStudents((prev) =>
@@ -3576,18 +3582,28 @@ Para resolver:
   };
 
   const handleDeleteAllStudents = async () => {
-    if (!isProfessorOrAdmin) return;
+    if (!hasProfessorAccess) return;
     
-    if (!window.confirm("LIMPEZA GERAL: Você deseja apagar TODOS os novos cadastros? Daniel e Ana Paula serão preservados como base. Deseja continuar?")) {
+    if (!window.confirm("LIMPEZA GERAL: Você deseja apagar todos os novos cadastros, limpar os logs de atividades e ZERAR o progresso e dados de todos os alunos (incluindo Daniel e Ana Paula) no banco de dados e localmente? Esta ação é irreversível!")) {
       return;
     }
 
-    // 1. Reset local state to INITIAL_STUDENTS baseline
-    setStudents(INITIAL_STUDENTS);
+    // 1. Clear all custom local storage keys for progress, files, backups, and active states
     localStorage.setItem("worksim_students", JSON.stringify(INITIAL_STUDENTS));
     localStorage.removeItem("worksim_folhas_pdfs"); 
+    localStorage.removeItem("worksim_active_student_id");
+    localStorage.removeItem("worksim_onboarding_finished");
+    localStorage.removeItem("worksim_custom_challenges");
+    localStorage.removeItem("worksim_badge_photo");
+    localStorage.removeItem("worksim_squad_logs");
+    localStorage.removeItem("worksim_completed_challenges");
+    localStorage.removeItem("worksim_veteran_feedbacks");
+    localStorage.removeItem("simulabor_sync_baselines");
 
-    // 2. Delete from Firestore (excluding base students)
+    // 2. Set memory state
+    setStudents(INITIAL_STUDENTS);
+
+    // 3. Clear/Reset Firestore Database
     if (firebaseUser) {
       try {
         const deletePromises: Promise<void>[] = [];
@@ -3595,6 +3611,7 @@ Para resolver:
         const baseIds = INITIAL_STUDENTS.map(s => s.id);
         const baseMatriculas = INITIAL_STUDENTS.map(s => s.matricula);
 
+        // Delete all new (non-base) student records
         studentSnapshot.forEach((docSnap) => {
           const data = docSnap.data();
           if (!baseIds.includes(docSnap.id) && !baseMatriculas.includes(data.matricula)) {
@@ -3602,8 +3619,18 @@ Para resolver:
           }
         });
 
-        // 2b. Delete Other Logs/Data
-        const otherCollections = ["broadcasts", "feedbacks", "custom_challenges"];
+        // Reset base students back to pristine starting values in Firestore
+        for (const baseStud of INITIAL_STUDENTS) {
+          const dataToSet = { ...baseStud };
+          // Keep current admin user's authenticated email so they can log back in as admin easily
+          if (baseStud.id === "adm" && firebaseUser.email) {
+            dataToSet.email = firebaseUser.email;
+          }
+          deletePromises.push(syncSetDoc("students", baseStud.id, sanitizeForFirestore(dataToSet)));
+        }
+
+        // 3b. Delete other collection records
+        const otherCollections = ["broadcasts", "feedbacks", "custom_challenges", "logs"];
         for (const collName of otherCollections) {
           const snapshot = await getDocs(collection(db, collName));
           snapshot.forEach(docSnap => {
@@ -3612,11 +3639,15 @@ Para resolver:
         }
 
         await Promise.all(deletePromises);
-        alert("Banco de dados limpo com sucesso! Alunos de teste e logs de sistema removidos. Base original preservada.");
+        alert("Simulador resetado e banco de dados limpo com sucesso! Alunos de teste e logs removidos. Progresso de todos os alunos foi totalmente zerado.");
+        window.location.reload();
       } catch (e) {
         console.error("Erro ao limpar Firestore", e);
-        alert("Erro ao tentar limpar o banco de dados. Verifique o console.");
+        alert("Erro ao tentar limpar o banco de dados na Nuvem. O estado local foi limpo, mas verifique o console para erros da Nuvem.");
       }
+    } else {
+      alert("Simulador local resetado com sucesso! Progresso e dados locais zerados.");
+      window.location.reload();
     }
   };
 
@@ -3627,7 +3658,7 @@ Para resolver:
       return;
     }
 
-    if (!isProfessorOrAdmin || firebaseUser.email?.toLowerCase() !== "fabiosantanalima01@gmail.com") {
+    if (!hasProfessorAccess || firebaseUser.email?.toLowerCase() !== "fabiosantanalima01@gmail.com") {
       alert(`Ação restrita: Apenas o Professor (fabiosantanalima01@gmail.com) pode realizar a sincronização global do banco de dados. Sua conta atual é: ${firebaseUser.email}`);
       return;
     }
@@ -5605,7 +5636,7 @@ Para resolver:
             themeMode={themeMode}
             onToggleTheme={toggleThemeMode}
             appLanguage={appLanguage}
-            isProfessorOrAdmin={isProfessorOrAdmin}
+            isProfessorOrAdmin={hasProfessorAccess}
             maxAllowedPhase={maxAllowedPhase}
             isFocusedMode={isFocusedMode}
             onToggleFocus={handleToggleFocusedMode}
@@ -5935,7 +5966,7 @@ Para resolver:
                     })}
 
                     {/* Special Tabs */}
-                    {(isProfessorOrAdmin || maxAllowedPhase >= 6) && (
+                    {(hasProfessorAccess || maxAllowedPhase >= 6) && (
                       <button
                         type="button"
                         onClick={() => {
@@ -5951,7 +5982,7 @@ Para resolver:
                       </button>
                     )}
 
-                    {isProfessorOrAdmin && (
+                    {hasProfessorAccess && (
                       <button
                         type="button"
                         onClick={() => {
@@ -8999,7 +9030,7 @@ Para resolver:
 
             {currentTab === "sandbox" && <SandboxMode />}
 
-            {currentTab === "professor" && isProfessorOrAdmin && (
+            {currentTab === "professor" && hasProfessorAccess && (
               <ProfessorCockpit
                 students={students}
                 appLanguage={appLanguage}

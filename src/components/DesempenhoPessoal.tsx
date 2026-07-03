@@ -234,7 +234,7 @@ export default function DesempenhoPessoal({
   const sortedCompleted = [...completedChallenges].sort((a, b) => {
     const aVal = parseFloat(a.id);
     const bVal = parseFloat(b.id);
-    return isNaN(aVal) || isNaN(bVal) ? a.id.localeCompare(b.id) : aVal - bVal;
+    return isNaN(aVal) || isNaN(bVal) ? (a.id || "").localeCompare(b.id || "") : aVal - bVal;
   });
 
   // Dynamically map sequential case stats

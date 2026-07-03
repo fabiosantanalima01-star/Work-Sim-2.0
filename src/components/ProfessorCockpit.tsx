@@ -1168,7 +1168,7 @@ export default function ProfessorCockpit({
             phase: student.faseAtual
           }));
         }).sort((a, b) => {
-          return b.id.localeCompare(a.id);
+          return (b.id || "").localeCompare(a.id || "");
         });
 
         const activeDeviators = students.filter(

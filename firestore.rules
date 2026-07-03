@@ -103,7 +103,8 @@ service cloud.firestore {
 
     // Collection: settings
     match /settings/{settingId} {
-      allow read, write: if isProfessor();
+      allow read: if true;
+      allow write: if isProfessor();
     }
   }
 }

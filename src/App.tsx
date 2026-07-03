@@ -190,6 +190,55 @@ export default function App() {
     firebaseUser?.email?.toLowerCase() === "fabiosantanalima01@gmail.com";
   const isProfessorOrAdmin = activeStudent?.matricula === "ADM2026";
 
+  const [releasedPhases, setReleasedPhases] = useState<number[]>(() => {
+    try {
+      const cached = localStorage.getItem("simulabor_released_phases");
+      if (cached) return JSON.parse(cached);
+    } catch (_) {}
+    return [-1, 0, 2, 3, 4, 5, 6, 7]; // Default includes Phase 0 as requested by user
+  });
+
+  // Real-time synchronization of released phases from Firestore
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "settings", "phases"), (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (Array.isArray(data.released)) {
+          setReleasedPhases(data.released);
+          try {
+            localStorage.setItem("simulabor_released_phases", JSON.stringify(data.released));
+          } catch (_) {}
+        }
+      } else {
+        // If it doesn't exist yet, we can write the default
+        if (hasProfessorAccess) {
+          setDoc(doc(db, "settings", "phases"), { released: [-1, 0, 2, 3, 4, 5, 6, 7] })
+            .catch(err => console.error("Error setting default phases:", err));
+        }
+      }
+    }, (err) => {
+      console.warn("Could not listen to settings/phases (using local/fallback state):", err);
+    });
+    return () => unsub();
+  }, [hasProfessorAccess]);
+
+  const handleUpdateReleasedPhases = async (nextReleased: number[]) => {
+    // Keep -1 always released
+    const normalized = Array.from(new Set([-1, ...nextReleased]));
+    setReleasedPhases(normalized);
+    try {
+      localStorage.setItem("simulabor_released_phases", JSON.stringify(normalized));
+    } catch (_) {}
+    
+    if (hasProfessorAccess) {
+      try {
+        await setDoc(doc(db, "settings", "phases"), { released: normalized });
+      } catch (err) {
+        console.error("Error saving released phases to Firestore:", err);
+      }
+    }
+  };
+
   const [firebaseQuotaActive, setFirebaseQuotaActive] = useState<boolean>(() => checkQuotaExceeded());
 
   useEffect(() => {
@@ -1982,15 +2031,23 @@ Para resolver:
     
     if (!activeStudent) return [-1];
     
-    const unlocked = [-1]; // Phase 0 and 1 are explicitly blocked for all other students/rooms
+    const unlocked = [-1]; // Phase -1 is always unlocked for review
     for (let phaseId = 0; phaseId < 8; phaseId++) {
-      if (phaseId === 0 || phaseId === 1) continue;
-      if (phaseId <= maxAllowedPhase || checkIfPassedPhase(activeStudent, phaseId - 1)) {
+      if (phaseId === -1) continue;
+      
+      // Phase must be explicitly released by the administrator
+      if (!releasedPhases.includes(phaseId)) continue;
+      
+      if (phaseId === 0 || phaseId === 1) {
         unlocked.push(phaseId);
+      } else {
+        if (phaseId <= maxAllowedPhase || checkIfPassedPhase(activeStudent, phaseId - 1)) {
+          unlocked.push(phaseId);
+        }
       }
     }
     return unlocked;
-  }, [isProfessorOrAdmin, maxAllowedPhase, allChallenges, completedChallenges, activeStudent]);
+  }, [isProfessorOrAdmin, maxAllowedPhase, allChallenges, completedChallenges, activeStudent, releasedPhases]);
 
   const isCurrentPhaseLocked = useMemo(() => {
     return !unlockedPhasesList.includes(selectedPhaseId);
@@ -6759,6 +6816,10 @@ Para resolver:
                         id={`fast-phase-nav-${ph.id}`}
                         key={ph.id}
                         onClick={() => {
+                          if (!isPhUnlocked && !hasProfessorAccess) {
+                            alert(appLanguage === "en" ? "This phase is currently locked or has not been released by the administrator." : "Esta fase está bloqueada no momento ou ainda não foi liberada pelo administrador.");
+                            return;
+                          }
                           setSelectedPhaseId(ph.id);
                           setCurrentTab("challenges");
                         }}
@@ -9057,6 +9118,8 @@ Para resolver:
                 onSendMessage={handleSendChatMessage}
                 themeMode={themeMode}
                 clockOffset={clockOffsetRef.current}
+                releasedPhases={releasedPhases}
+                onUpdateReleasedPhases={handleUpdateReleasedPhases}
               />
             )}
           </main>

@@ -102,6 +102,8 @@ interface ProfessorCockpitProps {
   appLanguage?: "pt" | "en";
   themeMode?: "dark" | "light";
   clockOffset?: number;
+  releasedPhases?: number[];
+  onUpdateReleasedPhases?: (released: number[]) => void;
 }
 
 export default function ProfessorCockpit({ 
@@ -130,6 +132,8 @@ export default function ProfessorCockpit({
   appLanguage = "pt",
   themeMode = "dark",
   clockOffset = 0,
+  releasedPhases = [-1, 0, 2, 3, 4, 5, 6, 7],
+  onUpdateReleasedPhases,
 }: ProfessorCockpitProps) {
   const [globalClassroomFilter, setGlobalClassroomFilter] = useState<string>("TODAS");
   const [activeTabPanel, setActiveTabPanel] = useState<"operations" | "telemetry" | "feedbacks" | "analytics" | "scenarios" | "activity" | "auditoria">("analytics");
@@ -1493,6 +1497,108 @@ export default function ProfessorCockpit({
           {/* Left column: OCR automated roster builder & lock controller */}
           <div className="lg:col-span-2 space-y-6">
 
+            {/* Phase Release Control Panel */}
+            <div className="glass-panel p-6 rounded-2xl border border-white/10 bg-slate-900/40 space-y-4">
+              <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-accent-warning/10 text-accent-warning">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-sans font-bold text-gray-100 uppercase tracking-wide">
+                      Controle de Liberação de Fases
+                    </h3>
+                    <p className="text-[11px] text-text-secondary leading-snug">
+                      Gerencie quais fases do simulador estão abertas/disponíveis para acesso dos alunos em tempo real.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onUpdateReleasedPhases?.([-1, 0, 1, 2, 3, 4, 5, 6, 7])}
+                    className="px-2.5 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-[10px] font-mono transition-all font-bold cursor-pointer"
+                  >
+                    Liberar Todas
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onUpdateReleasedPhases?.([-1])}
+                    className="px-2.5 py-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-[10px] font-mono transition-all font-bold cursor-pointer"
+                  >
+                    Bloquear Todas
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {CAREER_PHASES.map((phase) => {
+                  const isReleased = releasedPhases.includes(phase.id);
+                  const isPhaseMinus1 = phase.id === -1;
+
+                  return (
+                    <div
+                      key={phase.id}
+                      onClick={() => {
+                        if (isPhaseMinus1) return;
+                        const nextReleased = isReleased
+                          ? releasedPhases.filter((p) => p !== phase.id)
+                          : [...releasedPhases, phase.id];
+                        onUpdateReleasedPhases?.(nextReleased);
+                      }}
+                      className={`p-3 rounded-xl border transition-all flex items-center justify-between gap-3 cursor-pointer ${
+                        isPhaseMinus1
+                          ? "bg-slate-950/40 border-white/5 opacity-80 cursor-not-allowed"
+                          : isReleased
+                          ? "bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.05)]"
+                          : "bg-slate-950/60 border-white/10 hover:border-white/25 hover:bg-slate-950/40"
+                      }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded-md font-bold ${
+                            isPhaseMinus1
+                              ? "bg-slate-800 text-slate-400"
+                              : isReleased
+                              ? "bg-emerald-500/10 text-emerald-400"
+                              : "bg-slate-950 text-slate-500"
+                          }`}>
+                            Fase {phase.id}
+                          </span>
+                          {phase.id === 0 && (
+                            <span className="bg-amber-500/10 text-amber-400 text-[8px] font-black uppercase px-1 py-0.2 rounded-md border border-amber-500/20 tracking-wider">
+                              PROVA 📝
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="text-[11px] font-bold text-gray-200 mt-1 truncate">
+                          {phase.cargo}
+                        </h4>
+                        <p className="text-[9px] text-text-secondary leading-tight mt-0.5 truncate">
+                          {phase.moduloTecnico}
+                        </p>
+                      </div>
+
+                      <div className="shrink-0">
+                        {isPhaseMinus1 ? (
+                          <div className="w-6 h-6 rounded-lg bg-slate-800 text-slate-500 flex items-center justify-center text-[10px] font-bold">
+                            ✔
+                          </div>
+                        ) : isReleased ? (
+                          <div className="w-6 h-6 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center animate-pulse">
+                            <span className="text-[10px] font-bold">ON</span>
+                          </div>
+                        ) : (
+                          <div className="w-6 h-6 rounded-lg bg-slate-950 border border-white/5 text-gray-500 flex items-center justify-center">
+                            <span className="text-[10px] font-bold">OFF</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Automated Onboarding panel */}
             <div className="glass-panel rounded-2xl border border-white/5 overflow-hidden transition-all duration-300">

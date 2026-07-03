@@ -124,7 +124,24 @@ export default function App() {
   const [students, setStudents] = useState<Student[]>(() => {
     try {
       const cached = localStorage.getItem("worksim_students");
-      const rawList: Student[] = cached ? JSON.parse(cached) : INITIAL_STUDENTS;
+      let rawList: Student[] = cached ? JSON.parse(cached) : INITIAL_STUDENTS;
+
+      // Failsafe auto-restore: If standard cache is empty/wiped but safety backup has more students, restore them!
+      try {
+        const safetyCached = localStorage.getItem("worksim_students_safety_backup");
+        if (safetyCached) {
+          const parsedSafety = JSON.parse(safetyCached);
+          if (Array.isArray(parsedSafety) && parsedSafety.length > rawList.length) {
+            console.log("[Failsafe] Restoring students from safety backup. Previous count:", rawList.length, "Backup count:", parsedSafety.length);
+            rawList = parsedSafety;
+            // Also update standard cache immediately
+            localStorage.setItem("worksim_students", JSON.stringify(parsedSafety));
+          }
+        }
+      } catch (backupErr) {
+        console.error("Failsafe safety backup check error:", backupErr);
+      }
+
       const unique: Student[] = [];
       const seen = new Set<string>();
       rawList.forEach((s) => {
@@ -540,23 +557,11 @@ export default function App() {
         });
 
         setStudents((localStudents) => {
-          // Source of truth for students that have been in Firestore is the remote snapshot.
-          // To prevent accidental deletions of students due to slow networks, quota issues, or login switches,
-          // we treat local state as a highly secure, persistent backup. Local students are NEVER deleted automatically,
-          // unless they are NOT in remoteStudents and NOT in INITIAL_STUDENTS and NOT the active student and NOT pending sync.
-          const remoteIds = new Set(remoteStudents.map(r => r.id));
-          const pendingSyncIds = new Set(SyncManager.getQueue().map(q => q.docId).filter(Boolean));
-          const initialIds = new Set(INITIAL_STUDENTS.map(s => s.id));
-
-          const filteredLocal = localStudents.filter((s) => {
-            const isRemote = remoteIds.has(s.id);
-            const isInitial = initialIds.has(s.id) || (s.matricula && INITIAL_STUDENTS.some(init => init.matricula === s.matricula));
-            const isActive = s.id === activeStudentId;
-            const isPending = pendingSyncIds.has(s.id);
-            return isRemote || isInitial || isActive || isPending;
-          });
-
-          const merged = [...filteredLocal];
+          // Local students act as a highly secure, persistent backup. To prevent catastrophic accidental data loss
+          // due to slow networks, quota issues, or database resets, we NEVER automatically delete local students from
+          // state simply because they are missing from the Firestore snapshot.
+          // Real deletions are only triggered explicitly by the admin via handleDeleteStudents or handleDeleteAllStudents.
+          const merged = [...localStudents];
 
           remoteStudents.forEach((remote) => {
             // Find by ID OR by matricula to prevent duplicates!

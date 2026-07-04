@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
-import { Student, Challenge, SquadLog } from "../types";
+import { Student, Challenge, SquadLog, PenaltySettings } from "../types";
 import { CHALLENGES_DATA, CAREER_PHASES } from "../data";
 import {
   Camera,
@@ -104,6 +104,9 @@ interface ProfessorCockpitProps {
   clockOffset?: number;
   releasedPhases?: number[];
   onUpdateReleasedPhases?: (released: number[]) => void;
+  dynamicOnlineThreshold?: number;
+  penaltySettings?: PenaltySettings;
+  onUpdatePenaltySettings?: (nextSettings: Partial<PenaltySettings>) => void;
 }
 
 export default function ProfessorCockpit({ 
@@ -134,6 +137,9 @@ export default function ProfessorCockpit({
   clockOffset = 0,
   releasedPhases = [-1, 0, 2, 3, 4, 5, 6, 7],
   onUpdateReleasedPhases,
+  dynamicOnlineThreshold = 210000,
+  penaltySettings,
+  onUpdatePenaltySettings,
 }: ProfessorCockpitProps) {
   const [globalClassroomFilter, setGlobalClassroomFilter] = useState<string>("TODAS");
   const [activeTabPanel, setActiveTabPanel] = useState<"operations" | "telemetry" | "feedbacks" | "analytics" | "scenarios" | "activity" | "auditoria">("analytics");
@@ -1600,6 +1606,220 @@ export default function ProfessorCockpit({
                 })}
               </div>
             </div>
+
+            {/* CONFIGURAÇÃO DE PENALIDADES E HEARTBEAT */}
+            {penaltySettings && (
+              <div className="glass-panel p-6 rounded-2xl border border-white/10 bg-slate-900/40 space-y-6">
+                <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400">
+                      <Zap className="w-5 h-5 animate-pulse" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-sans font-bold text-gray-100 uppercase tracking-wide">
+                        Regras de Rigor Pedagógico & Heartbeat Dinâmico
+                      </h3>
+                      <p className="text-[11px] text-text-secondary leading-snug">
+                        Flexibilize as punições e configure o rigor em tempo real para a turma conectada.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* HEARTBEAT telemetry info card */}
+                <div className="p-4 bg-indigo-950/20 border border-indigo-500/25 rounded-xl space-y-2.5">
+                  <div className="flex justify-between items-center text-xs font-mono">
+                    <span className="text-indigo-400 font-bold uppercase tracking-wider">📡 Heartbeat Inteligente Adaptativo</span>
+                    <span className="text-emerald-400 font-black animate-pulse">● ATIVO</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 pt-1">
+                    <div className="bg-slate-950/45 p-2 rounded-lg border border-white/5">
+                      <p className="text-[9px] text-text-secondary uppercase">Alunos Online Sinalizando</p>
+                      <p className="text-base font-black text-indigo-300 font-sans mt-0.5">
+                        {(() => {
+                          const compNow = Date.now() + clockOffset;
+                          return students.filter(s => s.id !== 'adm' && s.id !== 'professor' && s.lastSeen && Math.abs(compNow - s.lastSeen) < dynamicOnlineThreshold).length;
+                        })()} Alunos
+                      </p>
+                    </div>
+                    <div className="bg-slate-950/45 p-2 rounded-lg border border-white/5">
+                      <p className="text-[9px] text-text-secondary uppercase">Frequência do Pulso</p>
+                      <p className="text-base font-black text-indigo-300 font-sans mt-0.5">
+                        {(() => {
+                          const compNow = Date.now() + clockOffset;
+                          const activeOnlineCount = students.filter(s => s.id !== 'adm' && s.id !== 'professor' && s.lastSeen && Math.abs(compNow - s.lastSeen) < dynamicOnlineThreshold).length;
+                          let interval = 15000;
+                          if (activeOnlineCount > 0) {
+                            if (activeOnlineCount <= 10) interval = 180000; // 3 min
+                            else if (activeOnlineCount <= 20) interval = 360000; // 6 min
+                            else if (activeOnlineCount <= 30) interval = 720000; // 12 min
+                            else interval = 900000; // 15 min
+                          }
+                          return `${interval / 60000} min`;
+                        })()}
+                      </p>
+                    </div>
+                  </div>
+                  {/* Performance gain tracker */}
+                  <div className="flex items-center justify-between text-[10px] font-mono text-emerald-400/90 pt-1">
+                    <span>⚡ Economia Estimada de Cotas do Firebase:</span>
+                    <span className="font-bold">
+                      {(() => {
+                        const compNow = Date.now() + clockOffset;
+                        const activeOnlineCount = students.filter(s => s.id !== 'adm' && s.id !== 'professor' && s.lastSeen && Math.abs(compNow - s.lastSeen) < dynamicOnlineThreshold).length;
+                        let interval = 15000;
+                        if (activeOnlineCount > 0) {
+                          if (activeOnlineCount <= 10) interval = 180000;
+                          else if (activeOnlineCount <= 20) interval = 360000;
+                          else if (activeOnlineCount <= 30) interval = 720000;
+                          else interval = 900000;
+                        }
+                        const reduction = (100 - (15000 / interval * 100)).toFixed(1);
+                        return activeOnlineCount > 0 ? `${reduction}%` : "91.6%";
+                      })()}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-1">
+                  {/* RULE 1: FOCUS LOSS LIMIT & BLOCKING */}
+                  <div className="bg-slate-950/40 p-4 rounded-xl border border-white/5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                        <span className="text-xs font-bold text-gray-200 font-sans uppercase">Regra 1: Saídas de Tela (Tolerância Zero)</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={penaltySettings.focusLossEnabled}
+                          onChange={(e) => onUpdatePenaltySettings?.({ focusLossEnabled: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-300 after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500" />
+                      </label>
+                    </div>
+
+                    {penaltySettings.focusLossEnabled && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div className="space-y-1.5">
+                          <label className="text-text-secondary uppercase text-[10px]">Limite de Saídas Permitidas</label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="range"
+                              min={3}
+                              max={15}
+                              value={penaltySettings.focusLossLimit}
+                              onChange={(e) => onUpdatePenaltySettings?.({ focusLossLimit: parseInt(e.target.value) })}
+                              className="w-full accent-indigo-500 cursor-pointer"
+                            />
+                            <span className="px-2 py-0.5 bg-slate-900 border border-white/5 rounded font-mono text-indigo-400 font-bold w-10 text-center">
+                              {penaltySettings.focusLossLimit}x
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-text-secondary uppercase text-[10px]">Penalidade XP ao Bloquear</label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="range"
+                              min={0}
+                              max={50}
+                              step={5}
+                              value={penaltySettings.focusXpPenaltyPercent}
+                              onChange={(e) => onUpdatePenaltySettings?.({ focusXpPenaltyPercent: parseInt(e.target.value) })}
+                              className="w-full accent-indigo-500 cursor-pointer"
+                            />
+                            <span className="px-2 py-0.5 bg-slate-900 border border-white/5 rounded font-mono text-indigo-400 font-bold w-12 text-center">
+                              -{penaltySettings.focusXpPenaltyPercent}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* RULE 2: INACTIVITY PENALTY */}
+                  <div className="bg-slate-950/40 p-4 rounded-xl border border-white/5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                        <span className="text-xs font-bold text-gray-200 font-sans uppercase">Regra 2: Bloqueio por Inatividade (3+ min)</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={penaltySettings.inactivityPenaltyEnabled}
+                          onChange={(e) => onUpdatePenaltySettings?.({ inactivityPenaltyEnabled: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-300 after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500" />
+                      </label>
+                    </div>
+
+                    {penaltySettings.inactivityPenaltyEnabled && (
+                      <div className="space-y-1.5 text-xs max-w-md">
+                        <label className="text-text-secondary uppercase text-[10px]">Penalidade XP ao Interromper (3 min ocioso)</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="range"
+                            min={0}
+                            max={25}
+                            step={5}
+                            value={penaltySettings.inactivityXpPenaltyPercent}
+                            onChange={(e) => onUpdatePenaltySettings?.({ inactivityXpPenaltyPercent: parseInt(e.target.value) })}
+                            className="w-full accent-indigo-500 cursor-pointer"
+                          />
+                          <span className="px-2 py-0.5 bg-slate-900 border border-white/5 rounded font-mono text-indigo-400 font-bold w-12 text-center">
+                            -{penaltySettings.inactivityXpPenaltyPercent}%
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* RULE 3: IDLENESS PENALTY */}
+                  <div className="bg-slate-950/40 p-4 rounded-xl border border-white/5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                        <span className="text-xs font-bold text-gray-200 font-sans uppercase">Regra Prática: Penalidade por Ócio (10 min sem caso)</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={penaltySettings.idlenessPenaltyEnabled}
+                          onChange={(e) => onUpdatePenaltySettings?.({ idlenessPenaltyEnabled: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-300 after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500" />
+                      </label>
+                    </div>
+
+                    {penaltySettings.idlenessPenaltyEnabled && (
+                      <div className="space-y-1.5 text-xs max-w-md">
+                        <label className="text-text-secondary uppercase text-[10px]">XP Descontada por ócio total</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            step={5}
+                            value={penaltySettings.idlenessXpPenalty}
+                            onChange={(e) => onUpdatePenaltySettings?.({ idlenessXpPenalty: parseInt(e.target.value) })}
+                            className="w-full accent-indigo-500 cursor-pointer"
+                          />
+                          <span className="px-2 py-0.5 bg-slate-900 border border-white/5 rounded font-mono text-indigo-400 font-bold w-12 text-center">
+                            -{penaltySettings.idlenessXpPenalty} XP
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Automated Onboarding panel */}
             <div className="glass-panel rounded-2xl border border-white/5 overflow-hidden transition-all duration-300">

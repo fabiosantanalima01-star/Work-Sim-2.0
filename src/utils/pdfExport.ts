@@ -21,7 +21,6 @@ export function exportTRCTToPDF(activeChallenge: any, appLanguage: "pt" | "en") 
   }
 
   const gab = activeChallenge.gabarito.valoresCorretos;
-  const params = getPointParamsForChallenge(activeChallenge);
 
   // Initialize jsPDF A4 document [210mm x 297mm], units in mm
   const doc = new jsPDF({
@@ -30,465 +29,410 @@ export function exportTRCTToPDF(activeChallenge: any, appLanguage: "pt" | "en") 
     format: "a4",
   });
 
-  // Calculate rubrics list exactly as on screen
-  const rubricsList: RubricRow[] = [];
-  if (gab.salario > 0) {
-    const refLabel = activeChallenge.id === "3.6" ? (appLanguage === "en" ? "15 Days" : "15 Dias") : activeChallenge.id === "3.8" ? (appLanguage === "en" ? "04 Days" : "04 Dias") : (appLanguage === "en" ? "30 Days" : "30 Dias");
-    rubricsList.push({ 
-      cod: "101", 
-      desc: appLanguage === "en" ? "BASE SALARY (PROPORTIONAL)" : "SALÁRIO BASE PROPORCIONAL", 
-      ref: refLabel, 
-      vencimento: gab.salario, 
-      desconto: 0 
-    });
-  }
-  if (gab.mediaHe > 0) {
-    rubricsList.push({ 
-      cod: "115", 
-      desc: appLanguage === "en" ? "AVERAGE OVERTIME (12M)" : "MÉDIA HORAS EXTRAS (12M)", 
-      ref: appLanguage === "en" ? "Average" : "Média", 
-      vencimento: gab.mediaHe, 
-      desconto: 0 
-    });
-  }
-  if (gab.insalubridade > 0) {
-    rubricsList.push({ 
-      cod: "135", 
-      desc: appLanguage === "en" ? "HAZARDOUS INSALUBRITY PREMIUM" : "ADICIONAL DE INSALUBRIDADE", 
-      ref: appLanguage === "en" ? "40% s/ MW" : "40% s/ SM", 
-      vencimento: gab.insalubridade, 
-      desconto: 0 
-    });
-  }
-  if (gab.periculosidade > 0) {
-    rubricsList.push({ 
-      cod: "140", 
-      desc: appLanguage === "en" ? "DEATH-RISK DANGER PREMIUM" : "ADICIONAL DE PERICULOSIDADE", 
-      ref: "30.00%", 
-      vencimento: gab.periculosidade, 
-      desconto: 0 
-    });
-  }
-  if (gab.horasExtras > 0) {
-    rubricsList.push({ 
-      cod: "150", 
-      desc: appLanguage === "en" ? "OVERTIME HOURS WORKED" : "HORAS EXTRAS REALIZADAS", 
-      ref: appLanguage === "en" ? "Computed" : "Apuradas", 
-      vencimento: gab.horasExtras, 
-      desconto: 0 
-    });
-  }
-  if (gab.adicionalNoturno > 0) {
-    rubricsList.push({ 
-      cod: "160", 
-      desc: appLanguage === "en" ? "NIGHT SHIFT DIFFERENTIAL (CLT)" : "ADICIONAL NOTURNO (CLT)", 
-      ref: appLanguage === "en" ? "20% Night" : "20% Not.", 
-      vencimento: gab.adicionalNoturno, 
-      desconto: 0 
-    });
-  }
-  if (gab.comissoes > 0) {
-    rubricsList.push({ 
-      cod: "180", 
-      desc: appLanguage === "en" ? "COMMISSIONS ON TARGETS" : "COMISSÕES S/ TAREFAS ACORDADAS", 
-      ref: appLanguage === "en" ? "Comm." : "Comis.", 
-      vencimento: gab.comissoes, 
-      desconto: 0 
-    });
-  }
-  if (gab.dsrHe > 0) {
-    rubricsList.push({ 
-      cod: "190", 
-      desc: appLanguage === "en" ? "WEEKLY PAID REST (DSR)" : "REFLEXOS DSR S/ HE E VARIAVEIS", 
-      ref: appLanguage === "en" ? "Law 605/49" : "Lei 605", 
-      vencimento: gab.dsrHe, 
-      desconto: 0 
-    });
-  }
-  if (gab.salarioFamilia > 0) {
-    rubricsList.push({ 
-      cod: "210", 
-      desc: appLanguage === "en" ? "FAMILY SALARY PREVIDENTIAL" : "SALÁRIO-FAMÍLIA (PREVIDÊNCIA)", 
-      ref: activeChallenge.id === "3.6" ? (appLanguage === "en" ? "3 Quotas" : "3 Cotas") : (appLanguage === "en" ? "1 Quota" : "1 Cota"), 
-      vencimento: gab.salarioFamilia, 
-      desconto: 0 
-    });
-  }
-  if (gab.inss > 0) {
-    rubricsList.push({ 
-      cod: "501", 
-      desc: appLanguage === "en" ? "INSS SOCIAL SECURITY CONTRIBUTION" : "CONTRIBUIÇÃO PREVIDENCIÁRIA INSS", 
-      ref: `${((gab.inss / gab.bruto) * 100).toFixed(1)}%`, 
-      vencimento: 0, 
-      desconto: gab.inss 
-    });
-  }
-  if (gab.irrf > 0) {
-    rubricsList.push({ 
-      cod: "502", 
-      desc: appLanguage === "en" ? "IRRF PAYROLL INCOME TAX" : "IMPOSTO DE RENDA RETIDO IRRF", 
-      ref: appLanguage === "en" ? "Bracket" : "Tabela", 
-      vencimento: 0, 
-      desconto: gab.irrf 
-    });
-  }
-  if (gab.vt > 0) {
-    rubricsList.push({ 
-      cod: "510", 
-      desc: appLanguage === "en" ? "VALE-TRANSPORTE (VT) DEDUCTION" : "DESCONTO VALE-TRANSPORTE (LEI)", 
-      ref: "6.00%", 
-      vencimento: 0, 
-      desconto: gab.vt 
-    });
-  }
-  if (gab.faltasDesconto > 0) {
-    rubricsList.push({ 
-      cod: "520", 
-      desc: appLanguage === "en" ? "UNEXCUSED ABSENCE & LOST DSR" : "DESCONTO DE FALTAS E DSR PERDIDO", 
-      ref: appLanguage === "en" ? "Days/DSR" : "Dias/DSR", 
-      vencimento: 0, 
-      desconto: gab.faltasDesconto 
-    });
-  }
-
-  // Pad the rest of the table so it always renders 10 static entries under the receipt
-  const padCount = Math.max(10 - rubricsList.length, 0);
-  const paddedList = [
-    ...rubricsList,
-    ...Array(padCount).fill({ cod: "", desc: "", ref: "", vencimento: 0, desconto: 0 })
-  ];
-
-  const sumVencimentos = rubricsList.reduce((acc, current) => acc + current.vencimento, 0);
-  const sumDescontos = rubricsList.reduce((acc, current) => acc + current.desconto, 0);
-  const valLiquido = sumVencimentos - sumDescontos;
-
-  // Render borders
   const startX = 10;
   const startY = 10;
   const width = 190;
   const height = 277;
 
-  // Main Border around A4
-  doc.setDrawColor(80, 80, 80);
+  // Formatting utilities
+  const formatCurrency = (val: number | undefined | null) => {
+    if (val === undefined || val === null || val === 0) return "0,00";
+    return val.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  // Helper functions to draw grid boxes with small labels and values
+  const drawTextBox = (x: number, y: number, w: number, h: number, label: string, value: string, isBold: boolean = false, align: "left" | "right" | "center" = "left") => {
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.18);
+    doc.rect(x, y, w, h);
+    
+    // Label
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(4.5);
+    doc.setTextColor(60, 60, 60);
+    doc.text(label.toUpperCase(), x + 1.2, y + 2.0);
+    
+    // Value
+    doc.setFont("Courier", isBold ? "bold" : "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(0, 0, 0);
+    if (align === "left") {
+      doc.text(value || "—", x + 1.2, y + h - 1.2);
+    } else if (align === "right") {
+      doc.text(value || "—", x + w - 1.2, y + h - 1.2, { align: "right" });
+    } else {
+      doc.text(value || "—", x + w / 2, y + h - 1.2, { align: "center" });
+    }
+  };
+
+  // ==================== PÁGINA 1 ====================
+
+  // Draw border around document Page 1
+  doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.4);
   doc.rect(startX, startY, width, height);
 
-  // --- HEADER SECTION (y: 10 to 35) ---
-  doc.line(startX, 35, startX + width, 35); // Horizontal bottom line of header
-  doc.line(startX + 130, startY, startX + 130, 35); // Vertical divider
-
-  // Left - Employer details
-  doc.setFont("Helvetica", "bold");
-  doc.setFontSize(10.5);
-  doc.setTextColor(20, 20, 20);
-  doc.text("CRISRES SOLUÇÃO TRABALHISTA S/A", startX + 5, startY + 8);
+  // --- CABEÇALHO DO TRCT (y: 10 a 20) ---
+  doc.setFillColor(245, 245, 245);
+  doc.rect(startX, startY, width, 10, "F");
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.35);
+  doc.line(startX, startY + 10, startX + width, startY + 10);
   
-  doc.setFont("Helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(100, 100, 100);
-  doc.text("CNPJ: 14.882.341/0001-02", startX + 5, startY + 14);
-  doc.text("Rua da Consolidação, 1500 - São Paulo/SP - CEP: 01301-100", startX + 5, startY + 19);
-  doc.text(appLanguage === "en" ? "Labor Compliance Simulator Office" : "Escritório de Simulação Legal do Ministério do Trabalho", startX + 5, startY + 24);
-
-  // Right - Document identifier
   doc.setFont("Helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(40, 40, 40);
-  doc.text(appLanguage === "en" ? "PAYROLL PAYMENT RECEIPT" : "RECIBO DE PAGAMENTO DE SALÁRIO", startX + 133, startY + 8);
   doc.setFontSize(8);
+  doc.setTextColor(0, 0, 0);
+  doc.text("MINISTÉRIO DO TRABALHO E EMPREGO - MTE", startX + width / 2, startY + 4, { align: "center" });
+  doc.setFontSize(6.5);
+  doc.text("TERMO DE RESCISÃO DO CONTRATO DE TRABALHO - TRCT (OFICIAL)", startX + width / 2, startY + 8, { align: "center" });
+
+  let currentY = startY + 10;
+
+  // --- 01 - IDENTIFICAÇÃO DO EMPREGADOR (campos 01 a 09) ---
+  doc.setFillColor(235, 235, 235);
+  doc.rect(startX, currentY, width, 4, "F");
   doc.setFont("Helvetica", "bold");
-  doc.text(appLanguage === "en" ? "CLT OFFICIAL TRCT DEMONSTRATOR" : "DEMONSTRATIVO OFICIAL VERIFICADO", startX + 133, startY + 13);
-  
-  doc.setFont("Helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(60, 60, 60);
-  doc.text(`${appLanguage === "en" ? "Reference Month" : "Mês Referência"}: ${params.mes_referencia}`, startX + 133, startY + 21);
-  doc.text(`${appLanguage === "en" ? "System Token ID" : "ID do Sistema"}: 000${activeChallenge.id.replace(".", "")}`, startX + 133, startY + 27);
+  doc.setFontSize(5.5);
+  doc.setTextColor(0, 0, 0);
+  doc.text("01 - IDENTIFICAÇÃO DO EMPREGADOR", startX + 2, currentY + 2.8);
+  doc.line(startX, currentY + 4, startX + width, currentY + 4);
+  currentY += 4;
 
-  // --- EMPLOYEE REGISTRY BOX (y: 35 to 65) ---
-  doc.line(startX, 50, startX + width, 50); // Mid divider line
-  doc.line(startX, 65, startX + width, 65); // Bottom border line of registry
+  drawTextBox(startX, currentY, 50, 6, "01 CNPJ/CEI", "14.882.341/0001-02");
+  drawTextBox(startX + 50, currentY, 140, 6, "02 Razão Social/Nome", "CRISRES SOLUÇÃO TRABALHISTA S/A");
+  currentY += 6;
 
-  // Vertical divisions for row 1 (y: 35 to 50)
-  doc.line(startX + 20, 35, startX + 20, 50); // Cód divider
-  doc.line(startX + 145, 35, startX + 145, 50); // Admissão divider
+  drawTextBox(startX, currentY, 110, 6, "03 Endereço (Logradouro, nº, andar)", "Rua da Consolidação, 1500");
+  drawTextBox(startX + 110, currentY, 40, 6, "04 Bairro", "Consolação");
+  drawTextBox(startX + 150, currentY, 40, 6, "05 Município", "São Paulo");
+  currentY += 6;
 
-  // Row 1 Text Info
-  // Employee ID
+  drawTextBox(startX, currentY, 15, 6, "06 UF", "SP");
+  drawTextBox(startX + 15, currentY, 35, 6, "07 CEP", "01301-100");
+  drawTextBox(startX + 50, currentY, 40, 6, "08 CNAE", "7020-4/00");
+  drawTextBox(startX + 90, currentY, 100, 6, "09 CNPJ/CEI Tomador/Obra", "—");
+  currentY += 6;
+
+  // --- 02 - IDENTIFICAÇÃO DO TRABALHADOR (campos 10 a 20) ---
+  doc.setFillColor(235, 235, 235);
+  doc.rect(startX, currentY, width, 4, "F");
   doc.setFont("Helvetica", "bold");
-  doc.setFontSize(7);
-  doc.setTextColor(110, 110, 110);
-  doc.text(appLanguage === "en" ? "CODE" : "CÓD.", startX + 2, startY + 29);
+  doc.setFontSize(5.5);
+  doc.setTextColor(0, 0, 0);
+  doc.text("02 - IDENTIFICAÇÃO DO TRABALHADOR", startX + 2, currentY + 2.8);
+  doc.line(startX, currentY + 4, startX + width, currentY + 4);
+  currentY += 4;
+
+  drawTextBox(startX, currentY, 50, 6, "10 PIS/PASEP", "120.34192.12-5");
+  drawTextBox(startX + 50, currentY, 140, 6, "11 Nome", activeChallenge.empregado.nome.toUpperCase());
+  currentY += 6;
+
+  drawTextBox(startX, currentY, 110, 6, "12 Endereço (Logradouro, nº, apto)", "Rua do Aprendizado Técnico, 42");
+  drawTextBox(startX + 110, currentY, 40, 6, "13 Bairro", "Centro");
+  drawTextBox(startX + 150, currentY, 40, 6, "14 Município", "São Paulo");
+  currentY += 6;
+
+  drawTextBox(startX, currentY, 15, 6, "15 UF", "SP");
+  drawTextBox(startX + 15, currentY, 35, 6, "16 CEP", "01001-000");
+  drawTextBox(startX + 50, currentY, 50, 6, "17 CTPS (Nº, Série, UF)", "12345 Série 001-SP");
+  drawTextBox(startX + 100, currentY, 45, 6, "18 CPF", "123.456.789-00");
+  drawTextBox(startX + 145, currentY, 45, 6, "19 Data de Nascimento", "12/08/1995");
+  currentY += 6;
+
+  drawTextBox(startX, currentY, 190, 6, "20 Nome da Mãe", "Maria de Souza Costa");
+  currentY += 6;
+
+  // --- 03 - DADOS DO CONTRATO (campos 21 a 32) ---
+  doc.setFillColor(235, 235, 235);
+  doc.rect(startX, currentY, width, 4, "F");
   doc.setFont("Helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(10, 10, 10);
-  doc.text(`000${activeChallenge.id.replace(".", "")}`, startX + 3, startY + 36);
+  doc.setFontSize(5.5);
+  doc.setTextColor(0, 0, 0);
+  doc.text("03 - DADOS DO CONTRATO", startX + 2, currentY + 2.8);
+  doc.line(startX, currentY + 4, startX + width, currentY + 4);
+  currentY += 4;
 
-  // Employee Name
-  doc.setFont("Helvetica", "mono");
-  doc.setFontSize(7);
-  doc.setTextColor(110, 110, 110);
-  doc.text(appLanguage === "en" ? "EMPLOYEE / WORKER" : "FUNCIONÁRIO / TRABALHADOR", startX + 22, startY + 29);
+  const tipoContratoText = activeChallenge.id === "3.8" ? "2 - Prazo determinado s/ cláusula" : "1 - Contrato prazo indeterminado";
+  drawTextBox(startX, currentY, 60, 6, "21 Tipo de Contrato", tipoContratoText);
+  const causaAfastamentoText = activeChallenge.id === "2" || activeChallenge.id === "3.2" ? "Pedido de demissão pelo empregado" : "Despedida sem justa causa pelo empregador";
+  drawTextBox(startX + 60, currentY, 130, 6, "22 Causa do Afastamento", causaAfastamentoText);
+  currentY += 6;
+
+  drawTextBox(startX, currentY, 50, 6, "23 Remuneração Mês Anterior", "R$ " + formatCurrency(activeChallenge.empregado.salarioBase));
+  drawTextBox(startX + 50, currentY, 45, 6, "24 Data de Admissão", activeChallenge.empregado.dataAdmissao || "—");
+  const dataAvisoText = activeChallenge.id === "3.2" ? "29/05/2026" : activeChallenge.empregado.dataFato || "—";
+  drawTextBox(startX + 95, currentY, 45, 6, "25 Data do Aviso Prévio", dataAvisoText);
+  drawTextBox(startX + 140, currentY, 50, 6, "26 Data de Afastamento", activeChallenge.empregado.dataFato || "—");
+  currentY += 6;
+
+  const codAfastamentoText = activeChallenge.id === "2" || activeChallenge.id === "3.2" ? "PD1" : "SJ2";
+  drawTextBox(startX, currentY, 35, 6, "27 Cód. Afastamento", codAfastamentoText);
+  drawTextBox(startX + 35, currentY, 50, 6, "28 Pensão Alimentícia (%) sobre TRCT", "0,00 %");
+  drawTextBox(startX + 85, currentY, 50, 6, "29 Pensão Alimentícia (%) sobre FGTS", "0,00 %");
+  drawTextBox(startX + 135, currentY, 55, 6, "30 Categoria do Trabalhador", "01 - Empregado Geral");
+  currentY += 6;
+
+  drawTextBox(startX, currentY, 60, 6, "31 Código Sindical", "912.000.000.00000-0");
+  drawTextBox(startX + 60, currentY, 130, 6, "32 CNPJ do Sindicato", "11.222.333/0001-44");
+  currentY += 6;
+
+  // --- 04 - DISCRIMINAÇÃO DAS VERBAS RESCISÓRIAS (PROVENTOS) (campos 50 a 99) ---
+  doc.setFillColor(235, 235, 235);
+  doc.rect(startX, currentY, width, 4, "F");
   doc.setFont("Helvetica", "bold");
-  doc.setFontSize(9.5);
-  doc.setTextColor(10, 10, 10);
-  doc.text(activeChallenge.empregado.nome.toUpperCase(), startX + 22, startY + 36);
+  doc.setFontSize(5.5);
+  doc.setTextColor(0, 0, 0);
+  doc.text("04 - DISCRIMINAÇÃO DAS VERBAS RESCISÓRIAS (PROVENTOS)", startX + 2, currentY + 2.8);
+  doc.line(startX, currentY + 4, startX + width, currentY + 4);
+  currentY += 4;
 
-  // Admission Date
-  doc.setFont("Helvetica", "mono");
-  doc.setFontSize(7);
-  doc.setTextColor(110, 110, 110);
-  doc.text(appLanguage === "en" ? "ADMISSION" : "ADMISSÃO", startX + 147, startY + 29);
+  // Header of the Proventos table
+  doc.setFillColor(245, 245, 245);
+  doc.rect(startX, currentY, width, 4, "F");
   doc.setFont("Helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(10, 10, 10);
-  doc.text(activeChallenge.empregado.dataAdmissao, startX + 147, startY + 36);
+  doc.setFontSize(5);
+  doc.text("RUBRICA / DESCRIÇÃO DA VERBA", startX + 2, currentY + 3);
+  doc.text("VALOR (CRÉDITO)", startX + width - 15, currentY + 3, { align: "right" });
+  doc.line(startX, currentY + 4, startX + width, currentY + 4);
+  currentY += 4;
 
-  // Vertical divisions for row 2 (y: 50 to 65)
-  doc.line(startX + 105, 50, startX + 105, 65); // Cargo to CBO divider
-  doc.line(startX + 145, 50, startX + 145, 65); // CBO to Jornada divider
+  const proventosList = [
+    { code: "50", desc: "Saldo de Salário (Mês Afastamento)", val: gab.salario || 0 },
+    { code: "51", desc: "Comissões s/ Vendas", val: gab.comissoes || 0 },
+    { code: "52", desc: "Gratificações", val: 0 },
+    { code: "53", desc: "Adicional de Insalubridade", val: gab.insalubridade || 0 },
+    { code: "54", desc: "Adicional de Periculosidade", val: gab.periculosidade || 0 },
+    { code: "55", desc: "Adicional Noturno", val: gab.adicionalNoturno || 0 },
+    { code: "56", desc: "Horas Extras Realizadas (50% / 100%)", val: gab.horasExtras || 0 },
+    { code: "57", desc: "Gorjetas", val: 0 },
+    { code: "58", desc: "Reflexo do DSR sobre Horas Extras e Variáveis", val: gab.dsrHe || 0 },
+    { code: "59", desc: "Outros Adicionais", val: 0 },
+    { code: "60", desc: "13º Salário Proporcional", val: (activeChallenge.id === "3.6" ? gab.mediaHe : 0) || 0 },
+    { code: "61", desc: "13º Salário Exercício Anterior", val: 0 },
+    { code: "62", desc: "Salário-Família (Cotas da Previdência)", val: gab.salarioFamilia || 0 },
+    { code: "63", desc: "Dupla Função", val: 0 },
+    { code: "64", desc: "Outras Verbas", val: 0 },
+    { code: "65", desc: "Férias Proporcionais", val: 0 },
+    { code: "66", desc: "Férias Vencidas", val: 0 },
+    { code: "68", desc: "Terço Constitucional de Férias Proporcionais/Vencidas", val: 0 },
+    { code: "69", desc: "Aviso Prévio Indenizado", val: 0 },
+    { code: "70", desc: "Décimo Terceiro Salário s/ Aviso Prévio Indenizado", val: 0 },
+    { code: "71", desc: "Férias s/ Aviso Prévio Indenizado", val: 0 },
+    { code: "72", desc: "Terço Constitucional de Férias s/ Aviso Prévio Indenizado", val: 0 }
+  ];
 
-  // Row 2 Text Info
-  // Role
-  doc.setFont("Helvetica", "mono");
-  doc.setFontSize(7);
-  doc.setTextColor(110, 110, 110);
-  doc.text(appLanguage === "en" ? "PRACTICAL ROLE / CONTRACT STIPULATION" : "CARGO CONTRATUAL REGISTRADO", startX + 2, startY + 44);
-  doc.setFont("Helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(10, 10, 10);
-  doc.text(activeChallenge.empregado.cbo.split(" (")[0], startX + 2, startY + 51);
-
-  // CBO
-  doc.setFont("Helvetica", "mono");
-  doc.setFontSize(7);
-  doc.setTextColor(110, 110, 110);
-  doc.text("CBO", startX + 107, startY + 44);
-  doc.setFont("Helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(10, 10, 10);
-  const cboCode = activeChallenge.empregado.cbo.match(/\(([^)]+)\)/)?.[1] || "—";
-  doc.text(cboCode, startX + 107, startY + 51);
-
-  // Working Hours (Jornada)
-  doc.setFont("Helvetica", "mono");
-  doc.setFontSize(7);
-  doc.setTextColor(110, 110, 110);
-  doc.text(appLanguage === "en" ? "JORNADA / UNIT" : "JORNADA TRIM." , startX + 147, startY + 44);
-  doc.setFont("Helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(10, 10, 10);
-  doc.text(activeChallenge.empregado.jornada || "44 horas/semana", startX + 147, startY + 51);
-
-  // --- RUBRIC TABLE SECTION (y: 65 to 185) ---
-  // Table Header Background bar (Light Gray)
-  doc.setFillColor(242, 244, 245);
-  doc.rect(startX, 65, width, 8, "F");
-
-  // Bottom line of header
-  doc.line(startX, 73, startX + width, 73);
-
-  // Table Column Headers Text
-  doc.setFont("Helvetica", "bold");
-  doc.setFontSize(7.5);
-  doc.setTextColor(50, 50, 50);
-  doc.text(appLanguage === "en" ? "CODE" : "CÓD", startX + 2, 70.5);
-  doc.text(appLanguage === "en" ? "DESCRIPTION OF THE ACCOUNT / NATURE" : "DESCRIÇÃO DA VERBA / DESCONTO", startX + 18, 70.5);
-  doc.text(appLanguage === "en" ? "REFERENCE" : "REFERÊNCIA", startX + 115, 70.5, { align: "center" });
-  doc.text(appLanguage === "en" ? "CREDITS (R$)" : "PROVENTOS (R$)", startX + 160, 70.5, { align: "right" });
-  doc.text(appLanguage === "en" ? "DEBITS (R$)" : "DESCONTOS (R$)", startX + 188, 70.5, { align: "right" });
-
-  // Draw Vertical lines for columns in the table area (y: 65 to 183)
-  const tblEndY = 183;
-  doc.line(startX + 14, 65, startX + 14, tblEndY); // Cód column separator
-  doc.line(startX + 100, 65, startX + 100, tblEndY); // Descrição column separator
-  doc.line(startX + 130, 65, startX + 130, tblEndY); // Referência column separator
-  doc.line(startX + 163, 65, startX + 163, tblEndY); // Proventos column separator
-
-  // Iterate over 10 rows and draw horizontal separator grids
-  let currentY = 73;
-  const rowHeight = 11; // height representing each item beautifully
-
-  doc.setFontSize(8);
-  paddedList.forEach((row, index) => {
-    // Fill background of alternate rows slightly for high contrast
-    if (index % 2 === 1 && row.cod) {
-      doc.setFillColor(252, 253, 254);
-      doc.rect(startX, currentY, width, rowHeight, "F");
-    }
-
-    doc.line(startX, currentY + rowHeight, startX + width, currentY + rowHeight);
-
-    if (row.cod) {
-      doc.setTextColor(40, 40, 40);
-      // Code
-      doc.setFont("Helvetica", "bold");
-      doc.text(row.cod, startX + 7, currentY + 7, { align: "center" });
-      
-      // Description
-      doc.setFont("Helvetica", "bold");
-      doc.text(row.desc, startX + 17, currentY + 7);
-      
-      // Reference
-      doc.setFont("Helvetica", "normal");
-      doc.setTextColor(100, 100, 100);
-      doc.text(row.ref || "—", startX + 115, currentY + 7, { align: "center" });
-      
-      // Proventos (Vencimentos)
-      doc.setTextColor(15, 110, 50);
-      doc.setFont("Helvetica", "bold");
-      const provVal = row.vencimento > 0 ? row.vencimento.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "";
-      doc.text(provVal, startX + 160, currentY + 7, { align: "right" });
-      
-      // Descontos
-      doc.setTextColor(180, 20, 20);
-      const descVal = row.desconto > 0 ? row.desconto.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "";
-      doc.text(descVal, startX + 188, currentY + 7, { align: "right" });
-    }
-
-    currentY += rowHeight;
+  const proventoRowHeight = 6.2;
+  proventosList.forEach((prov) => {
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.18);
+    doc.rect(startX, currentY, width, proventoRowHeight);
+    
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(4.5);
+    doc.setTextColor(60, 60, 60);
+    doc.text(`${prov.code} - ${prov.desc.toUpperCase()}`, startX + 1.2, currentY + 2.0);
+    
+    doc.setFont("Courier", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(0, 0, 0);
+    const displayVal = "R$ " + formatCurrency(prov.val);
+    doc.text(displayVal, startX + width - 1.2, currentY + proventoRowHeight - 1.2, { align: "right" });
+    
+    currentY += proventoRowHeight;
   });
 
-  // Now currentY should be exactly tblEndY = 183
+  const totalBruto = proventosList.reduce((acc, prov) => acc + prov.val, 0);
+  
+  doc.setFillColor(240, 240, 240);
+  doc.rect(startX, currentY, width, 8, "F");
+  drawTextBox(startX, currentY, width, 8, "99 TOTAL BRUTO (CRÉDITOS)", "R$ " + formatCurrency(totalBruto), true, "right");
+  currentY += 8;
 
-  // --- SUMMARY TOTALS SECTION (y: 183 to 207) ---
-  // Outer rectangle for total summations divided into 3 pieces
-  doc.line(startX, 207, startX + width, 207);
-  doc.line(startX + 63, 183, startX + 63, 207); // Divider 1
-  doc.line(startX + 126, 183, startX + 126, 207); // Divider 2
-
-  // Total Proventos
-  doc.setFont("Helvetica", "mono");
-  doc.setFontSize(6.5);
-  doc.setTextColor(110, 110, 110);
-  doc.text(appLanguage === "en" ? "TOTAL CREDITS (PROVENTOS)" : "TOTAL DE PROVENTOS (CRÉDITOS)", startX + 3, 189);
-  doc.setFont("Helvetica", "bold");
-  doc.setFontSize(10.5);
-  doc.setTextColor(15, 110, 50);
-  doc.text(`R$ ${sumVencimentos.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, startX + 3, 199);
-
-  // Total Descontos
-  doc.setFont("Helvetica", "mono");
-  doc.setFontSize(6.5);
-  doc.setTextColor(110, 110, 110);
-  doc.text(appLanguage === "en" ? "TOTAL DEDUCTIONS (DESCONTOS)" : "TOTAL DE DESCONTOS (DEDUÇÕES)", startX + 66, 189);
-  doc.setFont("Helvetica", "bold");
-  doc.setFontSize(10.5);
-  doc.setTextColor(180, 20, 20);
-  doc.text(`R$ ${sumDescontos.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, startX + 66, 199);
-
-  // Liquid (Net Amount Paid)
-  // Fill background of Net Liquid box dynamically for priority notice
-  doc.setFillColor(240, 248, 242);
-  doc.rect(startX + 126, 183, 64, 24, "F");
-  doc.line(startX + 126, 183, startX + 126 + 64, 183); // Redraw borders over background
-
-  doc.setFont("Helvetica", "mono");
-  doc.setFontSize(7.5);
-  doc.setTextColor(10, 10, 10);
-  doc.text(appLanguage === "en" ? "NET AMOUNT A RECEIVE" : "VALOR LÍQUIDO A RECEBER", startX + 129, 189);
-  doc.setFont("Helvetica", "bold");
-  doc.setFontSize(13);
-  doc.setTextColor(11, 74, 30);
-  doc.text(`R$ ${valLiquido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, startX + 129, 199);
-
-  // --- ANALYTICAL BASES BOX (y: 207 to 230) ---
-  doc.line(startX, 230, startX + width, 230);
-  doc.line(startX + 47.5, 207, startX + 47.5, 230); // Base 1 Divider
-  doc.line(startX + 95, 207, startX + 95, 230); // Base 2 Divider
-  doc.line(startX + 142.5, 207, startX + 142.5, 230); // Base 3 Divider
-
-  doc.setFont("Helvetica", "mono");
-  doc.setFontSize(6);
-  doc.setTextColor(110, 110, 110);
-
-  // 1: Salário Contratual
-  doc.text(appLanguage === "en" ? "CONTRACTUAL WAGE" : "SALÁRIO CONTRATUAL", startX + 2, 213);
-  doc.setFont("Helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(80, 80, 80);
-  doc.text(`R$ ${activeChallenge.empregado.salarioBase?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, startX + 2, 223);
-
-  // 2: Base Contribuição INSS
-  doc.setFont("Helvetica", "mono");
-  doc.setFontSize(6);
-  doc.setTextColor(110, 110, 110);
-  doc.text(appLanguage === "en" ? "INSS CONTRIB. BASE" : "BASE CONTRIB. INSS", startX + 49.5, 213);
-  doc.setFont("Helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(80, 80, 80);
-  doc.text(`R$ ${gab.baseFgts?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, startX + 49.5, 223);
-
-  // 3: Base Cálculo FGTS
-  doc.setFont("Helvetica", "mono");
-  doc.setFontSize(6);
-  doc.setTextColor(110, 110, 110);
-  doc.text(appLanguage === "en" ? "FGTS CALCULATION BASE" : "BASE CÁLCULO FGTS", startX + 97, 213);
-  doc.setFont("Helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(80, 80, 80);
-  doc.text(`R$ ${gab.baseFgts?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, startX + 97, 223);
-
-  // 4: FGTS do Mês (8%)
-  doc.setFont("Helvetica", "mono");
-  doc.setFontSize(6);
-  doc.setTextColor(110, 110, 110);
-  doc.text(appLanguage === "en" ? "FGTS MONTH DEPOSIT (8%)" : "FGTS DO MÊS APURADO (8%)", startX + 144.5, 213);
-  doc.setFont("Helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(10, 10, 10);
-  doc.text(`R$ ${gab.fgts?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, startX + 144.5, 223);
-
-
-  // --- LEGAL VALIDITY & SIGNATURES SECTION (y: 230 to 287) ---
-  doc.setFont("Helvetica", "mono");
-  doc.setFontSize(7.5);
-  doc.setTextColor(100, 100, 100);
-
-  // Title on legal validity
-  doc.setFont("Helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(60, 60, 60);
-  doc.text(appLanguage === "en" ? "LEGAL COMPLIANCE WARRANTY" : "DECLARAÇÃO DE VALOR JURÍDICO RECONHECIDO", startX + 5, 240);
-
-  // Paragraph
+  // Footnote and page number for Page 1
   doc.setFont("Helvetica", "normal");
-  doc.setFontSize(7.5);
+  doc.setFontSize(5);
   doc.setTextColor(120, 120, 120);
-  const textLine1 = appLanguage === "en" 
-    ? "I hereby declare having received the exact cash/deposit net amount detailed in this" 
-    : "Declaro ter recebido a importância líquida e integral descrita neste recibo";
-  const textLine2 = appLanguage === "en" 
-    ? "document as final compensation before legal termination per Article 477 of CLT." 
-    : "de pagamento, dando plena, geral e irrevogável quitação sob termos do Artigo 477 da CLT.";
-  doc.text(textLine1, startX + 5, 247);
-  doc.text(textLine2, startX + 5, 252);
+  doc.text("Termo de Rescisão de Contrato de Trabalho - TRCT. Desenvolvido em conformidade com a Portaria MTE nº 1.621/2010.", startX, height + 8);
+  doc.text("PÁGINA 1 DE 2", startX + width, height + 8, { align: "right" });
 
-  // Audit Footer stamp decoration
-  doc.setFillColor(248, 249, 250);
-  doc.rect(startX + 5, 258, 100, 16);
+
+  // ==================== PÁGINA 2 ====================
+
+  doc.addPage();
+  
+  // Draw border around Page 2
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.4);
+  doc.rect(startX, startY, width, height);
+  
+  // Reset Y coordinate for Page 2
+  let p2Y = startY;
+
+  // Header of Page 2 (MTE / TRCT Continuation)
+  doc.setFillColor(245, 245, 245);
+  doc.rect(startX, p2Y, width, 8, "F");
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.35);
+  doc.line(startX, p2Y + 8, startX + width, p2Y + 8);
+  
   doc.setFont("Helvetica", "bold");
-  doc.setFontSize(6.5);
-  doc.setTextColor(120, 120, 120);
-  doc.text(appLanguage === "en" ? "OFFICIAL COMPLIANCE BARCODE METRICS:" : "CHANCE DE VALIDADE REGULATÓRIA: 100%", startX + 8, 263);
-  doc.setFont("Helvetica", "mono");
-  doc.setFontSize(6);
-  doc.text(`REF-HASH-TOKEN: CLTx772x023x000${activeChallenge.id.replace(".", "")}xFFA982B`, startX + 8, 268);
-  doc.text(appLanguage === "en" ? "STATUS: CONFORME E-SOCIAL MINISTERIO DO TRABALHO DIGITAL" : "ESTADO: REGISTRADO EM CONFORMIDADE COM e-SOCIAL E MTE", startX + 8, 271);
-
-  // Draw signature fields on the right-hand side
-  doc.line(startX + 115, 230, startX + 115, 287); // Left side division divider
-
-  const signatureY = 265;
-  doc.setFont("Helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(80, 80, 80);
-  doc.text("______ / ______ / _________", startX + 120, signatureY);
-  doc.text(appLanguage === "en" ? "Date" : "Data", startX + 120, signatureY + 5);
-
-  doc.line(startX + 120, signatureY + 14, startX + 185, signatureY + 14);
   doc.setFontSize(7);
-  doc.text(appLanguage === "en" ? "Employee / Trainee Legal Signature" : "Assinatura do Funcionário / Beneficiário", startX + 120, signatureY + 19);
+  doc.setTextColor(0, 0, 0);
+  doc.text("TERMO DE RESCISÃO DO CONTRATO DE TRABALHO - TRCT (DEDUÇÕES, TOTAIS E HOMOLOGAÇÃO)", startX + width / 2, p2Y + 5, { align: "center" });
+  p2Y += 8;
+
+  // --- 04 - DISCRIMINAÇÃO DAS VERBAS RESCISÓRIAS (DEDUÇÕES) (campos 100 a 116) ---
+  doc.setFillColor(235, 235, 235);
+  doc.rect(startX, p2Y, width, 4, "F");
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(5.5);
+  doc.setTextColor(0, 0, 0);
+  doc.text("04 - DISCRIMINAÇÃO DAS VERBAS RESCISÓRIAS (DEDUÇÕES)", startX + 2, p2Y + 2.8);
+  doc.line(startX, p2Y + 4, startX + width, p2Y + 4);
+  p2Y += 4;
+
+  // Header of the Deduções table
+  doc.setFillColor(245, 245, 245);
+  doc.rect(startX, p2Y, width, 4, "F");
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(5);
+  doc.text("RUBRICA / DESCRIÇÃO DO DESCONTO", startX + 2, p2Y + 3);
+  doc.text("VALOR (DÉBITO)", startX + width - 15, p2Y + 3, { align: "right" });
+  doc.line(startX, p2Y + 4, startX + width, p2Y + 4);
+  p2Y += 4;
+
+  const deductionsList = [
+    { code: "100", desc: "Pensão Alimentícia", val: 0 },
+    { code: "101", desc: "Adiantamento Salarial", val: 0 },
+    { code: "102", desc: "Adiantamento de Décimo Terceiro Salário", val: 0 },
+    { code: "103", desc: "Assistência Médica / Plano de Saúde", val: 0 },
+    { code: "112.1", desc: "Previdência Social (Contribuição do Segurado - INSS)", val: gab.inss || 0 },
+    { code: "112.2", desc: "Previdência Social sobre Décimo Terceiro Salário", val: 0 },
+    { code: "114.1", desc: "Imposto de Renda Retido na Fonte (IRRF)", val: gab.irrf || 0 },
+    { code: "114.2", desc: "Imposto de Renda s/ Décimo Terceiro Salário", val: 0 },
+    { code: "115.1", desc: "Desconto Vale-Transporte (6% ou Custo Real)", val: gab.vt || 0 },
+    { code: "115.2", desc: "Desconto de Faltas Injustificadas e DSR Perdido", val: gab.faltasDesconto || 0 },
+    { code: "116", desc: "Outros Descontos Autorizados", val: 0 }
+  ];
+
+  const dedRowHeight = 6.2;
+  deductionsList.forEach((ded) => {
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.18);
+    doc.rect(startX, p2Y, width, dedRowHeight);
+    
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(4.5);
+    doc.setTextColor(60, 60, 60);
+    doc.text(`${ded.code} - ${ded.desc.toUpperCase()}`, startX + 1.2, p2Y + 2.0);
+    
+    doc.setFont("Courier", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(0, 0, 0);
+    const displayVal = "R$ " + formatCurrency(ded.val);
+    doc.text(displayVal, startX + width - 1.2, p2Y + dedRowHeight - 1.2, { align: "right" });
+    
+    p2Y += dedRowHeight;
+  });
+
+  // --- CAMPOS EM BRANCO (117 a 149) ---
+  doc.setFillColor(248, 248, 248);
+  doc.rect(startX, p2Y, width, 18, "F");
+  
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.18);
+  doc.rect(startX, p2Y, width, 18);
+  
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(4.5);
+  doc.setTextColor(60, 60, 60);
+  doc.text("CAMPOS EM BRANCO (117 A 149) - RESIDUAIS RESERVADOS PARA ACRÉSCIMO DE RUBRICAS ADICIONAIS PELO EMPREGADOR", startX + 1.2, p2Y + 2.0);
+  
+  doc.setFont("Helvetica", "normal");
+  doc.setFontSize(5);
+  doc.setTextColor(100, 100, 100);
+  doc.text("117-149 Rubrica de Acréscimo Adicional da Empresa (Art. 4º da Portaria MTE 1.621/2010)", startX + 1.2, p2Y + 6.0);
+  doc.text("117-149 Outras Deduções Regulamentares Opcionais", startX + 1.2, p2Y + 10.0);
+  
+  doc.setFont("Courier", "normal");
+  doc.setFontSize(6.5);
+  doc.setTextColor(0, 0, 0);
+  doc.text("R$ 0,00", startX + width - 1.2, p2Y + 6.0, { align: "right" });
+  doc.text("R$ 0,00", startX + width - 1.2, p2Y + 10.0, { align: "right" });
+  doc.text("R$ 0,00", startX + width - 1.2, p2Y + 14.0, { align: "right" });
+  p2Y += 18;
+
+  // --- 05 - TOTAIS, BASES DE CÁLCULO E DEPÓSITOS DO FGTS ---
+  doc.setFillColor(235, 235, 235);
+  doc.rect(startX, p2Y, width, 4, "F");
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(5.5);
+  doc.setTextColor(0, 0, 0);
+  doc.text("05 - TOTAIS, BASES DE CÁLCULO E DEPÓSITOS DO FGTS", startX + 2, p2Y + 2.8);
+  doc.line(startX, p2Y + 4, startX + width, p2Y + 4);
+  p2Y += 4;
+
+  const totalDeducoes = deductionsList.reduce((acc, ded) => acc + ded.val, 0);
+  const valorLiquido = totalBruto - totalDeducoes;
+
+  drawTextBox(startX, p2Y, 63, 8, "100 TOTAL DEDUÇÕES (DESCONTOS)", "R$ " + formatCurrency(totalDeducoes), true);
+  
+  doc.setFillColor(235, 245, 235);
+  doc.rect(startX + 63, p2Y, 127, 8, "F");
+  drawTextBox(startX + 63, p2Y, 127, 8, "VALOR LÍQUIDO A RECEBER (DEVIDO)", "R$ " + formatCurrency(valorLiquido), true, "right");
+  p2Y += 8;
+
+  // Bases de cálculo (INSS, FGTS, etc)
+  const baseInss = gab.baseFgts || 0;
+  const baseFgtsVal = gab.baseFgts || 0;
+  const fgtsMes = gab.fgts || 0;
+  const multaRescisoriaVal = activeChallenge.id === "3.8" ? 0 : fgtsMes * (activeChallenge.id === "3.6" ? 0.2 : 0.4);
+
+  drawTextBox(startX, p2Y, 47.5, 6, "BASE CÁLCULO INSS", "R$ " + formatCurrency(baseInss));
+  drawTextBox(startX + 47.5, p2Y, 47.5, 6, "BASE CÁLCULO FGTS", "R$ " + formatCurrency(baseFgtsVal));
+  drawTextBox(startX + 95, p2Y, 47.5, 6, "FGTS DO MÊS APURADO (8%)", "R$ " + formatCurrency(fgtsMes));
+  drawTextBox(startX + 142.5, p2Y, 47.5, 6, "MULTA RESCISÓRIA FGTS", "R$ " + formatCurrency(multaRescisoriaVal));
+  p2Y += 6;
+
+  // --- 06 - FORMALIZAÇÃO DA RESCISÃO / QUITAÇÃO (ART. 477 DA CLT) E HOMOLOGAÇÃO (campos 150 a 158) ---
+  doc.setFillColor(235, 235, 235);
+  doc.rect(startX, p2Y, width, 4, "F");
+  doc.setFont("Helvetica", "bold");
+  doc.setFontSize(5.5);
+  doc.setTextColor(0, 0, 0);
+  doc.text("06 - FORMALIZAÇÃO DA RESCISÃO / QUITAÇÃO (ART. 477 DA CLT) E HOMOLOGAÇÃO", startX + 2, p2Y + 2.8);
+  doc.line(startX, p2Y + 4, startX + width, p2Y + 4);
+  p2Y += 4;
+
+  const signH = 16;
+  const dataFatoStr = activeChallenge.empregado.dataFato || "—";
+  
+  // Linha 1: 150, 151, 152
+  drawTextBox(startX, p2Y, 63, signH, "150 local e data de recebimento", "SÃO PAULO, SP, " + dataFatoStr);
+  drawTextBox(startX + 63, p2Y, 63, signH, "151 carimbo e assinatura do empregador", "\n\n___________________________________\nCRISRES SOLUÇÃO TRABALHISTA S/A");
+  drawTextBox(startX + 126, p2Y, 64, signH, "152 assinatura do trabalhador", "\n\n___________________________________\n" + activeChallenge.empregado.nome.toUpperCase());
+  p2Y += signH;
+
+  // Linha 2: 153, 154, 155
+  drawTextBox(startX, p2Y, 63, signH, "153 assinatura resp. legal trabalhador", "\n\n___________________________________\nDispensada p/ Reforma Trabalhista (Art. 477)");
+  drawTextBox(startX + 63, p2Y, 63, signH, "154 homologação - ass. assistente", "\n\n___________________________________\nMinistério do Trabalho e Emprego");
+  drawTextBox(startX + 126, p2Y, 64, signH, "155 digital do trabalhador", "\n[ Polegar Direito ]\n\n\n");
+  p2Y += signH;
+
+  // Linha 3: 156, 157
+  drawTextBox(startX, p2Y, 95, signH, "156 digital do responsável legal", "\n[ Polegar Direito do Assistente ]\n\n\n");
+  drawTextBox(startX + 95, p2Y, 95, signH, "157 identificação do órgão homologador", "MTE / DRT SP - MINISTÉRIO DO TRABALHO");
+  p2Y += signH;
+
+  // Linha 4: 158
+  drawTextBox(startX, p2Y, width, 12, "158 recepção pelo banco (data e carimbo para saque do fgts)", "AGÊNCIA BANCÁRIA: _______________   DATA DO SAQUE: ___/___/_____   ASSINATURA DO CAIXA: _______________________");
+
+  // Footnote and page number for Page 2
+  doc.setFont("Helvetica", "normal");
+  doc.setFontSize(5);
+  doc.setTextColor(120, 120, 120);
+  doc.text("Documento oficial impresso em conformidade com a Portaria MTE nº 1.621/2010.", startX, height + 8);
+  doc.text("PÁGINA 2 DE 2", startX + width, height + 8, { align: "right" });
 
   // Save the generated document
   doc.save(`TRCT_EP_${activeChallenge.id}_${activeChallenge.empregado.nome.replace(/\s+/g, "_")}.pdf`);

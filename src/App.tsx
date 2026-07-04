@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { Student, Challenge, Badge, CareerPhase, SquadLog } from "./types";
+import { Student, Challenge, Badge, CareerPhase, SquadLog, PenaltySettings } from "./types";
 import {
   CBOS_DATA,
   CAREER_PHASES,
@@ -256,6 +256,62 @@ export default function App() {
     }
   };
 
+  const [penaltySettings, setPenaltySettings] = useState<PenaltySettings>({
+    focusLossLimit: 7,
+    focusXpPenaltyPercent: 5,
+    inactivityTimeoutMinutes: 3,
+    idlenessXpPenalty: 30,
+    focusLossEnabled: true,
+    inactivityPenaltyEnabled: true,
+    idlenessPenaltyEnabled: true,
+  });
+
+  // Real-time synchronization of penalty settings from Firestore
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "settings", "penalties"), (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data() as Partial<PenaltySettings>;
+        setPenaltySettings((prev) => ({
+          ...prev,
+          focusLossLimit: typeof data.focusLossLimit === "number" ? data.focusLossLimit : 7,
+          focusXpPenaltyPercent: typeof data.focusXpPenaltyPercent === "number" ? data.focusXpPenaltyPercent : 5,
+          inactivityTimeoutMinutes: typeof data.inactivityTimeoutMinutes === "number" ? data.inactivityTimeoutMinutes : 3,
+          idlenessXpPenalty: typeof data.idlenessXpPenalty === "number" ? data.idlenessXpPenalty : 30,
+          focusLossEnabled: typeof data.focusLossEnabled === "boolean" ? data.focusLossEnabled : true,
+          inactivityPenaltyEnabled: typeof data.inactivityPenaltyEnabled === "boolean" ? data.inactivityPenaltyEnabled : true,
+          idlenessPenaltyEnabled: typeof data.idlenessPenaltyEnabled === "boolean" ? data.idlenessPenaltyEnabled : true,
+        }));
+      } else {
+        if (hasProfessorAccess) {
+          setDoc(doc(db, "settings", "penalties"), {
+            focusLossLimit: 7,
+            focusXpPenaltyPercent: 5,
+            inactivityTimeoutMinutes: 3,
+            idlenessXpPenalty: 30,
+            focusLossEnabled: true,
+            inactivityPenaltyEnabled: true,
+            idlenessPenaltyEnabled: true,
+          }).catch(err => console.error("Error setting default penalties:", err));
+        }
+      }
+    }, (err) => {
+      console.warn("Could not listen to settings/penalties (using local/fallback state):", err);
+    });
+    return () => unsub();
+  }, [hasProfessorAccess]);
+
+  const handleUpdatePenaltySettings = async (nextSettings: Partial<PenaltySettings>) => {
+    const updated = { ...penaltySettings, ...nextSettings };
+    setPenaltySettings(updated);
+    if (hasProfessorAccess) {
+      try {
+        await setDoc(doc(db, "settings", "penalties"), updated);
+      } catch (err) {
+        console.error("Error saving penalty settings to Firestore:", err);
+      }
+    }
+  };
+
   const [firebaseQuotaActive, setFirebaseQuotaActive] = useState<boolean>(() => checkQuotaExceeded());
 
   useEffect(() => {
@@ -298,6 +354,28 @@ export default function App() {
         console.warn("[Clock Sync] Server time synchronization skipped, falling back to local client time:", err.message || err);
       });
   }, []);
+
+  // --- RULE 1: DYNAMIC HEARTBEAT FREQUENCY ---
+  // Calculates the count of active logged-in students based on the last 15 minutes window
+  const activeOnlineCount = useMemo(() => {
+    const compNow = Date.now() + clockOffsetRef.current;
+    return students.filter(
+      (s) => s.id !== "adm" && s.id !== "professor" && s.lastSeen && Math.abs(compNow - s.lastSeen) <= 900000
+    ).length;
+  }, [students]);
+
+  const dynamicHeartbeatInterval = useMemo(() => {
+    if (activeOnlineCount <= 5) return 90000; // 1.5 min (90,000 ms)
+    if (activeOnlineCount <= 10) return 180000; // 3 min (180,000 ms)
+    if (activeOnlineCount <= 20) return 360000; // 6 min (360,000 ms)
+    if (activeOnlineCount <= 30) return 720000; // 12 min (720,000 ms)
+    return 900000; // 15 min (900,000 ms) for >30 students
+  }, [activeOnlineCount]);
+
+  const dynamicOnlineThreshold = useMemo(() => {
+    return Math.max(210000, dynamicHeartbeatInterval * 1.5);
+  }, [dynamicHeartbeatInterval]);
+
   const [activeBroadcast, setActiveBroadcast] = useState<{ id: string, text: string } | null>(null);
   const loginBroadcastRef = useRef(false);
 
@@ -2476,6 +2554,9 @@ Para resolver:
 
         // Otherwise, run standard inactivity check
         setInactivitySeconds((prev) => {
+          if (!penaltySettings.inactivityPenaltyEnabled) {
+            return 0;
+          }
           const next = prev + 1;
           if (next >= 180) {
             // 3 minutes exceeded! Trigger block and break active XP accumulator
@@ -2487,7 +2568,7 @@ Para resolver:
               {
                 id: Date.now(),
                 from: "Monitor de Tempo de Atividade",
-                text: "Sua seção de treinamento foi interrompida devido a inatividade prolongada (3+ minutos). Auditoria Automática: -5% XP e acumulador de tempo resetado.",
+                text: `Sua seção de treinamento foi interrompida devido a inatividade prolongada (3+ minutos). Auditoria Automática: -${penaltySettings.inactivityXpPenaltyPercent}% XP e acumulador de tempo resetado.`,
                 time: "Agora",
               },
               ...prevAlerts,
@@ -2498,7 +2579,7 @@ Para resolver:
               if (s.id === activeStudentId) {
                 return {
                   ...s,
-                  xp: Math.max(0, Math.round(s.xp * 0.95)),
+                  xp: Math.max(0, Math.round(s.xp * (1 - (penaltySettings.inactivityXpPenaltyPercent || 0) / 100))),
                   tempoAcumuladoXP: 0,
                   casosResolvidosNoCiclo: 0,
                 };
@@ -2544,24 +2625,36 @@ Para resolver:
                 };
               } else {
                 // Penalty! Staid active but solved absolute zero cases
-                playSoundEffect("failure");
+                if (penaltySettings.idlenessPenaltyEnabled) {
+                  playSoundEffect("failure");
 
-                setAlerts((prevAlerts) => [
-                  {
-                    id: Date.now(),
-                    from: "Monitor de Tempo de Atividade",
-                    text: "Penalidade aplicada! Você permaneceu 10 minutos ativo mexendo na tela, mas não resolveu nenhum caso de RH. -30 XP descontados por ócio de treinamento.",
-                    time: "Agora",
-                  },
-                  ...prevAlerts,
-                ]);
+                  setAlerts((prevAlerts) => [
+                    {
+                      id: Date.now(),
+                      from: "Monitor de Tempo de Atividade",
+                      text: `Penalidade aplicada! Você permaneceu 10 minutos ativo mexendo na tela, mas não resolveu nenhum caso de RH. -${penaltySettings.idlenessXpPenalty} XP descontados por ócio de treinamento.`,
+                      time: "Agora",
+                    },
+                    ...prevAlerts,
+                  ]);
+                } else {
+                  setAlerts((prevAlerts) => [
+                    {
+                      id: Date.now(),
+                      from: "Monitor de Tempo de Atividade",
+                      text: "Você permaneceu 10 minutos ativo mexendo na tela, mas não resolveu nenhum caso de RH. (Penalidade por ócio desativada pelo professor).",
+                      time: "Agora",
+                    },
+                    ...prevAlerts,
+                  ]);
+                }
 
                 return {
                   ...s,
                   tempoAtivoSegundos: nextTotal,
                   tempoAcumuladoXP: 0,
                   casosResolvidosNoCiclo: 0,
-                  xp: Math.max(0, s.xp - 30),
+                  xp: penaltySettings.idlenessPenaltyEnabled ? Math.max(0, s.xp - penaltySettings.idlenessXpPenalty) : s.xp,
                 };
               }
             }
@@ -2578,7 +2671,7 @@ Para resolver:
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, [activeStudentId, onboardingFinished, isScreenBlocked, isProfessorOrAdmin]);
+  }, [activeStudentId, onboardingFinished, isScreenBlocked, isProfessorOrAdmin, penaltySettings]);
 
   // Flush all sync queues immediately on beforeunload to prevent data loss on tab close/reload
   useEffect(() => {
@@ -2613,7 +2706,8 @@ Para resolver:
       setStudents((current) => {
         const student = current.find((s) => s.id === activeStudentId);
         const isExempt = student?.id === "STU-1C-10-1782358045698-r6f" || student?.matricula === "1C102026RH" || student?.faseAtual === -1 || selectedPhaseId === -1;
-        if (!student || ((student.saidasTela || 0) >= 7 && !isExempt)) {
+        const limit = penaltySettings.focusLossLimit;
+        if (!student || (penaltySettings.focusLossEnabled && !isExempt && (student.saidasTela || 0) >= limit)) {
           return current; // already locked out or n/a
         }
 
@@ -2623,9 +2717,9 @@ Para resolver:
             if (s.focoStatus === "Fora da Tela") return s;
 
             const isExempt = s.id === "STU-1C-10-1782358045698-r6f" || s.matricula === "1C102026RH" || s.faseAtual === -1 || selectedPhaseId === -1;
-            const totalLosses = s.recuperadoDeBloqueio ? (isExempt ? Math.min(6, s.saidasTela || 0) : 7) : (s.saidasTela || 0) + 1;
-            const isBlocked = !isExempt && totalLosses >= 7;
-            const finalLosses = isExempt ? Math.min(6, totalLosses) : totalLosses;
+            const totalLosses = s.recuperadoDeBloqueio ? (isExempt ? Math.min(limit - 1, s.saidasTela || 0) : limit) : (s.saidasTela || 0) + 1;
+            const isBlocked = penaltySettings.focusLossEnabled && !isExempt && totalLosses >= limit;
+            const finalLosses = isExempt ? Math.min(limit - 1, totalLosses) : totalLosses;
             const now = new Date();
             const timeStr = now.toLocaleTimeString("pt-BR");
 
@@ -2634,8 +2728,8 @@ Para resolver:
               remetente: "Sistema",
               texto: isBlocked
                 ? (s.recuperadoDeBloqueio
-                    ? `SISTEMA 🔒: SESSÃO BLOQUEADA às ${timeStr}. Saída de tela detectada pós-desbloqueio (TOLERÂNCIA ZERO). Auditoria Sancionada: -5% XP e acumulador resetado.`
-                    : `SISTEMA 🔒: SESSÃO BLOQUEADA às ${timeStr}. Limite de ${totalLosses} saídas excedido. Auditoria Sancionada: -5% XP e acumulador resetado.`)
+                    ? `SISTEMA 🔒: SESSÃO BLOQUEADA às ${timeStr}. Saída de tela detectada pós-desbloqueio (TOLERÂNCIA ZERO). Auditoria Sancionada: -${penaltySettings.focusXpPenaltyPercent}% XP e acumulador resetado.`
+                    : `SISTEMA 🔒: SESSÃO BLOQUEADA às ${timeStr}. Limite de ${totalLosses} saídas excedido. Auditoria Sancionada: -${penaltySettings.focusXpPenaltyPercent}% XP e acumulador resetado.`)
                 : `SISTEMA 🚫: O aluno minimizou a aba ou trocou de tela às ${timeStr} (Saídas detectadas: ${finalLosses}).`,
               timestamp: timeStr,
             };
@@ -2646,7 +2740,7 @@ Para resolver:
               saidasTela: finalLosses,
               mensagensChat: [...(s.mensagensChat || []), newMsg],
               ...(isBlocked ? {
-                xp: Math.max(0, Math.round(s.xp * 0.95)),
+                xp: Math.max(0, Math.round(s.xp * (1 - (penaltySettings.focusXpPenaltyPercent || 0) / 100))),
                 tempoAcumuladoXP: 0,
                 casosResolvidosNoCiclo: 0,
               } : {}),
@@ -2663,7 +2757,8 @@ Para resolver:
       setStudents((current) => {
         const student = current.find((s) => s.id === activeStudentId);
         const isExempt = student?.id === "STU-1C-10-1782358045698-r6f" || student?.matricula === "1C102026RH" || student?.faseAtual === -1 || selectedPhaseId === -1;
-        if (!student || ((student.saidasTela || 0) >= 7 && !isExempt)) {
+        const limit = penaltySettings.focusLossLimit;
+        if (!student || (penaltySettings.focusLossEnabled && !isExempt && (student.saidasTela || 0) >= limit)) {
           isOutOfFocus = false;
           return current; // no focus gains if locked out!
         }
@@ -2727,15 +2822,15 @@ Para resolver:
 
     const sendHeartbeat = () => {
       syncSetDoc("students", activeStudentId, { lastSeen: Date.now() + clockOffsetRef.current }, { merge: true }).catch(console.error);
+      console.log(`[Heartbeat] Active student heartbeat sent. Interval: ${dynamicHeartbeatInterval / 1000}s (${dynamicHeartbeatInterval / 60000} min) based on ${activeOnlineCount} active students.`);
     };
 
     // Send immediately on mount or login
     sendHeartbeat();
 
-    // Increased heartbeat interval to 3 minutes (180,000 ms) to reduce Firebase reads/writes during peaks
-    const interval = setInterval(sendHeartbeat, 180000);
+    const interval = setInterval(sendHeartbeat, dynamicHeartbeatInterval);
     return () => clearInterval(interval);
-  }, [activeStudentId]);
+  }, [activeStudentId, dynamicHeartbeatInterval, activeOnlineCount]);
 
   // Proactively zero the XP of Professor Fábio (fabiosantanalima01@gmail.com) on load if requested - Admin account only
   useEffect(() => {
@@ -5644,8 +5739,8 @@ Para resolver:
 
             {/* Isolated Highlighted Version (Only Login Gate) */}
             <div className="pt-4 flex justify-center">
-              <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
-                Versão v8.4.2026
+               <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
+                Versão v8.5.2026
               </span>
             </div>
           </div>
@@ -6295,8 +6390,8 @@ Para resolver:
                     <span className="text-[8px] font-mono text-gray-500">
                       {(() => {
                         const compNow = Date.now() + clockOffsetRef.current;
-                        const countOnline = students.filter(s => s.id !== 'adm' && s.id !== 'professor' && s.lastSeen && Math.abs(compNow - s.lastSeen) < 210000).length;
-                        const countOnScreen = students.filter(s => s.id !== 'adm' && s.id !== 'professor' && s.focoStatus === "Ativo" && s.lastSeen && Math.abs(compNow - s.lastSeen) < 210000).length;
+                        const countOnline = students.filter(s => s.id !== 'adm' && s.id !== 'professor' && s.lastSeen && Math.abs(compNow - s.lastSeen) < dynamicOnlineThreshold).length;
+                        const countOnScreen = students.filter(s => s.id !== 'adm' && s.id !== 'professor' && s.focoStatus === "Ativo" && s.lastSeen && Math.abs(compNow - s.lastSeen) < dynamicOnlineThreshold).length;
                         return appLanguage === "en" 
                           ? `Online: ${countOnline} | On Screen: ${countOnScreen}`
                           : `Online: ${countOnline} | Na Tela: ${countOnScreen}`;
@@ -6308,11 +6403,11 @@ Para resolver:
                       .filter(s => s.id !== activeStudentId && s.id !== 'adm' && s.id !== 'professor')
                       .sort((a, b) => {
                         const compNow = Date.now() + clockOffsetRef.current;
-                        const aOnline = a.lastSeen && Math.abs(compNow - a.lastSeen) < 210000;
+                        const aOnline = a.lastSeen && Math.abs(compNow - a.lastSeen) < dynamicOnlineThreshold;
                         const aFocused = aOnline && a.focoStatus === "Ativo";
                         const aWeight = aFocused ? 2 : aOnline ? 1 : 0;
 
-                        const bOnline = b.lastSeen && Math.abs(compNow - b.lastSeen) < 210000;
+                        const bOnline = b.lastSeen && Math.abs(compNow - b.lastSeen) < dynamicOnlineThreshold;
                         const bFocused = bOnline && b.focoStatus === "Ativo";
                         const bWeight = bFocused ? 2 : bOnline ? 1 : 0;
 
@@ -6322,7 +6417,7 @@ Para resolver:
                       .slice(0, 4)
                       .map(s => {
                         const compNow = Date.now() + clockOffsetRef.current;
-                        const isOnline = s.lastSeen && Math.abs(compNow - s.lastSeen) < 210000;
+                        const isOnline = s.lastSeen && Math.abs(compNow - s.lastSeen) < dynamicOnlineThreshold;
                         const isFocused = isOnline && s.focoStatus === "Ativo";
                         
                         let statusColor = "bg-gray-700";
@@ -9094,6 +9189,9 @@ Para resolver:
                 clockOffset={clockOffsetRef.current}
                 releasedPhases={releasedPhases}
                 onUpdateReleasedPhases={handleUpdateReleasedPhases}
+                dynamicOnlineThreshold={dynamicOnlineThreshold}
+                penaltySettings={penaltySettings}
+                onUpdatePenaltySettings={handleUpdatePenaltySettings}
               />
             )}
           </main>
@@ -9530,8 +9628,8 @@ Para resolver:
         </div>
       )}
 
-      {/* FOCUS BLOCK OVERLAY (saidasTela >= 7) */}
-      {onboardingFinished && activeStudent && !isProfessorOrAdmin && (activeStudent.saidasTela || 0) >= 7 && 
+      {/* FOCUS BLOCK OVERLAY (saidasTela >= limit) */}
+      {onboardingFinished && activeStudent && !isProfessorOrAdmin && penaltySettings.focusLossEnabled && (activeStudent.saidasTela || 0) >= penaltySettings.focusLossLimit && 
        activeStudent.id !== "STU-1C-10-1782358045698-r6f" && activeStudent.matricula !== "1C102026RH" && activeStudent.faseAtual !== -1 && (
         <div
           id="focus-block-overlay"
@@ -9550,10 +9648,10 @@ Para resolver:
                 SESSÃO SANCIONADA PARA AUDITORIA
               </h2>
               <p className="font-mono font-bold uppercase tracking-widest text-rose-300" style={{ fontSize: `${warningFontSizeMultiplier * 0.85}rem` }}>
-                ⚠️ PENALIDADE: -5% XP TOTAL • RESET DE CICLO
+                ⚠️ PENALIDADE: -{penaltySettings.focusXpPenaltyPercent}% XP TOTAL • RESET DE CICLO
               </p>
               <p className="text-xs text-text-secondary font-mono">
-                Excesso de Saídas de Foco {activeStudent.saidasTela} / 7
+                Excesso de Saídas de Foco {activeStudent.saidasTela} / {penaltySettings.focusLossLimit}
               </p>
             </div>
 
@@ -9656,9 +9754,9 @@ Para resolver:
         </div>
       )}
 
-      {/* INTERMEDIATE CONDUCT WARNINGS (saidasTela === 5 or 6) */}
-      {onboardingFinished && activeStudent && !isProfessorOrAdmin && 
-       ((activeStudent.saidasTela || 0) === 5 || (activeStudent.saidasTela || 0) === 6) && 
+      {/* INTERMEDIATE CONDUCT WARNINGS (saidasTela near limit) */}
+      {onboardingFinished && activeStudent && !isProfessorOrAdmin && penaltySettings.focusLossEnabled &&
+       ((activeStudent.saidasTela || 0) === (penaltySettings.focusLossLimit - 2) || (activeStudent.saidasTela || 0) === (penaltySettings.focusLossLimit - 1)) && 
        (activeStudent.saidasTela || 0) > dismissedWarningCount && (
         <div
           id="focus-warning-overlay"
@@ -9721,17 +9819,17 @@ Para resolver:
                 Você retirou o foco do simulador de e-Social pela <strong className="text-amber-400 font-bold">{activeStudent.saidasTela}ª vez</strong>!
               </p>
               
-              {activeStudent.saidasTela === 5 ? (
+              {activeStudent.saidasTela === (penaltySettings.focusLossLimit - 2) ? (
                 <p className="leading-relaxed text-gray-350" style={{ fontSize: `${warningFontSizeMultiplier * 0.85}rem` }}>
                   ⚠️ No e-Social, desvios eventuais do simulador prejudicam severamente o aprendizado técnico de transmissão de eventos de Tabelas e Admissões. Nosso ambiente monitora cada saída. Mantenha os olhos e as ações totalmente voltados ao trabalho!
                 </p>
               ) : (
                 <div className="space-y-3">
                   <p className="leading-relaxed text-gray-305 font-sans" style={{ fontSize: `${warningFontSizeMultiplier * 0.85}rem` }}>
-                    🔴 <strong className="text-rose-400 font-bold">ALERTA FINAL:</strong> Esta é a sua <strong className="text-amber-400 font-bold">6ª saída</strong> de tela de simulação.
+                    🔴 <strong className="text-rose-400 font-bold">ALERTA FINAL:</strong> Esta é a sua <strong className="text-amber-400 font-bold">{activeStudent.saidasTela}ª saída</strong> de tela de simulação.
                   </p>
                   <p className="text-rose-200 bg-rose-950/45 p-3.5 rounded-xl border-2 border-rose-500/20 font-sans font-semibold leading-relaxed" style={{ fontSize: `${warningFontSizeMultiplier * 0.87}rem` }}>
-                    "Caso mude de aba ou minimize o sistema <strong className="text-white font-black uppercase">MAIS UMA VEZ (7ª saída)</strong>, sua tela será travada de forma definitiva. O Professor/Monitoria terá que desbloquear sua estação pessoalmente e seu avanço nesta etapa será zerado."
+                    "Caso mude de aba ou minimize o sistema <strong className="text-white font-black uppercase">MAIS UMA VEZ ({penaltySettings.focusLossLimit}ª saída)</strong>, sua tela será travada de forma definitiva. O Professor/Monitoria terá que desbloquear sua estação pessoalmente e seu avanço nesta etapa será zerado."
                   </p>
                 </div>
               )}

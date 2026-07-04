@@ -191,3 +191,15 @@ export interface SquadLog {
   studentIds: string[]; // List of Student.id (max 4)
   timestamp: string; // Creation/update time
 }
+
+export interface PenaltySettings {
+  focusLossLimit: number; // Max screen departures allowed (default: 7)
+  focusXpPenaltyPercent: number; // XP deduction % when blocked by focus (default: 5)
+  inactivityTimeoutMinutes: number; // Inactivity limit (default: 3)
+  inactivityXpPenaltyPercent: number; // XP deduction % when blocked by inactivity (default: 5)
+  idlenessXpPenalty: number; // XP deducted on idleness cycle (default: 30)
+  focusLossEnabled: boolean; // Enable screen departure penalty checks
+  inactivityPenaltyEnabled: boolean; // Enable inactivity lockout penalty checks
+  idlenessPenaltyEnabled: boolean; // Enable 10-min active idleness penalty checks
+}
+

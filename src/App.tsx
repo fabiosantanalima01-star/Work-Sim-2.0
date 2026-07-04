@@ -830,13 +830,22 @@ export default function App() {
   // Push local changes of students to Firestore with priority debouncing
   useEffect(() => {
     if (!firebaseUser && !activeStudentId) return;
+    if (!hasInitialStudentsLoaded) return; // Wait for initial load to avoid writing stale state!
 
     students.forEach((s) => {
+      const isSelf = s.id === activeStudentId;
+      if (!isSelf && !isProfessorOrAdmin) {
+        // Normal students should NEVER write or sync other students' data to Firestore!
+        return;
+      }
+
       const synced = lastFirestoreSyncedRef.current[s.id];
       if (!synced) {
-        // Initial sync if missing in remote cache
-        lastFirestoreSyncedRef.current[s.id] = s;
-        syncSetDoc("students", s.id, sanitizeForFirestore(s), { merge: true }).catch(console.error);
+        // Only perform initial sync if this is ourselves (or we are the professor explicitly managing them)
+        if (isSelf) {
+          lastFirestoreSyncedRef.current[s.id] = s;
+          syncSetDoc("students", s.id, sanitizeForFirestore(s), { merge: true }).catch(console.error);
+        }
         return;
       }
 
@@ -867,16 +876,13 @@ export default function App() {
         synced.streakFasesAutonomas !== s.streakFasesAutonomas
       );
 
-      const isSelf = s.id === activeStudentId;
-      if (isSelf || isProfessorOrAdmin) {
-        if (isCriticalDiff) {
-          queueSync(s, 'critical');
-        } else if (isTelemetryDiff) {
-          queueSync(s, 'telemetry');
-        }
+      if (isCriticalDiff) {
+        queueSync(s, 'critical');
+      } else if (isTelemetryDiff) {
+        queueSync(s, 'telemetry');
       }
     });
-  }, [students, firebaseUser, activeStudentId, isProfessorOrAdmin, queueSync]);
+  }, [students, firebaseUser, activeStudentId, isProfessorOrAdmin, hasInitialStudentsLoaded, queueSync]);
 
   const handleFirebaseGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
@@ -918,15 +924,8 @@ export default function App() {
           const sanitizedAdmin = sanitizeForFirestore({ ...adminStub, senha: "admin" });
           syncSetDoc("students", adminStub.id, sanitizedAdmin, { merge: true }).catch(console.error);
           
-          // AUTO-SYNC ALL STUDENTS if it's the professor and they just logged in
-          const syncAll = async () => {
-             const syncPromises = students.map(s => 
-               syncSetDoc("students", s.id, sanitizeForFirestore(s), { merge: true })
-             );
-             await Promise.all(syncPromises);
-             console.log("Professor auto-sync complete");
-          };
-          syncAll().catch(console.error);
+          // Disabled professor auto-sync to protect Firestore as the absolute, unalterable source of truth
+          console.log("Professor logged in. Auto-sync disabled. Baseline students loaded from Firestore snapshot.");
         } else {
           // Normal student path
           const matched = students.find(s => s.email?.toLowerCase() === userEmail && s.id !== "adm") || 
@@ -2733,7 +2732,8 @@ Para resolver:
     // Send immediately on mount or login
     sendHeartbeat();
 
-    const interval = setInterval(sendHeartbeat, 15000);
+    // Increased heartbeat interval to 3 minutes (180,000 ms) to reduce Firebase reads/writes during peaks
+    const interval = setInterval(sendHeartbeat, 180000);
     return () => clearInterval(interval);
   }, [activeStudentId]);
 
@@ -5645,7 +5645,7 @@ Para resolver:
             {/* Isolated Highlighted Version (Only Login Gate) */}
             <div className="pt-4 flex justify-center">
               <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
-                Versão v8.3.2026
+                Versão v8.4.2026
               </span>
             </div>
           </div>
@@ -6295,8 +6295,8 @@ Para resolver:
                     <span className="text-[8px] font-mono text-gray-500">
                       {(() => {
                         const compNow = Date.now() + clockOffsetRef.current;
-                        const countOnline = students.filter(s => s.id !== 'adm' && s.id !== 'professor' && s.lastSeen && Math.abs(compNow - s.lastSeen) < 35000).length;
-                        const countOnScreen = students.filter(s => s.id !== 'adm' && s.id !== 'professor' && s.focoStatus === "Ativo" && s.lastSeen && Math.abs(compNow - s.lastSeen) < 35000).length;
+                        const countOnline = students.filter(s => s.id !== 'adm' && s.id !== 'professor' && s.lastSeen && Math.abs(compNow - s.lastSeen) < 210000).length;
+                        const countOnScreen = students.filter(s => s.id !== 'adm' && s.id !== 'professor' && s.focoStatus === "Ativo" && s.lastSeen && Math.abs(compNow - s.lastSeen) < 210000).length;
                         return appLanguage === "en" 
                           ? `Online: ${countOnline} | On Screen: ${countOnScreen}`
                           : `Online: ${countOnline} | Na Tela: ${countOnScreen}`;
@@ -6308,11 +6308,11 @@ Para resolver:
                       .filter(s => s.id !== activeStudentId && s.id !== 'adm' && s.id !== 'professor')
                       .sort((a, b) => {
                         const compNow = Date.now() + clockOffsetRef.current;
-                        const aOnline = a.lastSeen && Math.abs(compNow - a.lastSeen) < 35000;
+                        const aOnline = a.lastSeen && Math.abs(compNow - a.lastSeen) < 210000;
                         const aFocused = aOnline && a.focoStatus === "Ativo";
                         const aWeight = aFocused ? 2 : aOnline ? 1 : 0;
 
-                        const bOnline = b.lastSeen && Math.abs(compNow - b.lastSeen) < 35000;
+                        const bOnline = b.lastSeen && Math.abs(compNow - b.lastSeen) < 210000;
                         const bFocused = bOnline && b.focoStatus === "Ativo";
                         const bWeight = bFocused ? 2 : bOnline ? 1 : 0;
 
@@ -6322,7 +6322,7 @@ Para resolver:
                       .slice(0, 4)
                       .map(s => {
                         const compNow = Date.now() + clockOffsetRef.current;
-                        const isOnline = s.lastSeen && Math.abs(compNow - s.lastSeen) < 35000;
+                        const isOnline = s.lastSeen && Math.abs(compNow - s.lastSeen) < 210000;
                         const isFocused = isOnline && s.focoStatus === "Ativo";
                         
                         let statusColor = "bg-gray-700";

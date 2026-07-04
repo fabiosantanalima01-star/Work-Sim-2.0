@@ -250,7 +250,7 @@ export default function ProfessorCockpit({
       if (globalClassroomFilter === "TODAS") return true;
       if (globalClassroomFilter === "ATIVOS") {
         const compNow = Date.now() + clockOffset;
-        return s.lastSeen && Math.abs(compNow - s.lastSeen) < 35000;
+        return s.lastSeen && Math.abs(compNow - s.lastSeen) < 210000;
       }
       return s.sala === globalClassroomFilter;
     });
@@ -1178,7 +1178,7 @@ export default function ProfessorCockpit({
         const activeDeviators = students.filter(
           s => {
             const compNow = Date.now() + clockOffset;
-            const isOnline = s.lastSeen && Math.abs(compNow - s.lastSeen) < 35000;
+            const isOnline = s.lastSeen && Math.abs(compNow - s.lastSeen) < 210000;
             return isOnline && s.status === "Ativo" && (s.focoStatus === "Fora da Tela" || (s.saidasTela || 0) > 0);
           }
         );
@@ -2686,7 +2686,7 @@ export default function ProfessorCockpit({
                   ).length;
                   const isReadyToHire = student.faseAtual === 0 && phase0CompletedCount === 21;
                   const compNow = Date.now() + clockOffset;
-                  const isOnline = student.lastSeen && Math.abs(compNow - student.lastSeen) < 35000;
+                  const isOnline = student.lastSeen && Math.abs(compNow - student.lastSeen) < 210000;
 
                   return (
                     <div 
@@ -2718,7 +2718,7 @@ export default function ProfessorCockpit({
                             <div className="flex items-center gap-1.5">
                               {(() => {
                                 const compNow = Date.now() + clockOffset;
-                                const isOnline = student.lastSeen && Math.abs(compNow - student.lastSeen) < 35000;
+                                const isOnline = student.lastSeen && Math.abs(compNow - student.lastSeen) < 210000;
                                 const isFocused = isOnline && student.focoStatus === "Ativo";
                                 return (
                                   <div 
@@ -3574,7 +3574,7 @@ export default function ProfessorCockpit({
                     })
                     .map((student) => {
                       const compNow = Date.now() + clockOffset;
-                      const isOnline = student.lastSeen && Math.abs(compNow - student.lastSeen) < 35000;
+                      const isOnline = student.lastSeen && Math.abs(compNow - student.lastSeen) < 210000;
                       
                       const phaseConfig = CAREER_PHASES.find(p => p.id === student.faseAtual);
                       const totalInPhase = phaseConfig?.totalDesafios || 7;
@@ -3596,7 +3596,7 @@ export default function ProfessorCockpit({
                           <div className="flex items-center gap-2">
                             {(() => {
                               const compNow = Date.now() + clockOffset;
-                              const isOnline = student.lastSeen && Math.abs(compNow - student.lastSeen) < 35000;
+                              const isOnline = student.lastSeen && Math.abs(compNow - student.lastSeen) < 210000;
                               const isFocused = isOnline && student.focoStatus === "Ativo";
                               return (
                                 <div 
@@ -4455,7 +4455,7 @@ export default function ProfessorCockpit({
         if (!student) return null;
 
         const compNow = Date.now() + clockOffset;
-        const isOnline = student.lastSeen && Math.abs(compNow - student.lastSeen) < 35000;
+        const isOnline = student.lastSeen && Math.abs(compNow - student.lastSeen) < 210000;
 
         // Calculate TMA: Total Active Seconds divided by number of answered questions
         const solvedCount = Object.keys(student.respostasDesafios || {}).length;

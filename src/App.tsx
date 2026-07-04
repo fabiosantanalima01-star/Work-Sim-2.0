@@ -5676,7 +5676,7 @@ Para resolver:
             {/* Isolated Highlighted Version (Only Login Gate) */}
             <div className="pt-4 flex justify-center">
               <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
-                Versão v8.1.2026
+                Versão v8.2.2026
               </span>
             </div>
           </div>

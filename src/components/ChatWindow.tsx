@@ -98,12 +98,12 @@ export default function ChatWindow({
               student.focoStatus === "Fora da Tela" ? "bg-rose-500 animate-pulse" : "bg-emerald-500"
             }`} />
             <div className="w-6 h-6 rounded-full bg-slate-705 font-sans text-[10px] font-black flex items-center justify-center text-gray-200">
-              {student.nomeCompleto.substring(0, 2).toUpperCase()}
+              {(student?.nomeCompleto || "").substring(0, 2).toUpperCase()}
             </div>
           </div>
           <div className="truncate">
             <span className="text-xs font-sans font-bold text-gray-100 block truncate">
-              {student.nomeCompleto}
+              {student?.nomeCompleto || "Estudante"}
             </span>
             <span className="text-[9px] text-gray-450 block font-mono">
               Sala: {student.sala} | F{student.faseAtual}

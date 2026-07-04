@@ -1294,16 +1294,17 @@ export default function ProfessorCockpit({
                     </div>
                   ) : (
                     focusLogs.slice(0, 15).map((log, idx) => {
-                      const isLoss = log.texto.includes("🚫");
-                      const isRecovery = log.texto.includes("✅");
-                      const isUnlock = log.texto.includes("🛠️");
+                      const txt = log.texto || "";
+                      const isLoss = txt.includes("🚫");
+                      const isRecovery = txt.includes("✅");
+                      const isUnlock = txt.includes("🛠️");
                       return (
                         <div key={log.id || idx} className="flex gap-1.5 items-start hover:bg-white/5 p-1 rounded transition-colors duration-200">
                           <span className="text-gray-650 flex-shrink-0">[{log.timestamp}]</span>
                           <span className="truncate">
                             <strong className="text-gray-300 font-sans font-semibold">{log.studentName}</strong>:{" "}
                             <span className={isLoss ? "text-rose-450 font-bold" : isRecovery ? "text-emerald-400" : isUnlock ? "text-cyan-400 font-bold" : "text-gray-400"}>
-                              {log.texto.substring(log.texto.indexOf(":") + 1).trim() || log.texto}
+                              {txt.substring(txt.indexOf(":") + 1).trim() || txt}
                             </span>
                           </span>
                         </div>

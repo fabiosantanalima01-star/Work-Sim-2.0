@@ -70,7 +70,7 @@ service cloud.firestore {
     function isProfessor() {
       return isSignedIn() && 
              (request.auth.uid == "yE9lOgtlWiX0m1OHBxjximYpb9l2" || 
-              (request.auth.token.email != null && request.auth.token.email == "fabiosantanalima01@gmail.com"));
+              (request.auth.token.email != null && request.auth.token.email.lower() == "fabiosantanalima01@gmail.com"));
     }
 
     // Collection: logs

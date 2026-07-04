@@ -594,7 +594,7 @@ export default function App() {
                      }
                   }
                 }
-                merged[localIdx] = remote;
+                merged[localIdx] = { ...local, ...remote };
               } else {
                 const remoteMsgCount = remote.mensagensChat?.length || 0;
                 const localMsgCount = local.mensagensChat?.length || 0;
@@ -5791,7 +5791,7 @@ Para resolver:
                       <div className="flex items-center gap-3">
                         <ProfileProgressRing progress={currentPhaseProgress} size={42} strokeWidth={2.5}>
                           <div className="w-full h-full bg-slate-850 flex items-center justify-center font-bold text-[11px] text-accent-primary">
-                            {activeStudent.nomeCompleto.substring(0, 2).toUpperCase()}
+                            {(activeStudent?.nomeCompleto || "").substring(0, 2).toUpperCase()}
                           </div>
                         </ProfileProgressRing>
                         
@@ -5800,7 +5800,7 @@ Para resolver:
                             id="sidebar-student-name"
                             className="text-xs font-bold text-gray-200 uppercase tracking-tight block truncate"
                           >
-                            {formatBadgeName(activeStudent.nomeCompleto)}
+                            {formatBadgeName(activeStudent?.nomeCompleto || "Estudante")}
                           </h3>
                           <span className="text-[10px] text-text-secondary font-mono block">
                             MAT: {activeStudent.matricula}
@@ -6629,7 +6629,7 @@ Para resolver:
 
                       {firebaseSyncError && (
                         <div className="text-[8px] text-rose-400 mt-1 leading-relaxed text-left">
-                          Aviso: {firebaseSyncError.substring(0, 40)}...
+                          Aviso: {String(firebaseSyncError).substring(0, 40)}...
                         </div>
                       )}
                     </div>
@@ -9027,7 +9027,7 @@ Para resolver:
                             <div key={fb.id || index} className="p-3 bg-slate-950/45 border border-white/5 rounded-xl text-[11px] font-mono select-none text-left">
                               <div className="flex justify-between items-center mb-1.5 flex-wrap gap-1">
                                 <span className="text-[9px] bg-emerald-500/10 text-emerald-450 px-1.5 py-0.2 rounded font-sans font-bold">
-                                  {fb.category.length > 15 ? `${fb.category.substring(0, 15)}...` : fb.category}
+                                  {(fb.category || "").length > 15 ? `${(fb.category || "").substring(0, 15)}...` : (fb.category || "Geral")}
                                 </span>
                                 <span className="text-[8.5px] text-gray-500">{fb.timestamp}</span>
                               </div>

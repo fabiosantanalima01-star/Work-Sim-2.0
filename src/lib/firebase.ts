@@ -213,6 +213,7 @@ export const SyncManager = {
       try {
         if (action.type === SyncActionType.SET && action.docId) {
           let dataToSend = action.data;
+          let finalMerge = action.merge;
           if (action.collection === "students") {
             const baseline = this.getBaseline(action.collection, action.docId);
             const diff = computeStudentDiff(baseline, action.data);
@@ -221,9 +222,10 @@ export const SyncManager = {
               continue;
             }
             dataToSend = diff;
+            finalMerge = true; // Always force merge true for student diffs
             console.log(`[Queue Diff-Sync] Syncing diff for student ${action.docId}:`, Object.keys(diff));
           }
-          await setDoc(doc(db, action.collection, action.docId), dataToSend, { merge: action.merge });
+          await setDoc(doc(db, action.collection, action.docId), dataToSend, { merge: finalMerge });
           if (action.collection === "students") {
             this.setBaseline(action.collection, action.docId, action.data);
           }
@@ -311,6 +313,7 @@ const isQueueableError = (err: any) => {
 export async function syncSetDoc(collectionName: string, docId: string, data: any, options: { merge?: boolean } = {}) {
   try {
     let dataToSend = data;
+    let finalOptions = options;
     if (collectionName === "students") {
       const baseline = SyncManager.getBaseline(collectionName, docId);
       const diff = computeStudentDiff(baseline, data);
@@ -320,9 +323,11 @@ export async function syncSetDoc(collectionName: string, docId: string, data: an
       }
       dataToSend = diff;
       console.log(`[Diff-Sync] Sending setDoc diff for student ${docId}:`, Object.keys(diff));
+      // Force merge: true for students collection to prevent erasing fields when writing diffs
+      finalOptions = { ...options, merge: true };
     }
 
-    await setDoc(doc(db, collectionName, docId), dataToSend, options);
+    await setDoc(doc(db, collectionName, docId), dataToSend, finalOptions);
 
     if (collectionName === "students") {
       SyncManager.setBaseline(collectionName, docId, data);
@@ -330,7 +335,7 @@ export async function syncSetDoc(collectionName: string, docId: string, data: an
     SyncManager.drainQueue().catch(() => {});
   } catch (err: any) {
     if (isQueueableError(err)) {
-      SyncManager.enqueue(SyncActionType.SET, collectionName, data, docId, options.merge);
+      SyncManager.enqueue(SyncActionType.SET, collectionName, data, docId, options.merge || (collectionName === "students" ? true : false));
     } else {
       throw err;
     }

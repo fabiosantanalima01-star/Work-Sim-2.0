@@ -393,11 +393,11 @@ export default function TournamentTab({ localStudents, appLanguage, onSelectChal
                     </div>
                     <div className="col-span-6 flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-black text-gray-300 shrink-0 uppercase">
-                        {stu.nomeCompleto.substring(0, 2)}
+                        {(stu?.nomeCompleto || "").substring(0, 2)}
                       </div>
                       <div className="truncate">
                         <p className={`text-sm font-black uppercase tracking-tight truncate ${index < 3 ? 'text-white' : 'text-gray-200'}`}>
-                          {stu.nomeCompleto}
+                          {stu?.nomeCompleto || "Estudante"}
                         </p>
                         <div className="flex items-center gap-2">
                           <span className="text-[8px] font-mono text-gray-500 font-bold uppercase">{stu.matricula}</span>

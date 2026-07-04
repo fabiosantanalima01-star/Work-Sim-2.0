@@ -14,7 +14,11 @@ export interface RubricRow {
   desconto: number;
 }
 
-export function exportTRCTToPDF(activeChallenge: any, appLanguage: "pt" | "en") {
+export function exportTRCTToPDF(
+  activeChallenge: any, 
+  appLanguage: "pt" | "en",
+  employerDetails?: { cnpj: string; razaoSocial: string; nomeFantasia: string }
+) {
   if (!activeChallenge || !activeChallenge.gabarito?.valoresCorretos) {
     console.error("Invalid active challenge dataset for PDF export.");
     return;
@@ -98,8 +102,9 @@ export function exportTRCTToPDF(activeChallenge: any, appLanguage: "pt" | "en") 
   doc.line(startX, currentY + 4, startX + width, currentY + 4);
   currentY += 4;
 
-  drawTextBox(startX, currentY, 50, 6, "01 CNPJ/CEI", "14.882.341/0001-02");
-  drawTextBox(startX + 50, currentY, 140, 6, "02 Razão Social/Nome", "CRISRES SOLUÇÃO TRABALHISTA S/A");
+  drawTextBox(startX, currentY, 50, 6, "01 CNPJ/CEI", employerDetails?.cnpj || "14.882.341/0001-02");
+  const displayCompany = employerDetails ? `${employerDetails.razaoSocial}${employerDetails.nomeFantasia ? ` (${employerDetails.nomeFantasia})` : ""}` : "CRISRES SOLUÇÃO TRABALHISTA S/A";
+  drawTextBox(startX + 50, currentY, 140, 6, "02 Razão Social/Nome", displayCompany.toUpperCase());
   currentY += 6;
 
   drawTextBox(startX, currentY, 110, 6, "03 Endereço (Logradouro, nº, andar)", "Rua da Consolidação, 1500");
@@ -409,7 +414,7 @@ export function exportTRCTToPDF(activeChallenge: any, appLanguage: "pt" | "en") 
   
   // Linha 1: 150, 151, 152
   drawTextBox(startX, p2Y, 63, signH, "150 local e data de recebimento", "SÃO PAULO, SP, " + dataFatoStr);
-  drawTextBox(startX + 63, p2Y, 63, signH, "151 carimbo e assinatura do empregador", "\n\n___________________________________\nCRISRES SOLUÇÃO TRABALHISTA S/A");
+  drawTextBox(startX + 63, p2Y, 63, signH, "151 carimbo e assinatura do empregador", `\n\n___________________________________\n${(employerDetails?.razaoSocial || "CRISRES SOLUÇÃO TRABALHISTA S/A").toUpperCase()}`);
   drawTextBox(startX + 126, p2Y, 64, signH, "152 assinatura do trabalhador", "\n\n___________________________________\n" + activeChallenge.empregado.nome.toUpperCase());
   p2Y += signH;
 

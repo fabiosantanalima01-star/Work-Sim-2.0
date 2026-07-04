@@ -115,6 +115,22 @@ const sanitizeForFirestore = (data: any) => {
   return JSON.parse(JSON.stringify(data, (key, value) => (value === undefined ? null : value)));
 };
 
+const checkAndSetQuota = (err: any) => {
+  const msg = err?.message?.toLowerCase() || "";
+  const code = err?.code || "";
+  if (
+    code === 'resource-exhausted' ||
+    code === 'failed-precondition' ||
+    msg.includes('quota') ||
+    msg.includes('exhausted') ||
+    msg.includes('exceeded') ||
+    msg.includes('rate limit') ||
+    msg.includes('too many requests')
+  ) {
+    setQuotaExceeded(true);
+  }
+};
+
 export default function App() {
   // --- Infinite Loop Protection Ref ---
   const syncLoopCounterRef = useRef({ count: 0, lastReset: Date.now() });
@@ -235,6 +251,7 @@ export default function App() {
       }
     }, (err) => {
       console.warn("Could not listen to settings/phases (using local/fallback state):", err);
+      checkAndSetQuota(err);
     });
     return () => unsub();
   }, [hasProfessorAccess]);
@@ -296,6 +313,7 @@ export default function App() {
       }
     }, (err) => {
       console.warn("Could not listen to settings/penalties (using local/fallback state):", err);
+      checkAndSetQuota(err);
     });
     return () => unsub();
   }, [hasProfessorAccess]);
@@ -732,6 +750,7 @@ export default function App() {
       },
       (error) => {
         console.error("Firestore onSnapshot error:", error);
+        checkAndSetQuota(error);
         setFirebaseSyncError(error.message);
         setHasInitialStudentsLoaded(true);
         setIsFirebaseSyncing(false);
@@ -768,6 +787,7 @@ export default function App() {
       },
       (error) => {
         console.error("Firestore custom_challenges error:", error);
+        checkAndSetQuota(error);
       }
     );
 
@@ -807,6 +827,7 @@ export default function App() {
       },
       (error) => {
         console.error("Firestore feedbacks sync error:", error);
+        checkAndSetQuota(error);
       }
     );
 
@@ -1464,7 +1485,8 @@ Para resolver:
   const [trctDecimoInput, setTrctDecimoInput] = useState<string>("");
   const [trctFeriasInput, setTrctFeriasInput] = useState<string>("");
   const [trctMultaInput, setTrctMultaInput] = useState<string>("");
-  const [crisisInputs, setCrisisInputs] = useState<Record<string, string>>({
+
+  const getDefaultCrisisInputs = () => ({
     salario: "",
     mediaHe: "",
     insalubridade: "",
@@ -1481,11 +1503,177 @@ Para resolver:
     baseFgts: "",
     fgts: "",
   });
+
+  const [crisisInputs, setCrisisInputs] = useState<Record<string, string>>(() => {
+    return getDefaultCrisisInputs();
+  });
+
+  // Sync crisisInputs to/from localStorage keyed by activeStudentId and selectedChallengeId
+  useEffect(() => {
+    if (activeStudentId && selectedChallengeId) {
+      const key = `worksim_crisis_inputs_${activeStudentId}_${selectedChallengeId}`;
+      const cached = localStorage.getItem(key);
+      if (cached) {
+        try {
+          setCrisisInputs(JSON.parse(cached));
+        } catch (e) {
+          console.error(e);
+          setCrisisInputs(getDefaultCrisisInputs());
+        }
+      } else {
+        setCrisisInputs(getDefaultCrisisInputs());
+      }
+    } else {
+      setCrisisInputs(getDefaultCrisisInputs());
+    }
+  }, [activeStudentId, selectedChallengeId]);
+
   const handleInputChange = (field: string, val: string) => {
-    setCrisisInputs((prev) => ({
-      ...prev,
-      [field]: val,
-    }));
+    setCrisisInputs((prev) => {
+      const next = {
+        ...prev,
+        [field]: val,
+      };
+      if (activeStudentId && selectedChallengeId) {
+        const key = `worksim_crisis_inputs_${activeStudentId}_${selectedChallengeId}`;
+        localStorage.setItem(key, JSON.stringify(next));
+      }
+      return next;
+    });
+  };
+
+  // Employer Details State - Persisted to localStorage
+  const [employerCNPJ, setEmployerCNPJ] = useState<string>(() => {
+    return localStorage.getItem("worksim_employer_cnpj") || "14.882.341/0001-02";
+  });
+  const [employerRazaoSocial, setEmployerRazaoSocial] = useState<string>(() => {
+    return localStorage.getItem("worksim_employer_razao_social") || "CRISRES SOLUÇÃO TRABALHISTA S/A";
+  });
+  const [employerNomeFantasia, setEmployerNomeFantasia] = useState<string>(() => {
+    return localStorage.getItem("worksim_employer_nome_fantasia") || "CrisRes Soluções de RH";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("worksim_employer_cnpj", employerCNPJ);
+  }, [employerCNPJ]);
+
+  useEffect(() => {
+    localStorage.setItem("worksim_employer_razao_social", employerRazaoSocial);
+  }, [employerRazaoSocial]);
+
+  useEffect(() => {
+    localStorage.setItem("worksim_employer_nome_fantasia", employerNomeFantasia);
+  }, [employerNomeFantasia]);
+
+  const generateRandomEmployer = () => {
+    const rands = (n: number) => Math.round(Math.random() * n);
+    const mods = (dividendo: number, divisor: number) => Math.round(dividendo - (Math.floor(dividendo / divisor) * divisor));
+    
+    const n1 = rands(9);
+    const n2 = rands(9);
+    const n3 = rands(9);
+    const n4 = rands(9);
+    const n5 = rands(9);
+    const n6 = rands(9);
+    const n7 = rands(9);
+    const n8 = rands(9);
+    const n9 = 0; 
+    const n10 = 0;
+    const n11 = 0;
+    const n12 = 1;
+    
+    let d1 = n12*2 + n11*3 + n10*4 + n9*5 + n8*6 + n7*7 + n6*8 + n5*9 + n4*2 + n3*3 + n2*4 + n1*5;
+    d1 = 11 - mods(d1, 11);
+    if (d1 >= 10) d1 = 0;
+    
+    let d2 = d1*2 + n12*3 + n11*4 + n10*5 + n9*6 + n8*7 + n7*8 + n6*9 + n5*2 + n4*3 + n3*4 + n2*5 + n1*6;
+    d2 = 11 - mods(d2, 11);
+    if (d2 >= 10) d2 = 0;
+    
+    const generatedCnpj = `${n1}${n2}.${n3}${n4}${n5}.${n6}${n7}${n8}/0001-${d1}${d2}`;
+
+    const fantasiasList = [
+      "CrisRes Soluções de RH",
+      "Consolidar Inteligência Trabalhista",
+      "Âncora Gestão de Pessoas",
+      "Nexus Departamento Pessoal",
+      "Pro-Labor Consultoria",
+      "Aliança Humana & DP",
+      "Vanguarda RH S/A",
+      "CLT Forte Assessoria",
+      "Prática DP e Serviços",
+      "Horizonte Trabalhista"
+    ];
+
+    const razaoList = [
+      "CRISRES SOLUCAO TRABALHISTA S/A",
+      "CONSOLIDAR GESTAO DE PESSOAS LTDA",
+      "ANCORA ASSESSORIA DE RECURSOS HUMANOS LTDA",
+      "NEXUS DEPARTAMENTO PESSOAL EIRELI",
+      "PRO-LABOR CONSULTORIA EMPRESARIAL S/A",
+      "ALIANCA SERVICOS INTEGRADOS DE RH LTDA",
+      "VANGUARDA ADMINISTRACAO DE PESSOAL S/A",
+      "CLT FORTE SERVICOS TRABALHISTAS LTDA",
+      "PRATICA GESTAO E TREINAMENTOS LTDA",
+      "HORIZONTE SOLUCOES CORPORATIVAS S/A"
+    ];
+
+    const idx = Math.floor(Math.random() * fantasiasList.length);
+    setEmployerCNPJ(generatedCnpj);
+    setEmployerNomeFantasia(fantasiasList[idx]);
+    setEmployerRazaoSocial(razaoList[idx]);
+  };
+
+  // FGTS Historical Evolution State - Persisted to localStorage
+  const [fgtsDurationType, setFgtsDurationType] = useState<"years" | "months">(() => {
+    return (localStorage.getItem("worksim_fgts_duration_type") as "years" | "months") || "years";
+  });
+  const [fgtsDurationQty, setFgtsDurationQty] = useState<number>(() => {
+    const cached = localStorage.getItem("worksim_fgts_duration_qty");
+    return cached ? parseInt(cached) : 3;
+  });
+  const [fgtsSalaryEvolution, setFgtsSalaryEvolution] = useState<Record<number, string>>(() => {
+    try {
+      const cached = localStorage.getItem("worksim_fgts_salary_evolution");
+      return cached ? JSON.parse(cached) : {
+        1: "1800,00",
+        2: "2000,00",
+        3: "2200,00",
+      };
+    } catch {
+      return {
+        1: "1800,00",
+        2: "2000,00",
+        3: "2200,00",
+      };
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("worksim_fgts_duration_type", fgtsDurationType);
+  }, [fgtsDurationType]);
+
+  useEffect(() => {
+    localStorage.setItem("worksim_fgts_duration_qty", fgtsDurationQty.toString());
+  }, [fgtsDurationQty]);
+
+  useEffect(() => {
+    localStorage.setItem("worksim_fgts_salary_evolution", JSON.stringify(fgtsSalaryEvolution));
+  }, [fgtsSalaryEvolution]);
+
+  const handleFgtsDurationQtyChange = (qty: number) => {
+    const validQty = Math.max(1, Math.min(120, qty));
+    setFgtsDurationQty(validQty);
+    setFgtsSalaryEvolution((prev) => {
+      const next = { ...prev };
+      const defaultSal = activeChallenge?.empregado?.salarioBase?.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) || "1412,00";
+      for (let i = 1; i <= validQty; i++) {
+        if (!next[i]) {
+          next[i] = defaultSal;
+        }
+      }
+      return next;
+    });
   };
   const [trctResultMsg, setTrctResultMsg] = useState<{
     type: "success" | "error";
@@ -1986,6 +2174,7 @@ Para resolver:
       });
     }, (error) => {
       console.warn("Broadcast listener encountered a permission issue or error:", error.message);
+      checkAndSetQuota(error);
     });
     return unsubscribe;
   }, [activeStudentId, firebaseUser]);
@@ -2321,28 +2510,28 @@ Para resolver:
     };
 
     // Option 1: Blur when page loses focus or visibility state changes
-    const handleFocusLoss = () => {
-      setIsScreenObscured(true);
-      wipeClipboard();
-    };
-
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
         setIsScreenObscured(true);
-        wipeClipboard();
       } else {
         setIsScreenObscured(false);
       }
     };
-
-    const handleFocus = () => setIsScreenObscured(false);
 
     // Option 4: Detect Print Screen key
     const handleKeyUpScreen = (e: KeyboardEvent) => {
       if (e.key === "PrintScreen") {
         e.preventDefault();
         setIsScreenObscured(true);
-        wipeClipboard();
+        try {
+          const warningMsg = appLanguage === "en"
+            ? "Warning: Screenshots and text copying are strictly prohibited on the test simulator."
+            : "Aviso: Capturas de tela (printscreen) e cópias de texto são estritamente proibidas no simulador de testes.";
+          
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(warningMsg).catch(() => {});
+          }
+        } catch (err) {}
         alert(appLanguage === "pt"
           ? "CAPTURA DE TELA BLOQUEADA: Capturas de tela são proibidas neste simulador para garantir a integridade da prova."
           : "SCREENSHOT BLOCKED: Screenshots are prohibited on this simulator to guarantee exam integrity."
@@ -2350,14 +2539,10 @@ Para resolver:
       }
     };
 
-    window.addEventListener("blur", handleFocusLoss);
-    window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("keyup", handleKeyUpScreen);
 
     return () => {
-      window.removeEventListener("blur", handleFocusLoss);
-      window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("keyup", handleKeyUpScreen);
     };
@@ -5740,7 +5925,7 @@ Para resolver:
             {/* Isolated Highlighted Version (Only Login Gate) */}
             <div className="pt-4 flex justify-center">
                <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
-                Versão v8.5.2026
+                Versão v8.6.2026
               </span>
             </div>
           </div>
@@ -8074,6 +8259,201 @@ Para resolver:
                                   </div>
                                 </div>
 
+                                {/* 🏢 Employer Config & Salary Evolution FGTS Simulator */}
+                                <div className="bg-slate-950/40 p-4 sm:p-5 rounded-xl border border-white/10 space-y-4">
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/5">
+                                    <div>
+                                      <h4 className="text-sm font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                                        <span>🏢</span> Configurações Adicionais do TRCT & FGTS Histórico
+                                      </h4>
+                                      <p className="text-[11px] text-gray-400 font-sans">
+                                        Gere os dados do empregador para o PDF e use o simulador para calcular a base histórica de FGTS com evolução salarial.
+                                      </p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={generateRandomEmployer}
+                                      className="self-start sm:self-center bg-amber-500 hover:bg-amber-400 text-slate-950 font-sans font-bold text-[10px] uppercase px-3 py-1.5 rounded-lg cursor-pointer transition-all flex items-center gap-1 shadow active:scale-95"
+                                    >
+                                      <span>⚡</span> Gerar Empresa & CNPJ
+                                    </button>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 text-xs">
+                                    {/* Column 1: Employer Info */}
+                                    <div className="space-y-3 bg-slate-950/60 p-3 rounded-lg border border-white/5">
+                                      <h5 className="font-bold text-gray-200 uppercase text-[10px] tracking-widest text-left pb-1 border-b border-white/5">
+                                        Dados do Empregador (TRCT PDF)
+                                      </h5>
+                                      <div className="space-y-2.5">
+                                        <div>
+                                          <label className="block text-[10px] text-gray-400 mb-1 font-mono">Nome Fantasia:</label>
+                                          <input
+                                            type="text"
+                                            value={employerNomeFantasia}
+                                            onChange={(e) => setEmployerNomeFantasia(e.target.value)}
+                                            className="w-full bg-slate-900 border border-white/10 rounded px-2.5 py-1.5 text-xs font-sans text-gray-200 focus:outline-none focus:border-amber-500/50"
+                                            placeholder="Ex: CrisRes Soluções de RH"
+                                          />
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                          <div>
+                                            <label className="block text-[10px] text-gray-400 mb-1 font-mono">Razão Social:</label>
+                                            <input
+                                              type="text"
+                                              value={employerRazaoSocial}
+                                              onChange={(e) => setEmployerRazaoSocial(e.target.value)}
+                                              className="w-full bg-slate-900 border border-white/10 rounded px-2.5 py-1.5 text-xs font-sans text-gray-200 focus:outline-none focus:border-amber-500/50"
+                                              placeholder="Ex: CRISRES SOLUCAO TRABALHISTA S/A"
+                                            />
+                                          </div>
+                                          <div>
+                                            <label className="block text-[10px] text-gray-400 mb-1 font-mono">CNPJ (Lógica Validadora):</label>
+                                            <input
+                                              type="text"
+                                              value={employerCNPJ}
+                                              onChange={(e) => setEmployerCNPJ(e.target.value)}
+                                              className="w-full bg-slate-900 border border-white/10 rounded px-2.5 py-1.5 text-xs font-mono text-gray-200 focus:outline-none focus:border-amber-500/50"
+                                              placeholder="00.000.000/0001-00"
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Column 2: FGTS Historical & Salary Evolution */}
+                                    <div className="space-y-3 bg-slate-950/60 p-3 rounded-lg border border-white/5 flex flex-col justify-between">
+                                      <div>
+                                        <h5 className="font-bold text-gray-200 uppercase text-[10px] tracking-widest text-left pb-1 border-b border-white/5">
+                                          Simulador de Evolução Salarial para FGTS
+                                        </h5>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-2.5">
+                                          <div>
+                                            <label className="block text-[10px] text-gray-400 mb-1 font-mono">Unidade de Tempo:</label>
+                                            <select
+                                              value={fgtsDurationType}
+                                              onChange={(e) => setFgtsDurationType(e.target.value as "years" | "months")}
+                                              className="w-full bg-slate-900 border border-white/10 rounded px-2 py-1.5 text-xs font-sans text-gray-200 focus:outline-none"
+                                            >
+                                              <option value="years">Anos de Serviço</option>
+                                              <option value="months">Meses de Serviço</option>
+                                            </select>
+                                          </div>
+                                          <div>
+                                            <label className="block text-[10px] text-gray-400 mb-1 font-mono">
+                                              Quantidade ({fgtsDurationType === "years" ? "Anos" : "Meses"}):
+                                            </label>
+                                            <input
+                                              type="number"
+                                              min={1}
+                                              max={fgtsDurationType === "years" ? 15 : 120}
+                                              value={fgtsDurationQty}
+                                              onChange={(e) => handleFgtsDurationQtyChange(parseInt(e.target.value) || 1)}
+                                              className="w-full bg-slate-900 border border-white/10 rounded px-2.5 py-1 text-xs font-mono text-gray-200 focus:outline-none"
+                                            />
+                                          </div>
+                                        </div>
+
+                                        {/* Salary progression inputs conforming to quantity */}
+                                        <div className="mt-3 space-y-2 max-h-[120px] overflow-y-auto pr-1">
+                                          <p className="text-[10px] text-gray-400 font-mono italic">
+                                            Informe o salário base para cada período:
+                                          </p>
+                                          <div className="grid grid-cols-2 gap-2">
+                                            {Array.from({ length: fgtsDurationQty }).map((_, i) => {
+                                              const index = i + 1;
+                                              const label = fgtsDurationType === "years" ? `Ano ${index}` : `Mês ${index}`;
+                                              return (
+                                                <div key={index} className="flex items-center gap-1">
+                                                  <span className="text-[10px] text-gray-400 w-12 font-mono">{label}:</span>
+                                                  <input
+                                                    type="text"
+                                                    value={fgtsSalaryEvolution[index] || ""}
+                                                    onChange={(e) => {
+                                                      const val = e.target.value;
+                                                      setFgtsSalaryEvolution((prev) => ({
+                                                        ...prev,
+                                                        [index]: val,
+                                                      }));
+                                                    }}
+                                                    className="w-full bg-slate-900 border border-white/10 rounded px-2 py-1 text-[11px] font-mono text-sky-300 focus:outline-none focus:ring-1 focus:ring-sky-500/50"
+                                                    placeholder="R$ 0,00"
+                                                  />
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* Live FGTS calculations and Application */}
+                                      {(() => {
+                                        // helper to parse decimal
+                                        const parseVal = (str: string) => {
+                                          if (!str) return 0;
+                                          const clean = str.replace(/\./g, "").replace(",", ".");
+                                          const num = parseFloat(clean);
+                                          return isNaN(num) ? 0 : num;
+                                        };
+
+                                        let totalBase = 0;
+                                        for (let i = 1; i <= fgtsDurationQty; i++) {
+                                          const sal = parseVal(fgtsSalaryEvolution[i] || "0");
+                                          const multiplier = fgtsDurationType === "years" ? 12 : 1;
+                                          totalBase += sal * multiplier;
+                                        }
+                                        const totalFgtsDeposit = totalBase * 0.08;
+
+                                        return (
+                                          <div className="mt-3.5 pt-2.5 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-sky-950/20 p-2.5 rounded border border-sky-500/10">
+                                            <div className="font-mono text-[10px] text-left space-y-0.5">
+                                              <div>
+                                                <span className="text-gray-400">Base Histórica FGTS:</span>{" "}
+                                                <span className="text-sky-300 font-bold font-mono">R$ {totalBase.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                                              </div>
+                                              <div>
+                                                <span className="text-gray-400">Depósito Estimado (8%):</span>{" "}
+                                                <span className="text-emerald-400 font-bold font-mono">R$ {totalFgtsDeposit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                                              </div>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const baseValStr = totalBase.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+                                                const fgtsValStr = totalFgtsDeposit.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+                                                setCrisisInputs((prev) => {
+                                                  const next = {
+                                                    ...prev,
+                                                    baseFgts: baseValStr,
+                                                    fgts: fgtsValStr
+                                                  };
+                                                  if (activeStudentId && selectedChallengeId) {
+                                                    const key = `worksim_crisis_inputs_${activeStudentId}_${selectedChallengeId}`;
+                                                    localStorage.setItem(key, JSON.stringify(next));
+                                                  }
+                                                  return next;
+                                                });
+                                                setAlerts((prev) => [
+                                                  {
+                                                    id: Date.now(),
+                                                    from: "Calculadora de FGTS",
+                                                    text: "✅ Base e depósito de FGTS transferidos para o TRCT com sucesso!",
+                                                    time: "Agora"
+                                                  },
+                                                  ...prev
+                                                ]);
+                                              }}
+                                              className="bg-sky-600 hover:bg-sky-500 text-white font-sans font-black text-[9px] uppercase px-3 py-1.5 rounded cursor-pointer transition-all flex items-center justify-center gap-1 shadow active:scale-95"
+                                            >
+                                              📥 Aplicar ao TRCT
+                                            </button>
+                                          </div>
+                                        );
+                                      })()}
+                                    </div>
+                                  </div>
+                                </div>
+
                                 {/* Form Layout */}
                                 <form onSubmit={(e) => { e.preventDefault(); handleCheckTRCTWorksheet(); }} className="space-y-6">
                                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -8486,7 +8866,7 @@ Para resolver:
 
                                           <button
                                             type="button"
-                                            onClick={() => exportTRCTToPDF(activeChallenge, appLanguage)}
+                                            onClick={() => exportTRCTToPDF(activeChallenge, appLanguage, { cnpj: employerCNPJ, razaoSocial: employerRazaoSocial, nomeFantasia: employerNomeFantasia })}
                                             className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-sans font-bold text-xs uppercase px-5 py-2.5 rounded-lg cursor-pointer transition-all flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(16,185,129,0.2)] active:scale-95"
                                           >
                                             <FileDown className="w-4 h-4 text-slate-950 animate-pulse" /> {appLanguage === "en" ? "Download Official PDF" : "Exportar DF / TRCT em PDF"}
@@ -8503,7 +8883,7 @@ Para resolver:
                                       onClick={() => {
                                         const gab = activeChallenge?.gabarito?.valoresCorretos;
                                         if (gab) {
-                                          setCrisisInputs({
+                                          const filled = {
                                             salario: gab.salario?.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) || "",
                                             mediaHe: gab.mediaHe?.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) || "",
                                             insalubridade: gab.insalubridade?.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) || "",
@@ -8519,7 +8899,12 @@ Para resolver:
                                             salarioFamilia: gab.salarioFamilia?.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) || "",
                                             baseFgts: gab.baseFgts?.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) || "",
                                             fgts: gab.fgts?.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) || "",
-                                          });
+                                          };
+                                          setCrisisInputs(filled);
+                                          if (activeStudentId && selectedChallengeId) {
+                                            const key = `worksim_crisis_inputs_${activeStudentId}_${selectedChallengeId}`;
+                                            localStorage.setItem(key, JSON.stringify(filled));
+                                          }
                                           setTrctResultMsg(null);
                                         }
                                       }}

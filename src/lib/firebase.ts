@@ -292,8 +292,12 @@ const isQueueableError = (err: any) => {
   const msg = err.message?.toLowerCase() || "";
   const code = err.code || "";
   const isQuota = code === 'resource-exhausted' || 
+                  code === 'failed-precondition' ||
                   msg.includes('quota') || 
                   msg.includes('exhausted') ||
+                  msg.includes('exceeded') ||
+                  msg.includes('rate limit') ||
+                  msg.includes('too many requests') ||
                   msg.includes('free daily write units');
   if (isQuota) {
     setQuotaExceeded(true);
@@ -302,6 +306,7 @@ const isQueueableError = (err: any) => {
          code === 'unavailable' || 
          code === 'deadline-exceeded' ||
          code === 'resource-exhausted' ||
+         code === 'failed-precondition' ||
          code === 'auth/unauthorized-domain' || // Explicitly requested "domain" issues
          isQuota ||
          msg.includes('network') ||

@@ -22,7 +22,7 @@ export interface CBO {
 export interface Student {
   id: string; // Ex: "01", "02"
   nomeCompleto: string;
-  matricula: string; // Ex: "011B2026RH"
+  matricula: string; // Ex: "12345678"
   sala: string; // Ex: "1B"
   ano: number; // 2026
   cargo: string; // Ex: "Estagiário de RH"

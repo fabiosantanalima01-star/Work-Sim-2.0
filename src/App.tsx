@@ -1839,38 +1839,7 @@ Para resolver:
     };
   }, [students]);
 
-  // Test Student 24h Reset (Ana and Daniel)
-  useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
-    const lastReset = localStorage.getItem("worksim_test_reset_2026_06_14");
-    
-    if (lastReset !== today) {
-      setStudents((prev) => {
-        let changed = false;
-        const updated = prev.map((s) => {
-          if (s.matricula === "011B2026RH" || s.matricula === "041B2026RH") {
-            changed = true;
-            return {
-              ...s,
-              xp: 0,
-              precisao: 0.0,
-              faseAtual: -1,
-              respostasDesafios: {},
-              saidasTela: 0,
-              badges: [],
-              tempoAtivoSegundos: 0
-            };
-          }
-          return s;
-        });
-        if (changed) {
-          localStorage.setItem("worksim_test_reset_2026_06_14", today);
-          return updated;
-        }
-        return prev;
-      });
-    }
-  }, []);
+  // Test Student 24h Reset removed as requested
 
   // One-time migration: Fix students that defaulted to Phase 0 instead of -1 (Initial Review)
   useEffect(() => {
@@ -3646,7 +3615,7 @@ Para resolver:
   const handleDeleteAllStudents = async () => {
     if (!hasProfessorAccess) return;
     
-    if (!window.confirm("LIMPEZA GERAL: Você deseja apagar todos os novos cadastros, limpar os logs de atividades e ZERAR o progresso e dados de todos os alunos (incluindo Daniel e Ana Paula) no banco de dados e localmente? Esta ação é irreversível!")) {
+    if (!window.confirm("LIMPEZA GERAL: Você deseja apagar todos os novos cadastros, limpar os logs de atividades e ZERAR o progresso e dados de todos os alunos no banco de dados e localmente? Esta ação é irreversível!")) {
       return;
     }
 
@@ -5452,7 +5421,7 @@ Para resolver:
                       readOnly={loginStep !== "matricula"}
                       value={inputMatricula}
                       onChange={(e) => setInputMatricula(e.target.value)}
-                      placeholder="Ex: 011B2026RH"
+                      placeholder="Ex: 12345678"
                       className="w-full bg-slate-950/60 border border-white/10 rounded-lg py-2.5 px-3 text-sm focus:border-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary/20 text-accent-primary font-mono text-center tracking-wider"
                     />
                   </div>
@@ -5676,7 +5645,7 @@ Para resolver:
             {/* Isolated Highlighted Version (Only Login Gate) */}
             <div className="pt-4 flex justify-center">
               <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
-                Versão v8.2.2026
+                Versão v8.3.2026
               </span>
             </div>
           </div>

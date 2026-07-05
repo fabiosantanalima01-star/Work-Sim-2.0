@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { Student, Challenge, Badge, CareerPhase, SquadLog, PenaltySettings } from "./types";
+import { Student, Challenge, Badge, CareerPhase, SquadLog, PenaltySettings, getStudentLiga } from "./types";
 import {
   CBOS_DATA,
   CAREER_PHASES,
@@ -512,7 +512,26 @@ export default function App() {
     localStorage.setItem("worksim_squad_logs", JSON.stringify(squadLogs));
   }, [squadLogs]);
 
-  const allChallenges = [...CHALLENGES_DATA, ...customChallenges];
+  const allChallenges = useMemo(() => {
+    const raw = [...CHALLENGES_DATA, ...customChallenges];
+    return raw.map((c) => {
+      let newXp = c.xpRecompensa;
+      if (c.faseId === 1) {
+        // Fase 1: Min 50XP, Max 100XP
+        newXp = Math.max(50, Math.min(100, Math.round(c.xpRecompensa * 1.5)));
+      } else if (c.faseId === 2) {
+        // Fase 2: Min 80XP, Max 125XP
+        newXp = Math.max(80, Math.min(125, Math.round(c.xpRecompensa * 1.8)));
+      } else if (c.faseId === 3) {
+        // Fase 3: Min 150XP, Max 300XP
+        newXp = Math.max(150, Math.min(300, Math.round(c.xpRecompensa * 2.5)));
+      }
+      return {
+        ...c,
+        xpRecompensa: newXp,
+      };
+    });
+  }, [customChallenges]);
 
   const [completedChallenges, setCompletedChallenges] = useState<string[]>(
     () => {
@@ -4689,13 +4708,7 @@ Para resolver:
     submittedChallengeId: string,
     wasCorrectSubmit: boolean
   ): { student: Student; sideEffects?: { type: string; payload?: any }[] } => {
-    const currentPhaseId = selectedPhaseId;
-
-    // Phase -1 is a review phase, no promotions or streaks logic applies
-    if (currentPhaseId === -1) {
-      return { student: updatedStudent };
-    }
-
+    const currentPhaseId = updatedStudent.faseAtual;
     const phaseChallengesList = allChallenges.filter((c) => c.fase === currentPhaseId);
     
     // Check if ALL challenges of this current phase have been answered (either correctly or incorrectly)
@@ -4712,7 +4725,48 @@ Para resolver:
     const isJustCompletingPhase = allAnswered && previouslyCompletedCount === phaseChallengesList.length - 1;
 
     let sideEffects: { type: string; payload?: any }[] = [];
+    let finalStudent = { ...updatedStudent };
 
+    // --- Part A: TMR (Tempo Médio de Resolução) Agility Bonus ---
+    // Rule: "se em 10 min resolver 5, ganha 10X, uma média de 5 a cada 10 min, após 5, a 6 questão dentro dos 10 min, vale mais 5XP, não pela questão mas pelo tempo e agilidade, como se fosse bônus de TMR, até fecha o ciclo de 10min."
+    if (wasCorrectSubmit) {
+      const currentCycleCount = updatedStudent.casosResolvidosNoCiclo || 0;
+      const timeStr = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      let tmrXpGained = 0;
+      let tmrText = "";
+
+      if (currentCycleCount === 5) {
+        tmrXpGained = 10;
+        tmrText = `⚡ BÔNUS TMR: Incrível! Você resolveu 5 casos em menos de 10 minutos! Recebeu +10 XP de bônus de agilidade!`;
+      } else if (currentCycleCount > 5) {
+        tmrXpGained = 5;
+        tmrText = `⚡ BÔNUS TMR: Agilidade extraordinária! Você resolveu o ${currentCycleCount}º caso dentro do ciclo de 10 minutos! Recebeu +5 XP extra!`;
+      }
+
+      if (tmrXpGained > 0) {
+        finalStudent.xp = (finalStudent.xp || 0) + tmrXpGained;
+        finalStudent.mensagensChat = [
+          ...(finalStudent.mensagensChat || []),
+          {
+            id: `${Date.now()}-tmr-${currentCycleCount}`,
+            remetente: "Sistema",
+            texto: tmrText,
+            timestamp: timeStr,
+          }
+        ];
+        sideEffects.push({
+          type: 'alert',
+          payload: {
+            id: Date.now() + 100 + currentCycleCount,
+            from: "Bônus TMR",
+            text: `⚡ Agilidade! ${currentCycleCount} casos resolvidos no ciclo. +${tmrXpGained} XP creditados!`,
+            time: "Agora"
+          }
+        });
+      }
+    }
+
+    // --- Part B: Phase Completion, Promotion, and Demotion (Ranking Drop) Logic ---
     if (isJustCompletingPhase) {
       // 1. Check local accuracy for THIS phase
       const correctInPhase = phaseChallengesList.filter((c) => {
@@ -4729,20 +4783,19 @@ Para resolver:
 
       const isAutonomousAwesome = accuracyInPhase >= 95 && doubtsInPhaseCount === 0;
       
-      let finalXp = updatedStudent.xp;
-      let streakValue = updatedStudent.streakFasesAutonomas || 0;
-      let chatMsgs = [...(updatedStudent.mensagensChat || [])];
+      let finalXp = finalStudent.xp;
+      let streakValue = finalStudent.streakFasesAutonomas || 0;
+      let chatMsgs = [...(finalStudent.mensagensChat || [])];
       
       const timeStr = new Date().toLocaleTimeString("pt-BR");
 
-      if (isAutonomousAwesome) {
-        // Calculate the base XP gained from this phase's challenges:
+      // Calculate Autonomous Excellence XP
+      if (isAutonomousAwesome && currentPhaseId !== -1) {
         const phaseBaseXp = phaseChallengesList.reduce((acc, c) => {
           const correct = c.id === submittedChallengeId ? wasCorrectSubmit : updatedStudent.respostasDesafios?.[c.id] === true;
           return acc + (correct ? c.xpRecompensa : 0);
         }, 0);
 
-        // Double the XP! (add extra phaseBaseXp)
         finalXp += phaseBaseXp;
         streakValue += 1;
 
@@ -4760,7 +4813,7 @@ Para resolver:
           chatMsgs.push({
             id: `${Date.now()}-streak3`,
             remetente: "Sistema",
-            texto: `🔥 STREAK IMPERÁVEL! Parabéns! Você completou 3 fases consecutivas em plena autonomia com acertos >95% sem suporte! Você recebeu uma bonificação de +250 XP! A Monitoria orgulha-se de sua proficiência!`,
+            texto: `🔥 STREAK IMPERÁVEL! Parabéns! Você completou 3 fases consecutivas em plena autonomia com acertos >95% sem suporte! Você recebeu uma bonificação de +250 XP!`,
             timestamp: timeStr,
           });
           sideEffects.push({ type: 'sound', payload: 'success' });
@@ -4768,90 +4821,167 @@ Para resolver:
         }
       } else {
         streakValue = 0;
+      }
+
+      // Check passing status using checkIfPassedPhase
+      const hasPassedThisPhase = checkIfPassedPhase(finalStudent, currentPhaseId);
+      const nextPhaseId = currentPhaseId + 1;
+      const phaseExists = CAREER_PHASES.some((p) => p.id === nextPhaseId);
+
+      // We will construct the next state of the student after evaluation
+      finalStudent.xp = finalXp;
+      finalStudent.streakFasesAutonomas = streakValue;
+
+      if (hasPassedThisPhase) {
+        // --- PROMOTION FLOW ---
+        if (phaseExists) {
+          finalStudent.faseAtual = nextPhaseId;
+          finalStudent.cargo = CAREER_PHASES.find((p) => p.id === nextPhaseId)?.cargo || finalStudent.cargo;
+
+          // Transition side effects
+          const nextPhaseChallenges = allChallenges.filter((c) => c.fase === nextPhaseId);
+          sideEffects.push({ 
+            type: 'phaseTransition', 
+            payload: { 
+              from: currentPhaseId, 
+              to: nextPhaseId,
+              nextPhaseChallenges
+            } 
+          });
+
+          sideEffects.push({
+            type: 'alert',
+            payload: {
+              id: Date.now() + 1,
+              from: "Sistema de Carreira",
+              text: `✅ FASE ${currentPhaseId} SUPERADA! Precisão de ${accuracyInPhase.toFixed(1)}%. Promovido para ${finalStudent.cargo}!`,
+              time: "Agora"
+            }
+          });
+
+          chatMsgs.push({
+            id: `${Date.now()}-passed-progression`,
+            remetente: "Sistema",
+            texto: `🎉 REQUISITO ATINGIDO! Você concluiu a Fase ${currentPhaseId} com ${accuracyInPhase.toFixed(1)}% de aproveitamento técnico e foi promovido para ${finalStudent.cargo}. Parabéns!`,
+            timestamp: timeStr,
+          });
+        } else {
+          // No next phase exists (reached end of career)
+          chatMsgs.push({
+            id: `${Date.now()}-max-progression`,
+            remetente: "Sistema",
+            texto: `🏆 CARREIRA MÁXIMA ALCANÇADA! Você concluiu todas as fases da sua trilha de RH com louvor!`,
+            timestamp: timeStr,
+          });
+        }
+      } else {
+        // --- RETRY & DEMOTION (RANKING DROP) FLOW ---
+        let targetPhaseId = currentPhaseId;
+        let isDemoted = false;
+        let isResetToZero = false;
+        let textMsg = "";
+
+        // Apply strict rules based on current phase
+        if (currentPhaseId === -1) {
+          // Fase -1: Min 50%. Less than 50% must redo Phase -1
+          // Stay in Phase -1, clear answers
+          targetPhaseId = -1;
+          textMsg = `⚠️ SIMULADO DE REVISÃO (FASE -1): Sua precisão de ${accuracyInPhase.toFixed(1)}% foi abaixo do mínimo de 50%. Suas respostas para a Fase -1 foram resetadas para que você possa refazer o treinamento.`;
+        } 
+        else if (currentPhaseId === 0) {
+          // Fase 0: Min 75%.
+          // - <50%: return to Phase -1 (volta para anterior), preserve 50% XP
+          // - <35%: volta para a zero (stay in Phase 0, clear progress)
+          // - Otherwise (>=50% and <75%): redo Phase 0
+          if (accuracyInPhase < 50) {
+            targetPhaseId = -1;
+            isDemoted = true;
+            textMsg = `⚠️ REGRESSÃO DE FASE: Sua precisão de ${accuracyInPhase.toFixed(1)}% na Fase 0 ficou abaixo de 50%. Você retornou para a Fase -1 (Treinamento/Cadete) e preservou 50% do seu XP total.`;
+          } else if (accuracyInPhase < 35) {
+            targetPhaseId = 0;
+            isResetToZero = true;
+            textMsg = `⚠️ VOLTOU PARA A ZERO: Sua precisão de ${accuracyInPhase.toFixed(1)}% na Fase 0 foi muito baixa (<35%). Seu progresso nesta fase foi reiniciado. Estude mais os conceitos básicos!`;
+          } else {
+            targetPhaseId = 0;
+            textMsg = `⚠️ REDO FASE 0: Sua precisão de ${accuracyInPhase.toFixed(1)}% ficou abaixo do mínimo de 75%. Suas respostas para a Fase 0 foram resetadas para refeito.`;
+          }
+        } 
+        else if (currentPhaseId >= 1 && currentPhaseId <= 3) {
+          // Phases 1, 2, 3:
+          // - <70%: demote to previous phase, preserve 50% XP
+          // - Otherwise (< passing min): stay in same phase and redo
+          if (accuracyInPhase < 70) {
+            targetPhaseId = currentPhaseId - 1;
+            isDemoted = true;
+            textMsg = `⚠️ QUEDA DE RANKING: Sua precisão de ${accuracyInPhase.toFixed(1)}% foi inferior a 70%. Você caiu para a Fase ${targetPhaseId} e preservou 50% do seu XP total. Refaça a etapa para se recuperar!`;
+          } else {
+            const minAcc = CAREER_PHASES.find(p => p.id === currentPhaseId)?.precisaoMinima || 70;
+            textMsg = `⚠️ REQUISITO NÃO ATINGIDO: Sua precisão foi de ${accuracyInPhase.toFixed(1)}% (mínimo exigido: ${minAcc}%). Suas respostas para esta fase foram resetadas para que você refaça os testes.`;
+          }
+        } else {
+          // For higher phases, standard failure
+          const minAcc = CAREER_PHASES.find(p => p.id === currentPhaseId)?.precisaoMinima || 70;
+          textMsg = `⚠️ REQUISITO NÃO ATINGIDO: Sua precisão foi de ${accuracyInPhase.toFixed(1)}% (mínimo: ${minAcc}%). Refaça a fase para prosseguir.`;
+        }
+
+        // Apply XP Preservation / Halving on Demotion
+        if (isDemoted) {
+          finalStudent.xp = Math.floor(finalStudent.xp * 0.5);
+          finalStudent.faseAtual = targetPhaseId;
+          finalStudent.cargo = CAREER_PHASES.find((p) => p.id === targetPhaseId)?.cargo || finalStudent.cargo;
+
+          // Sound and alert effects
+          sideEffects.push({ type: 'sound', payload: 'failure' });
+          sideEffects.push({
+            type: 'alert',
+            payload: {
+              id: Date.now() + 5,
+              from: "Rebaixamento de Cargo",
+              text: `⚠️ REBAIXAMENTO: Você retornou para a Fase ${targetPhaseId} (${finalStudent.cargo}) e manteve 50% do seu XP.`,
+              time: "Agora"
+            }
+          });
+
+          // Reset answers for both current phase and target phase so they can redo them smoothly!
+          const responses = { ...(finalStudent.respostasDesafios || {}) };
+          const clearPhases = [currentPhaseId, targetPhaseId];
+          allChallenges.forEach(c => {
+            if (clearPhases.includes(c.fase)) {
+              delete responses[c.id];
+            }
+          });
+          finalStudent.respostasDesafios = responses;
+        } else {
+          // Just retry same phase - Reset answers for current phase only
+          sideEffects.push({ type: 'sound', payload: 'failure' });
+          sideEffects.push({
+            type: 'alert',
+            payload: {
+              id: Date.now() + 6,
+              from: "Reciclagem de Fase",
+              text: `⚠️ REFAZER: Você precisa refazer a Fase ${currentPhaseId}. Respostas resetadas.`,
+              time: "Agora"
+            }
+          });
+
+          const responses = { ...(finalStudent.respostasDesafios || {}) };
+          allChallenges.forEach(c => {
+            if (c.fase === currentPhaseId) {
+              delete responses[c.id];
+            }
+          });
+          finalStudent.respostasDesafios = responses;
+        }
+
         chatMsgs.push({
-          id: `${Date.now()}-phasecompleted`,
+          id: `${Date.now()}-retry-fase`,
           remetente: "Sistema",
-          texto: `🏁 Fase ${currentPhaseId} Concluída! Você operou com ${accuracyInPhase.toFixed(1)}% de precisão nesta etapa e utilizou suporte presencial para tirar dúvidas. Continue estudando!`,
+          texto: textMsg,
           timestamp: timeStr,
         });
       }
 
-      const nextPhaseId = currentPhaseId + 1;
-      const phaseExists = CAREER_PHASES.some((p) => p.id === nextPhaseId);
-
-      const hasPassedThisPhase = checkIfPassedPhase(updatedStudent, currentPhaseId);
-
-      if (hasPassedThisPhase && phaseExists) {
-        // Automatic Transition Trigger
-        const nextPhaseChallenges = allChallenges.filter((c) => c.fase === nextPhaseId);
-        sideEffects.push({ 
-          type: 'phaseTransition', 
-          payload: { 
-            from: currentPhaseId, 
-            to: nextPhaseId,
-            nextPhaseChallenges
-          } 
-        });
-
-        // Add Success Alert for precision
-        sideEffects.push({
-          type: 'alert',
-          payload: {
-            id: Date.now() + 1,
-            from: "Sistema de Carreira",
-            text: `✅ FASE ${currentPhaseId} SUPERADA! Você atingiu ${accuracyInPhase.toFixed(1)}% de precisão. Promoção para ${CAREER_PHASES.find(p => p.id === nextPhaseId)?.cargo} homologada com sucesso!`,
-            time: "Agora"
-          }
-        });
-
-        if (updatedStudent.isVeterano) {
-          chatMsgs.push({
-            id: `${Date.now()}-passed-progression`,
-            remetente: "Sistema",
-            texto: `🎓 CONCLUÍDO (VETERANO): Você completou todos os testes da Fase ${currentPhaseId}. Prossiga clicando em "Próximo" para avançar de fase!`,
-            timestamp: timeStr,
-          });
-        } else {
-          chatMsgs.push({
-            id: `${Date.now()}-passed-progression`,
-            remetente: "Sistema",
-            texto: `🎉 REQUISITO ATINGIDO! Você concluiu a Fase ${currentPhaseId} com ${accuracyInPhase.toFixed(1)}% de aproveitamento técnico e foi aprovado para a próxima etapa. Avance requisitando a Próxima Questão!`,
-            timestamp: timeStr,
-          });
-        }
-      } else if (!hasPassedThisPhase && phaseExists) {
-        // Add Failure Alert for precision
-        sideEffects.push({
-          type: 'alert',
-          payload: {
-            id: Date.now() + 2,
-            from: "Sistema de Carreira",
-            text: `❌ REQUISITO NÃO ATINGIDO: Precisão de ${accuracyInPhase.toFixed(1)}% é insuficiente. O mínimo para a Fase ${currentPhaseId} é ${CAREER_PHASES.find(p => p.id === currentPhaseId)?.precisaoMinima}%.`,
-            time: "Agora"
-          }
-        });
-
-        if (!updatedStudent.isVeterano) {
-          chatMsgs.push({
-            id: `${Date.now()}-failed-progression`,
-            remetente: "Sistema",
-            texto: `⚠️ REQUISITO NÃO ATINGIDO: Para avançar para a Fase ${nextPhaseId}, você precisa de no mínimo 70% de aproveitamento técnico nesta etapa. Sua precisão foi de ${accuracyInPhase.toFixed(1)}%. Revise os conceitos com a Monitoria.`,
-            timestamp: timeStr,
-          });
-        }
-      }
-
-      const finalStudent = {
-        ...updatedStudent,
-        xp: finalXp,
-        streakFasesAutonomas: streakValue,
-        mensagensChat: chatMsgs,
-      };
-
-      if (hasPassedThisPhase && phaseExists) {
-        finalStudent.faseAtual = nextPhaseId;
-        finalStudent.cargo = CAREER_PHASES.find((p) => p.id === nextPhaseId)?.cargo || finalStudent.cargo;
-      }
+      finalStudent.mensagensChat = chatMsgs;
 
       return {
         student: finalStudent,
@@ -4859,7 +4989,7 @@ Para resolver:
       };
     }
 
-    return { student: updatedStudent };
+    return { student: finalStudent, sideEffects };
   };
 
   const applySideEffects = (sideEffects: { type: string; payload?: any }[]) => {
@@ -5926,7 +6056,7 @@ Para resolver:
             {/* Isolated Highlighted Version (Only Login Gate) */}
             <div className="pt-4 flex justify-center">
                <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
-                Versão v8.6.2026
+                Versão v9.0.2026-RC1
               </span>
             </div>
           </div>
@@ -6059,6 +6189,15 @@ Para resolver:
                             {CAREER_PHASES.find((p) => p.id === activeStudent.faseAtual)
                               ?.cargo || "Estagiário"}
                           </span>
+                          {(() => {
+                            const liga = getStudentLiga(activeStudent.faseAtual);
+                            return (
+                              <span className={`inline-flex items-center gap-1 text-[8.5px] font-bold px-1.5 py-0.5 rounded-full border mt-1 ${liga.colorClass}`}>
+                                <span>{liga.emoji}</span>
+                                <span>{liga.name}</span>
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
 
@@ -6150,7 +6289,11 @@ Para resolver:
                             {formatBadgeName(activeStudent?.nomeCompleto || "")}
                           </div>
                           <div className="text-[8px] text-accent-primary font-mono font-bold">{activeStudent?.matricula || ""}</div>
-                          <div className="text-[7px] text-gray-400 uppercase leading-tight font-medium italic">{activeStudent?.cargo || "Estagiário"}</div>
+                          <div className="text-[7px] text-gray-400 uppercase leading-tight font-medium italic mt-0.5 flex items-center gap-1">
+                            <span>{activeStudent?.cargo || "Estagiário"}</span>
+                            <span className="text-gray-500">•</span>
+                            <span className="font-bold text-accent-primary">{getStudentLiga(activeStudent?.faseAtual ?? -1).name}</span>
+                          </div>
                         </div>
                       </div>
 
@@ -6679,12 +6822,8 @@ Para resolver:
                       title={appLanguage === "en" ? "Click to expand standard leaderboard" : "Clique para ver o placar completo!"}
                     >
                       {rankedLeaderboardStudents.slice(0, 3).map((item, index) => {
-                        let fireClass = "";
-                        let suffixEmoji = "";
-                        if (item.student.xp > 0) {
-                          if (item.rank === 1) { fireClass = "realistic-fire-text"; suffixEmoji = "🔥"; }
-                          else if (item.rank === 2) { fireClass = "fire-level-2"; suffixEmoji = "🔥"; }
-                        }
+                        const liga = getStudentLiga(item.student.faseAtual);
+                        const leagueColorClass = liga.colorClass.split(" ")[0];
 
                         // Get short name representation
                         const nameParts = item.student.nomeCompleto.split(" ");
@@ -6696,8 +6835,8 @@ Para resolver:
                             <span className="text-[10px] font-bold font-mono text-gray-500">
                               {item.rank === 1 ? "🥇" : item.rank === 2 ? "🥈" : "🥉"}
                             </span>
-                            <span className={`text-[10px] truncate max-w-[65px] h-[15px] block ${fireClass} ${isS ? "underline decoration-cyan-400" : ""}`} title={item.student.nomeCompleto}>
-                              {item.rank === 1 && item.student.xp > 0 ? "🔥" : ""}{displayName}{suffixEmoji}
+                            <span className={`text-[10px] truncate max-w-[72px] h-[15px] block font-semibold ${leagueColorClass} ${isS ? "underline decoration-cyan-400" : ""}`} title={`${item.student.nomeCompleto} - ${liga.name}`}>
+                              {displayName} {liga.emoji}
                             </span>
                             <span className="text-[7.5px] font-mono text-gray-400">({item.student.xp})</span>
                             {index < 2 && <span className="text-white/5 font-mono select-none">|</span>}
@@ -6711,13 +6850,8 @@ Para resolver:
                       {rankedLeaderboardStudents.slice(0, 5).map((item) => {
                         const s = item.student;
                         const isS = s.id === activeStudentId;
-                        let fireClass = "";
-                        let rankEmoji = "";
-                        
-                        if (s.xp > 0) {
-                          if (item.rank === 1) { fireClass = "realistic-fire-text"; rankEmoji = "🔥"; }
-                          else if (item.rank === 2) { fireClass = "fire-level-2"; rankEmoji = "🔥"; }
-                        }
+                        const liga = getStudentLiga(s.faseAtual);
+                        const leagueColorClass = liga.colorClass.split(" ")[0];
 
                         return (
                           <div
@@ -6733,19 +6867,9 @@ Para resolver:
                                 {item.rank === 1 ? "🥇" : item.rank === 2 ? "🥈" : item.rank === 3 ? "🥉" : `${item.rank}º`}
                               </span>
                               <div className="truncate flex flex-col font-sans">
-                                {item.rank === 1 && s.xp > 0 ? (
-                                  <span className={`${fireClass} text-[11px] font-black truncate`}>
-                                    {rankEmoji} {s.nomeCompleto} {rankEmoji}
-                                  </span>
-                                ) : item.rank === 2 && s.xp > 0 ? (
-                                  <span className={`${fireClass} text-[11px] font-bold truncate`}>
-                                    {rankEmoji} {s.nomeCompleto}
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-100 text-[10.5px] truncate">
-                                    {s.nomeCompleto}
-                                  </span>
-                                )}
+                                <span className={`${leagueColorClass} text-[11px] font-bold truncate flex items-center gap-1.5`}>
+                                  {s.nomeCompleto} <span className={`text-[8px] px-1 rounded border font-mono font-bold shrink-0 ${liga.colorClass}`}>{liga.abbr}</span>
+                                </span>
                                 <span className="text-[8px] text-text-secondary font-mono tracking-tighter">
                                   {s.sala} • {s.matricula}
                                 </span>

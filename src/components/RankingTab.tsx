@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Student } from "../types";
+import { Student, getStudentLiga } from "../types";
 import {
   Trophy,
   Users,
@@ -36,6 +36,7 @@ export default function RankingTab({
     isAllowedAllRankings ? "GLOBAL" : "CLASS"
   );
   const [classFilter, setClassFilter] = useState("ALL");
+  const [ligaFilter, setLigaFilter] = useState("ALL");
   const [newTeamIdInput, setNewTeamIdInput] = useState("");
   const [selectedStudentToAdd, setSelectedStudentToAdd] = useState("");
   const [joinError, setJoinError] = useState("");
@@ -130,7 +131,21 @@ export default function RankingTab({
       s.matricula.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesClass = effectiveClassFilter === "ALL" || s.sala === effectiveClassFilter;
-    return matchesSearch && matchesClass;
+    
+    const matchesLiga = (() => {
+      if (ligaFilter === "ALL") return true;
+      if (ligaFilter === "-1") return s.faseAtual === -1;
+      if (ligaFilter === "0") return s.faseAtual === 0;
+      if (ligaFilter === "1_2") return s.faseAtual === 1 || s.faseAtual === 2;
+      if (ligaFilter === "3") return s.faseAtual === 3;
+      if (ligaFilter === "4") return s.faseAtual === 4;
+      if (ligaFilter === "5") return s.faseAtual === 5;
+      if (ligaFilter === "6") return s.faseAtual === 6;
+      if (ligaFilter === "7") return s.faseAtual >= 7;
+      return true;
+    })();
+
+    return matchesSearch && matchesClass && matchesLiga;
   });
 
   // --- TEAM/SQUAD MANAGEMENT LOGIC ---
@@ -359,22 +374,17 @@ export default function RankingTab({
 
       {/* --- PODIUM OF TOP 3 --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        
-        {/* 2nd PLACE CARD */}
         {podiumStudents[1] && (
           <div className="glass-panel rounded-2xl p-5 border border-slate-300/10 bg-slate-950/20 relative flex flex-col items-center justify-center text-center order-2 md:order-1 pt-8 self-end min-h-[170px] shadow-sm">
             <div className="absolute -top-4 w-9 h-9 rounded-full bg-slate-400 border border-white text-slate-950 font-black flex items-center justify-center font-mono">
               2º
             </div>
             <div className="text-xs text-slate-400 uppercase font-mono mb-1">Segundo Lugar</div>
-            <h4 className="text-sm font-bold text-white tracking-wide truncate max-w-full flex items-center gap-1 justify-center">
-              {podiumStudents[1].student.xp > 0 ? (
-                <span className="fire-level-2">
-                  🔥🔥 {podiumStudents[1].student.nomeCompleto}
-                </span>
-              ) : (
-                <span>{podiumStudents[1].student.nomeCompleto}</span>
-              )}
+            <h4 className="text-sm font-bold text-white tracking-wide truncate max-w-full flex items-center gap-1.5 justify-center flex-wrap">
+              <span className={getStudentLiga(podiumStudents[1].student.faseAtual).colorClass.split(' ')[0]}>
+                {podiumStudents[1].student.nomeCompleto}
+              </span>
+              <span className={`text-[8.5px] px-1.5 py-0.2 rounded-full border font-mono font-bold shrink-0 ${getStudentLiga(podiumStudents[1].student.faseAtual).colorClass}`}>{getStudentLiga(podiumStudents[1].student.faseAtual).abbr}</span>
             </h4>
             <div className="flex items-center gap-1 mt-2.5 bg-slate-400/10 px-2.5 py-0.5 rounded-full text-slate-400 border border-slate-400/20 font-mono text-xs">
               <Star className="w-3.5 h-3.5 fill-current" />
@@ -412,18 +422,12 @@ export default function RankingTab({
               Primeiro Lugar
             </div>
             <h4 className="text-base font-black text-white tracking-wide truncate max-w-full flex flex-col items-center justify-center gap-1 w-full">
-              {podiumStudents[0].student.xp > 0 ? (
-                <div className="relative w-full flex flex-col items-center justify-center py-2">
-                  <span className="absolute w-24 h-6 bg-gradient-to-t from-red-600/40 via-orange-500/30 to-transparent rounded-full blur-md animate-pulse bottom-1"></span>
-                  <span className="relative realistic-fire-text text-lg font-extrabold flex items-center justify-center gap-1">
-                    <span className="animate-bounce inline-block text-2xl" style={{ animationDuration: '0.7s' }}>🔥</span>
-                    <span className="bg-clip-text text-transparent bg-gradient-to-b from-yellow-100 via-yellow-200 to-amber-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{podiumStudents[0].student.nomeCompleto}</span>
-                    <span className="animate-bounce inline-block text-2xl" style={{ animationDuration: '1.1s' }}>🔥</span>
-                  </span>
-                </div>
-              ) : (
-                <span className="text-gray-150 font-bold">{podiumStudents[0].student.nomeCompleto}</span>
-              )}
+              <div className="flex flex-col items-center gap-1">
+                <span className={`text-lg font-extrabold drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] ${getStudentLiga(podiumStudents[0].student.faseAtual).colorClass.split(' ')[0]}`}>
+                  {podiumStudents[0].student.nomeCompleto}
+                </span>
+                <span className={`text-[9px] px-1.5 py-0.2 rounded-full border font-mono font-bold shrink-0 mt-1 ${getStudentLiga(podiumStudents[0].student.faseAtual).colorClass}`}>{getStudentLiga(podiumStudents[0].student.faseAtual).abbr}</span>
+              </div>
             </h4>
             <div className="flex items-center gap-1 mt-2.5 bg-amber-400/10 px-3.5 py-1 rounded-full text-yellow-300 border border-amber-400/20 font-mono text-sm font-bold">
               <Star className="w-4 h-4 fill-current" />
@@ -433,7 +437,7 @@ export default function RankingTab({
               Matrícula: {podiumStudents[0].student.matricula}
             </p>
             {podiumStudents[0].student.timeId && (
-              <span className="text-[10px] bg-slate-800/40 text-slate-300 border border-white/5 px-2.5 py-0.5 rounded-full font-mono mt-2.5 block">
+              <span className="text-[10px] bg-slate-800/40 text-slate-350 border border-white/5 px-2.5 py-0.5 rounded-full font-mono mt-2.5 block">
                 💻 Máquina: {podiumStudents[0].student.timeId}
               </span>
             )}
@@ -447,8 +451,11 @@ export default function RankingTab({
               3º
             </div>
             <div className="text-xs text-[#CD7F32] uppercase font-mono mb-1">Terceiro Lugar</div>
-            <h4 className="text-sm font-bold text-white tracking-wide truncate max-w-full flex items-center gap-1 justify-center">
-              <span>{podiumStudents[2].student.nomeCompleto}</span>
+            <h4 className="text-sm font-bold text-white tracking-wide truncate max-w-full flex items-center gap-1.5 justify-center flex-wrap">
+              <span className={getStudentLiga(podiumStudents[2].student.faseAtual).colorClass.split(' ')[0]}>
+                {podiumStudents[2].student.nomeCompleto}
+              </span>
+              <span className={`text-[8.5px] px-1.5 py-0.2 rounded-full border font-mono font-bold shrink-0 ${getStudentLiga(podiumStudents[2].student.faseAtual).colorClass}`}>{getStudentLiga(podiumStudents[2].student.faseAtual).abbr}</span>
             </h4>
             <div className="flex items-center gap-1 mt-2.5 bg-[#CD7F32]/10 px-2.5 py-0.5 rounded-full text-[#CD7F32] border border-[#CD7F32]/20 font-mono text-xs">
               <Star className="w-3.5 h-3.5 fill-current" />
@@ -718,6 +725,26 @@ export default function RankingTab({
               </div>
             )}
 
+            {/* Stratum/Class (Estrato ou Classe) filter */}
+            <div className="flex flex-col gap-1 w-full md:w-auto">
+              <span className="text-[9px] font-mono text-gray-500 uppercase ml-1">Filtrar por Classe (Estrato):</span>
+              <select
+                value={ligaFilter}
+                onChange={(e) => setLigaFilter(e.target.value)}
+                className="bg-bg-card border border-white/10 rounded-xl px-3 py-2 text-xs text-text-primary focus:border-cyan-400 focus:outline-none min-w-[150px]"
+              >
+                <option value="ALL">Todas as Classes</option>
+                <option value="-1">🔰 Cadete (Fase -1)</option>
+                <option value="0">💼 Admissão (Fase 0)</option>
+                <option value="1_2">🥉 Bronze (Fases 1 e 2)</option>
+                <option value="3">🥈 Prata (Fase 3)</option>
+                <option value="4">🥇 Ouro (Fase 4)</option>
+                <option value="5">💎 Platina (Fase 5)</option>
+                <option value="6">🟢 Esmeralda (Fase 6)</option>
+                <option value="7">👑 Diamante (Fase 7+)</option>
+              </select>
+            </div>
+
             {/* Keyword Search */}
             <div className="flex flex-col gap-1 w-full md:w-auto">
               <span className="text-[9px] font-mono text-gray-500 uppercase ml-1">Filtrar Nome/Matrícula:</span>
@@ -796,26 +823,17 @@ export default function RankingTab({
                             {s.nomeCompleto.slice(0, 2).toUpperCase()}
                           </div>
                           <div className="truncate">
-                            {item.rank === 1 && s.xp > 0 ? (
-                              <span className="realistic-fire-text block truncate">
-                                🔥🔥 {s.nomeCompleto} 🔥🔥{" "}
-                                {isS && <span className="text-[10px] text-rose-450 uppercase font-black tracking-widest">[Você]</span>}
-                              </span>
-                            ) : item.rank === 2 && s.xp > 0 ? (
-                              <span className="fire-level-2 block truncate">
-                                🔥 {s.nomeCompleto}{" "}
-                                {isS && <span className="text-[10px] text-orange-450 uppercase font-black tracking-widest">[Você]</span>}
-                              </span>
-                            ) : (
-                              <span className="text-gray-100 block group-hover:text-cyan-400 transition-colors truncate">
-                                {s.nomeCompleto}{" "}
-                                {isS && (
-                                  <span className="text-[10px] text-cyan-400 uppercase tracking-widest font-bold">
-                                    [Você]
-                                  </span>
-                                )}
-                              </span>
-                            )}
+                            <span className="flex items-center gap-1.5 truncate">
+                              <span className={`font-semibold transition-colors ${getStudentLiga(s.faseAtual).colorClass.split(' ')[0]}`}>
+                                {s.nomeCompleto}
+                              </span>{" "}
+                              <span className={`text-[9.5px] px-1.5 py-0.2 rounded-full border font-mono font-bold shrink-0 ${getStudentLiga(s.faseAtual).colorClass}`}>{getStudentLiga(s.faseAtual).abbr}</span>
+                              {isS && (
+                                <span className="text-[10px] text-cyan-400 uppercase tracking-widest font-bold">
+                                  [Você]
+                                </span>
+                              )}
+                            </span>
                             <span className="text-[10px] text-text-secondary font-mono block">
                               MATRICULA: {s.matricula}
                             </span>
@@ -909,19 +927,12 @@ export default function RankingTab({
                     {/* Middle Info */}
                     <div className="flex-grow min-w-0">
                       <div className="truncate">
-                        {item.rank === 1 && s.xp > 0 ? (
-                          <span className="realistic-fire-text block truncate font-black">
-                            👑 {s.nomeCompleto} 🔥
+                        <span className="flex items-center gap-1.5 truncate">
+                          <span className={`font-semibold ${getStudentLiga(s.faseAtual).colorClass.split(' ')[0]}`}>
+                            {item.rank === 1 ? `👑 ${s.nomeCompleto}` : s.nomeCompleto}
                           </span>
-                        ) : item.rank === 2 && s.xp > 0 ? (
-                          <span className="fire-level-2 block truncate font-bold text-white">
-                            🔥 {s.nomeCompleto}
-                          </span>
-                        ) : (
-                          <span className="text-gray-150 block truncate">
-                            {s.nomeCompleto}
-                          </span>
-                        )}
+                          <span className={`text-[8px] px-1 rounded border font-mono font-bold shrink-0 ${getStudentLiga(s.faseAtual).colorClass}`}>{getStudentLiga(s.faseAtual).abbr}</span>
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400 font-mono">
                         <span>MAT: {s.matricula}</span>

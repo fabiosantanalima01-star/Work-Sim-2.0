@@ -61,11 +61,11 @@ export const CBOS_DATA: CBO[] = [
 
 // Configuration of the career track stages
 export const CAREER_PHASES: CareerPhase[] = [
-  { id: -1, cargo: "Simulado de Revisão", moduloTecnico: "Revisão Geral", focoPrincipal: "Preparação intensiva para a prova final", totalDesafios: 55, precisaoMinima: 0 },
-  { id: 0, cargo: "Pré-Cadastro", moduloTecnico: "Admissão (ADM)", focoPrincipal: "Vínculo, FGTS e Noções de Direito", totalDesafios: 21, precisaoMinima: 100 },
-  { id: 1, cargo: "Estagiário de RH (Primeiranista)", moduloTecnico: "Triagem e Conformidade", focoPrincipal: "Triagem, documentos básicos e regras de contratação", totalDesafios: 26, precisaoMinima: 85 },
-  { id: 2, cargo: "Estagiário de RH (Segundoanista)", moduloTecnico: "FGTS & Rescisões (FGTS/RES)", focoPrincipal: "Contas vinculadas, carimbos de saque e verbas rescisórias (TRCT)", totalDesafios: 13, precisaoMinima: 90 },
-  { id: 3, cargo: "Assistente de DP", moduloTecnico: "Conformidade CLT", focoPrincipal: "Análise de cartão de ponto, atestados e interjornada", totalDesafios: 8, precisaoMinima: 90 },
+  { id: -1, cargo: "Simulado de Revisão", moduloTecnico: "Treinamento / Cadete", focoPrincipal: "Preparação intensiva para a prova final", totalDesafios: 55, precisaoMinima: 50 },
+  { id: 0, cargo: "Pré-Cadastro", moduloTecnico: "Admissão (ADM)", focoPrincipal: "Vínculo, FGTS e Noções de Direito", totalDesafios: 21, precisaoMinima: 75 },
+  { id: 1, cargo: "Estagiário de RH (Primeiranista)", moduloTecnico: "Triagem e Conformidade", focoPrincipal: "Triagem, documentos básicos e regras de contratação", totalDesafios: 26, precisaoMinima: 77 },
+  { id: 2, cargo: "Estagiário de RH (Segundoanista)", moduloTecnico: "FGTS & Rescisões (FGTS/RES)", focoPrincipal: "Contas vinculadas, carimbos de saque e verbas rescisórias (TRCT)", totalDesafios: 13, precisaoMinima: 78 },
+  { id: 3, cargo: "Assistente de DP", moduloTecnico: "Conformidade CLT", focoPrincipal: "Análise de cartão de ponto, atestados e interjornada", totalDesafios: 8, precisaoMinima: 79 },
   { id: 4, cargo: "Analista de RH Pl.", moduloTecnico: "Contratos Especiais (CES)", focoPrincipal: "Contratos intermitentes, estágio e terceirização", totalDesafios: 3, precisaoMinima: 90 },
   { id: 5, cargo: "Coordenador de RH", moduloTecnico: "Rescisões Contratuais (RES)", focoPrincipal: "Fase unificada com a Fase 2 para maior compatibilidade operacional", totalDesafios: 0, precisaoMinima: 95 },
   { id: 6, cargo: "Gerente de RH", moduloTecnico: "Pareceres e Compliance (PAR)", focoPrincipal: "Reenquadramento de CBOs, desvio de função", totalDesafios: 0, precisaoMinima: 95 },

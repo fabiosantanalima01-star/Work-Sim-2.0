@@ -192,6 +192,41 @@ export interface SquadLog {
   timestamp: string; // Creation/update time
 }
 
+export interface StudentLiga {
+  name: string;
+  colorClass: string;
+  emoji: string;
+  abbr: string;
+}
+
+export const getStudentLiga = (fase: number): StudentLiga => {
+  if (fase === -1) {
+    return { name: "Cadete", colorClass: "text-slate-400 border-slate-500/20 bg-slate-500/10", emoji: "🔰", abbr: "🔰 CAD" };
+  }
+  if (fase === 0) {
+    return { name: "Admissão", colorClass: "text-blue-400 border-blue-500/20 bg-blue-500/10", emoji: "💼", abbr: "💼 ADM" };
+  }
+  if (fase === 1) {
+    return { name: "Bronze I", colorClass: "text-amber-600 border-amber-600/30 bg-amber-600/10", emoji: "🥉", abbr: "🥉 BZ1" };
+  }
+  if (fase === 2) {
+    return { name: "Bronze II", colorClass: "text-amber-500 border-amber-500/30 bg-amber-500/10", emoji: "🥉", abbr: "🥉 BZ2" };
+  }
+  if (fase === 3) {
+    return { name: "Prata", colorClass: "text-slate-300 border-slate-400/20 bg-slate-400/10", emoji: "🥈", abbr: "🥈 PRT" };
+  }
+  if (fase === 4) {
+    return { name: "Ouro", colorClass: "text-yellow-400 border-yellow-500/20 bg-yellow-500/10", emoji: "🥇", abbr: "🥇 OU" };
+  }
+  if (fase === 5) {
+    return { name: "Platina", colorClass: "text-cyan-400 border-cyan-500/20 bg-cyan-500/10", emoji: "💎", abbr: "💎 PL" };
+  }
+  if (fase === 6) {
+    return { name: "Esmeralda", colorClass: "text-emerald-400 border-emerald-500/20 bg-emerald-500/10", emoji: "🟢", abbr: "🟢 ESM" };
+  }
+  return { name: "Diamante", colorClass: "text-indigo-400 border-indigo-500/20 bg-indigo-500/10", emoji: "👑", abbr: "👑 DM" };
+};
+
 export interface PenaltySettings {
   focusLossLimit: number; // Max screen departures allowed (default: 7)
   focusXpPenaltyPercent: number; // XP deduction % when blocked by focus (default: 5)

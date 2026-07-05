@@ -130,7 +130,7 @@ export default function TopNavbar({
                     </h1>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <p className="text-[9px] sm:text-[11px] text-accent-primary/80 font-mono font-bold uppercase tracking-wider">Legislação v8.6.2026</p>
+                      <p className="text-[9px] sm:text-[11px] text-accent-primary/80 font-mono font-bold uppercase tracking-wider">Legislação v9.0.2026-RC1</p>
                     </div>
                   </div>
                 </div>

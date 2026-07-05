@@ -367,8 +367,14 @@ export default function RankingTab({
               2º
             </div>
             <div className="text-xs text-slate-400 uppercase font-mono mb-1">Segundo Lugar</div>
-            <h4 className="text-sm font-bold text-white tracking-wide truncate max-w-full fire-level-2 flex items-center gap-1 justify-center">
-              <span>🔥🔥 {podiumStudents[1].student.nomeCompleto}</span>
+            <h4 className="text-sm font-bold text-white tracking-wide truncate max-w-full flex items-center gap-1 justify-center">
+              {podiumStudents[1].student.xp > 0 ? (
+                <span className="fire-level-2">
+                  🔥🔥 {podiumStudents[1].student.nomeCompleto}
+                </span>
+              ) : (
+                <span>{podiumStudents[1].student.nomeCompleto}</span>
+              )}
             </h4>
             <div className="flex items-center gap-1 mt-2.5 bg-slate-400/10 px-2.5 py-0.5 rounded-full text-slate-400 border border-slate-400/20 font-mono text-xs">
               <Star className="w-3.5 h-3.5 fill-current" />
@@ -387,29 +393,47 @@ export default function RankingTab({
 
         {/* 1st PLACE CARD */}
         {podiumStudents[0] && (
-          <div className="glass-panel rounded-2xl p-6 border border-amber-500/35 bg-amber-950/15 relative flex flex-col items-center justify-center text-center order-1 md:order-2 pt-10 min-h-[195px] shadow-[0_0_25px_rgba(245,158,11,0.1)]">
-            <div className="absolute -top-6 w-12 h-12 rounded-full bg-gradient-to-r from-amber-450 to-yellow-450 text-slate-950 font-black flex items-center justify-center font-mono text-lg shadow-[0_0_15px_rgba(245,158,11,0.4)] animate-pulse">
+          <div className={`glass-panel rounded-2xl p-6 border relative flex flex-col items-center justify-center text-center order-1 md:order-2 pt-10 min-h-[195px] transition-all duration-500 ${
+            podiumStudents[0].student.xp > 0 
+              ? "border-amber-500/35 bg-amber-950/15 shadow-[0_0_25px_rgba(245,158,11,0.15)]" 
+              : "border-slate-300/10 bg-slate-950/20 shadow-sm"
+          }`}>
+            <div className={`absolute -top-6 w-12 h-12 rounded-full text-slate-950 font-black flex items-center justify-center font-mono text-lg shadow-[0_0_15px_rgba(245,158,11,0.4)] ${
+              podiumStudents[0].student.xp > 0 
+                ? "bg-gradient-to-r from-amber-450 to-yellow-450 animate-pulse" 
+                : "bg-slate-400"
+            }`}>
               👑
             </div>
             <div className="absolute top-2 right-2">
-              <Trophy className="w-5 h-5 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
+              <Trophy className="w-5 h-5 text-amber-400" />
             </div>
             <div className="text-xs text-amber-450 uppercase font-black font-mono tracking-wider mb-1">
               Primeiro Lugar
             </div>
-            <h4 className="text-base font-black text-white tracking-wide truncate max-w-full fire-level-1 flex flex-col items-center justify-center gap-1">
-              <span className="text-[11px] uppercase tracking-wider text-rose-400 animate-pulse">🔥 FOGARÉU 🔥</span>
-              <span>{podiumStudents[0].student.nomeCompleto}</span>
+            <h4 className="text-base font-black text-white tracking-wide truncate max-w-full flex flex-col items-center justify-center gap-1 w-full">
+              {podiumStudents[0].student.xp > 0 ? (
+                <div className="relative w-full flex flex-col items-center justify-center py-2">
+                  <span className="absolute w-24 h-6 bg-gradient-to-t from-red-600/40 via-orange-500/30 to-transparent rounded-full blur-md animate-pulse bottom-1"></span>
+                  <span className="relative realistic-fire-text text-lg font-extrabold flex items-center justify-center gap-1">
+                    <span className="animate-bounce inline-block text-2xl" style={{ animationDuration: '0.7s' }}>🔥</span>
+                    <span className="bg-clip-text text-transparent bg-gradient-to-b from-yellow-100 via-yellow-200 to-amber-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{podiumStudents[0].student.nomeCompleto}</span>
+                    <span className="animate-bounce inline-block text-2xl" style={{ animationDuration: '1.1s' }}>🔥</span>
+                  </span>
+                </div>
+              ) : (
+                <span className="text-gray-150 font-bold">{podiumStudents[0].student.nomeCompleto}</span>
+              )}
             </h4>
-            <div className="flex items-center gap-1 mt-2.5 bg-amber-400/25 px-3.5 py-1 rounded-full text-yellow-300 border border-amber-400/30 font-mono text-sm shadow-[0_0_10px_rgba(245,158,11,0.15)] font-bold">
+            <div className="flex items-center gap-1 mt-2.5 bg-amber-400/10 px-3.5 py-1 rounded-full text-yellow-300 border border-amber-400/20 font-mono text-sm font-bold">
               <Star className="w-4 h-4 fill-current" />
               {podiumStudents[0].student.xp} XP
             </div>
-            <p className="text-[10px] text-yellow-400/60 font-mono mt-2">
+            <p className="text-[10px] text-gray-500 font-mono mt-2">
               Matrícula: {podiumStudents[0].student.matricula}
             </p>
             {podiumStudents[0].student.timeId && (
-              <span className="text-[10px] bg-amber-400/10 text-yellow-250 border border-amber-450/20 px-2.5 py-0.5 rounded-full font-mono font-bold mt-2.5 block">
+              <span className="text-[10px] bg-slate-800/40 text-slate-300 border border-white/5 px-2.5 py-0.5 rounded-full font-mono mt-2.5 block">
                 💻 Máquina: {podiumStudents[0].student.timeId}
               </span>
             )}
@@ -418,13 +442,13 @@ export default function RankingTab({
 
         {/* 3rd PLACE CARD */}
         {podiumStudents[2] && (
-          <div className="glass-panel rounded-2xl p-5 border border-[#CD7F32]/20 bg-slate-950/20 relative flex flex-col items-center justify-center text-center order-3 md:order-3 pt-8 self-end min-h-[170px] shadow-sm">
-            <div className="absolute -top-4 w-9 h-9 rounded-full bg-[#CD7F32] border border-white text-slate-950 font-black flex items-center justify-center font-mono">
+          <div className="glass-panel rounded-2xl p-5 border border-slate-300/10 bg-slate-950/20 relative flex flex-col items-center justify-center text-center order-3 md:order-3 pt-8 self-end min-h-[170px] shadow-sm">
+            <div className="absolute -top-4 w-9 h-9 rounded-full bg-slate-500 border border-white text-slate-950 font-black flex items-center justify-center font-mono">
               3º
             </div>
             <div className="text-xs text-[#CD7F32] uppercase font-mono mb-1">Terceiro Lugar</div>
-            <h4 className="text-sm font-bold text-white tracking-wide truncate max-w-full fire-level-3 flex items-center gap-1 justify-center">
-              <span>🔥 {podiumStudents[2].student.nomeCompleto}</span>
+            <h4 className="text-sm font-bold text-white tracking-wide truncate max-w-full flex items-center gap-1 justify-center">
+              <span>{podiumStudents[2].student.nomeCompleto}</span>
             </h4>
             <div className="flex items-center gap-1 mt-2.5 bg-[#CD7F32]/10 px-2.5 py-0.5 rounded-full text-[#CD7F32] border border-[#CD7F32]/20 font-mono text-xs">
               <Star className="w-3.5 h-3.5 fill-current" />
@@ -434,7 +458,7 @@ export default function RankingTab({
               Matrícula: {podiumStudents[2].student.matricula}
             </p>
             {podiumStudents[2].student.timeId && (
-              <span className="text-[9px] bg-[#CD7F32]/5 text-[#CD7F32]/80 border border-[#CD7F32]/10 px-2 py-0.2 rounded-full font-sans mt-2.5 block">
+              <span className="text-[9px] bg-slate-400/5 text-slate-350 border border-slate-400/10 px-2 py-0.2 rounded-full font-sans mt-2.5 block">
                 💻 Máquina: {podiumStudents[2].student.timeId}
               </span>
             )}
@@ -772,20 +796,15 @@ export default function RankingTab({
                             {s.nomeCompleto.slice(0, 2).toUpperCase()}
                           </div>
                           <div className="truncate">
-                            {item.rank === 1 ? (
-                              <span className="fire-level-1 block truncate">
-                                🔥🔥🔥 {s.nomeCompleto} 🔥🔥🔥{" "}
+                            {item.rank === 1 && s.xp > 0 ? (
+                              <span className="realistic-fire-text block truncate">
+                                🔥🔥 {s.nomeCompleto} 🔥🔥{" "}
                                 {isS && <span className="text-[10px] text-rose-450 uppercase font-black tracking-widest">[Você]</span>}
                               </span>
-                            ) : item.rank === 2 ? (
+                            ) : item.rank === 2 && s.xp > 0 ? (
                               <span className="fire-level-2 block truncate">
-                                🔥🔥 {s.nomeCompleto}{" "}
-                                {isS && <span className="text-[10px] text-orange-450 uppercase font-black tracking-widest">[Você]</span>}
-                              </span>
-                            ) : item.rank === 3 ? (
-                              <span className="fire-level-3 block truncate">
                                 🔥 {s.nomeCompleto}{" "}
-                                {isS && <span className="text-[10px] text-amber-450 uppercase font-black tracking-widest">[Você]</span>}
+                                {isS && <span className="text-[10px] text-orange-450 uppercase font-black tracking-widest">[Você]</span>}
                               </span>
                             ) : (
                               <span className="text-gray-100 block group-hover:text-cyan-400 transition-colors truncate">
@@ -890,17 +909,13 @@ export default function RankingTab({
                     {/* Middle Info */}
                     <div className="flex-grow min-w-0">
                       <div className="truncate">
-                        {item.rank === 1 ? (
-                          <span className="fire-level-1 block truncate font-black text-white">
-                            👑 {s.nomeCompleto}
+                        {item.rank === 1 && s.xp > 0 ? (
+                          <span className="realistic-fire-text block truncate font-black">
+                            👑 {s.nomeCompleto} 🔥
                           </span>
-                        ) : item.rank === 2 ? (
+                        ) : item.rank === 2 && s.xp > 0 ? (
                           <span className="fire-level-2 block truncate font-bold text-white">
                             🔥 {s.nomeCompleto}
-                          </span>
-                        ) : item.rank === 3 ? (
-                          <span className="fire-level-3 block truncate font-bold text-white">
-                            ⭐ {s.nomeCompleto}
                           </span>
                         ) : (
                           <span className="text-gray-150 block truncate">

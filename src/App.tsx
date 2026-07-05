@@ -6681,9 +6681,10 @@ Para resolver:
                       {rankedLeaderboardStudents.slice(0, 3).map((item, index) => {
                         let fireClass = "";
                         let suffixEmoji = "";
-                        if (item.rank === 1) { fireClass = "fire-level-1"; suffixEmoji = "👑🔥"; }
-                        else if (item.rank === 2) { fireClass = "fire-level-2"; suffixEmoji = "🔥"; }
-                        else if (item.rank === 3) { fireClass = "fire-level-3"; suffixEmoji = "🔥"; }
+                        if (item.student.xp > 0) {
+                          if (item.rank === 1) { fireClass = "realistic-fire-text"; suffixEmoji = "🔥"; }
+                          else if (item.rank === 2) { fireClass = "fire-level-2"; suffixEmoji = "🔥"; }
+                        }
 
                         // Get short name representation
                         const nameParts = item.student.nomeCompleto.split(" ");
@@ -6696,7 +6697,7 @@ Para resolver:
                               {item.rank === 1 ? "🥇" : item.rank === 2 ? "🥈" : "🥉"}
                             </span>
                             <span className={`text-[10px] truncate max-w-[65px] h-[15px] block ${fireClass} ${isS ? "underline decoration-cyan-400" : ""}`} title={item.student.nomeCompleto}>
-                              {displayName}
+                              {item.rank === 1 && item.student.xp > 0 ? "🔥" : ""}{displayName}{suffixEmoji}
                             </span>
                             <span className="text-[7.5px] font-mono text-gray-400">({item.student.xp})</span>
                             {index < 2 && <span className="text-white/5 font-mono select-none">|</span>}
@@ -6713,9 +6714,10 @@ Para resolver:
                         let fireClass = "";
                         let rankEmoji = "";
                         
-                        if (item.rank === 1) { fireClass = "fire-level-1"; rankEmoji = "👑"; }
-                        else if (item.rank === 2) { fireClass = "fire-level-2"; rankEmoji = "🔥"; }
-                        else if (item.rank === 3) { fireClass = "fire-level-3"; rankEmoji = "🔥"; }
+                        if (s.xp > 0) {
+                          if (item.rank === 1) { fireClass = "realistic-fire-text"; rankEmoji = "🔥"; }
+                          else if (item.rank === 2) { fireClass = "fire-level-2"; rankEmoji = "🔥"; }
+                        }
 
                         return (
                           <div
@@ -6731,17 +6733,13 @@ Para resolver:
                                 {item.rank === 1 ? "🥇" : item.rank === 2 ? "🥈" : item.rank === 3 ? "🥉" : `${item.rank}º`}
                               </span>
                               <div className="truncate flex flex-col font-sans">
-                                {item.rank === 1 ? (
+                                {item.rank === 1 && s.xp > 0 ? (
                                   <span className={`${fireClass} text-[11px] font-black truncate`}>
                                     {rankEmoji} {s.nomeCompleto} {rankEmoji}
                                   </span>
-                                ) : item.rank === 2 ? (
+                                ) : item.rank === 2 && s.xp > 0 ? (
                                   <span className={`${fireClass} text-[11px] font-bold truncate`}>
                                     {rankEmoji} {s.nomeCompleto}
-                                  </span>
-                                ) : item.rank === 3 ? (
-                                  <span className={`${fireClass} text-[10.5px] font-medium truncate`}>
-                                    {s.nomeCompleto} {rankEmoji}
                                   </span>
                                 ) : (
                                   <span className="text-gray-100 text-[10.5px] truncate">

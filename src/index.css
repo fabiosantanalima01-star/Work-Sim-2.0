@@ -574,12 +574,11 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
 
 /* Botões fantasmas ou de ícone (ex: close, toggles, back) */
 .theme-light button[class*="bg-transparent"],
-.theme-light button[class*="hover:bg-white/10"],
-.theme-light button[class*="hover:bg-white/5"],
+.theme-light button[class*="hover:bg-white"],
 .theme-light button[class*="text-gray-400"],
 .theme-light button[class*="text-slate-400"],
 .theme-light button.p-1,
-.theme-light button.p-1.5,
+.theme-light button.p-1\.5,
 .theme-light button.p-2 {
   background-color: transparent !important;
   border-color: transparent !important;
@@ -588,12 +587,11 @@ div, aside, main, section, p, h1, h2, h3, h4, h5, h6, table, th, td, button, sel
 }
 
 .theme-light button[class*="bg-transparent"]:hover,
-.theme-light button[class*="hover:bg-white/10"]:hover,
-.theme-light button[class*="hover:bg-white/5"]:hover,
+.theme-light button[class*="hover:bg-white"]:hover,
 .theme-light button[class*="text-gray-400"]:hover,
 .theme-light button[class*="text-slate-400"]:hover,
 .theme-light button.p-1:hover,
-.theme-light button.p-1.5:hover,
+.theme-light button.p-1\.5:hover,
 .theme-light button.p-2:hover {
   background-color: #F3F4F6 !important;
   color: #111827 !important;

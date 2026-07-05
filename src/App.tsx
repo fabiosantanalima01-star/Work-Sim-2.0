@@ -326,6 +326,7 @@ export default function App() {
         await setDoc(doc(db, "settings", "penalties"), updated);
       } catch (err) {
         console.error("Error saving penalty settings to Firestore:", err);
+        handleFirestoreError(err, OperationType.WRITE, "settings/penalties");
       }
     }
   };

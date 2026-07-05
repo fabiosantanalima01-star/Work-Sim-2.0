@@ -201,6 +201,98 @@ export function exportTRCTToPDF(
   doc.line(startX, currentY + 4, startX + width, currentY + 4);
   currentY += 4;
 
+  // Helper to parse dates and calculate tenure/avos dynamically
+  const parseDate = (dateStr: string): Date | null => {
+    if (!dateStr || dateStr === "—") return null;
+    const parts = dateStr.split("/");
+    if (parts.length !== 3) return null;
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // 0-indexed
+    const year = parseInt(parts[2], 10);
+    return new Date(year, month, day);
+  };
+
+  const admissionDate = parseDate(activeChallenge.empregado.dataAdmissao);
+  const dismissalDate = parseDate(activeChallenge.empregado.dataFato);
+
+  let hasLessThanOneYear = false;
+  let mesesTrabalhadosAno = 0;
+  let mesesFeriasProporcionais = 0;
+
+  if (admissionDate && dismissalDate) {
+    const diffTime = Math.abs(dismissalDate.getTime() - admissionDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    hasLessThanOneYear = diffDays < 365;
+
+    // Estimate months
+    const startYear = admissionDate.getFullYear();
+    const startMonth = admissionDate.getMonth();
+    const endYear = dismissalDate.getFullYear();
+    const endMonth = dismissalDate.getMonth();
+
+    const diffMonths = (endYear - startYear) * 12 + (endMonth - startMonth);
+    
+    // In Brazil, worked >= 15 days in a contract year period fraction counts as a full month (avo)
+    const currentContractYearStart = new Date(admissionDate);
+    currentContractYearStart.setFullYear(admissionDate.getFullYear() + Math.floor(diffDays / 365));
+    const diffTimeInCurrentContractYear = Math.abs(dismissalDate.getTime() - currentContractYearStart.getTime());
+    const diffDaysInCurrentContractYear = Math.ceil(diffTimeInCurrentContractYear / (1000 * 60 * 60 * 24));
+    mesesFeriasProporcionais = Math.min(12, Math.max(0, Math.round(diffDaysInCurrentContractYear / 30)));
+
+    // For 13th: months worked in the current calendar year
+    const startOfCurrentYear = new Date(dismissalDate.getFullYear(), 0, 1);
+    const referenceStartDateFor13 = admissionDate > startOfCurrentYear ? admissionDate : startOfCurrentYear;
+    const diffTime13 = Math.abs(dismissalDate.getTime() - referenceStartDateFor13.getTime());
+    const diffDays13 = Math.ceil(diffTime13 / (1000 * 60 * 60 * 24));
+    mesesTrabalhadosAno = Math.min(12, Math.max(1, Math.round(diffDays13 / 30)));
+  } else {
+    // defaults
+    hasLessThanOneYear = false;
+    mesesTrabalhadosAno = 6;
+    mesesFeriasProporcionais = 6;
+  }
+
+  // 13º Salário Proporcional calculation
+  let decimoPropVal = gab.decimoTerceiro || 0;
+  if (decimoPropVal === 0 && activeChallenge.id === "3.6") {
+    decimoPropVal = gab.mediaHe || 0;
+  } else if (decimoPropVal === 0) {
+    decimoPropVal = (activeChallenge.empregado.salarioBase / 12) * mesesTrabalhadosAno;
+  }
+
+  // Vacation calculation
+  let feriasPropVal = 0;
+  let feriasVencVal = 0;
+  
+  if (hasLessThanOneYear) {
+    feriasPropVal = gab.ferias || (activeChallenge.empregado.salarioBase / 12) * mesesFeriasProporcionais;
+    feriasVencVal = 0;
+  } else {
+    if (gab.ferias !== undefined) {
+      if (gab.ferias > activeChallenge.empregado.salarioBase) {
+        feriasVencVal = activeChallenge.empregado.salarioBase;
+        feriasPropVal = gab.ferias - activeChallenge.empregado.salarioBase;
+      } else {
+        feriasPropVal = gab.ferias;
+        feriasVencVal = 0;
+      }
+    } else {
+      feriasVencVal = activeChallenge.empregado.salarioBase;
+      feriasPropVal = (activeChallenge.empregado.salarioBase / 12) * mesesFeriasProporcionais;
+    }
+  }
+
+  // Terço Constitucional (1/3)
+  const tercoFeriasVal = (feriasPropVal + feriasVencVal) / 3;
+
+  // Aviso Prévio Indenizado
+  const avisoVal = gab.aviso || 0;
+
+  // Project 1/12 of 13º and vacations on aviso prévio if avisoVal > 0
+  const decimoAvisoVal = avisoVal > 0 ? (activeChallenge.empregado.salarioBase / 12) : 0;
+  const feriasAvisoVal = avisoVal > 0 ? (activeChallenge.empregado.salarioBase / 12) : 0;
+  const tercoFeriasAvisoVal = feriasAvisoVal / 3;
+
   const proventosList = [
     { code: "50", desc: "Saldo de Salário (Mês Afastamento)", val: gab.salario || 0 },
     { code: "51", desc: "Comissões s/ Vendas", val: gab.comissoes || 0 },
@@ -212,18 +304,18 @@ export function exportTRCTToPDF(
     { code: "57", desc: "Gorjetas", val: 0 },
     { code: "58", desc: "Reflexo do DSR sobre Horas Extras e Variáveis", val: gab.dsrHe || 0 },
     { code: "59", desc: "Outros Adicionais", val: 0 },
-    { code: "60", desc: "13º Salário Proporcional", val: (activeChallenge.id === "3.6" ? gab.mediaHe : 0) || 0 },
+    { code: "60", desc: "13º Salário Proporcional", val: decimoPropVal },
     { code: "61", desc: "13º Salário Exercício Anterior", val: 0 },
     { code: "62", desc: "Salário-Família (Cotas da Previdência)", val: gab.salarioFamilia || 0 },
     { code: "63", desc: "Dupla Função", val: 0 },
     { code: "64", desc: "Outras Verbas", val: 0 },
-    { code: "65", desc: "Férias Proporcionais", val: 0 },
-    { code: "66", desc: "Férias Vencidas", val: 0 },
-    { code: "68", desc: "Terço Constitucional de Férias Proporcionais/Vencidas", val: 0 },
-    { code: "69", desc: "Aviso Prévio Indenizado", val: 0 },
-    { code: "70", desc: "Décimo Terceiro Salário s/ Aviso Prévio Indenizado", val: 0 },
-    { code: "71", desc: "Férias s/ Aviso Prévio Indenizado", val: 0 },
-    { code: "72", desc: "Terço Constitucional de Férias s/ Aviso Prévio Indenizado", val: 0 }
+    { code: "65", desc: "Férias Proporcionais", val: feriasPropVal },
+    ...(hasLessThanOneYear ? [] : [{ code: "66", desc: "Férias Vencidas", val: feriasVencVal }]),
+    { code: "68", desc: "Terço Constitucional de Férias Proporcionais/Vencidas", val: tercoFeriasVal },
+    { code: "69", desc: "Aviso Prévio Indenizado", val: avisoVal },
+    { code: "70", desc: "Décimo Terceiro Salário s/ Aviso Prévio Indenizado", val: decimoAvisoVal },
+    { code: "71", desc: "Férias s/ Aviso Prévio Indenizado", val: feriasAvisoVal },
+    { code: "72", desc: "Terço Constitucional de Férias s/ Aviso Prévio Indenizado", val: tercoFeriasAvisoVal }
   ];
 
   const proventoRowHeight = 6.2;

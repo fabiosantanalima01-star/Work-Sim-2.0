@@ -104,7 +104,7 @@ export default function SandboxMode() {
     : (salario / 12) * avosAvisoProjection;
 
   // Férias
-  const trctFeriasVencidas = temFeriasVencidas ? salario : 0;
+  const trctFeriasVencidas = (anosTrabalhados > 0 && temFeriasVencidas) ? salario : 0;
   const trctFeriasProporcionais = isJustaCausa ? 0 : (salario / 12) * mesesFeriasProporcionais;
   const trctFeriasAviso = (isJustaCausa || avisoPrevio === "ausente" || avisoPrevio === "descontado") 
     ? 0 
@@ -585,16 +585,19 @@ export default function SandboxMode() {
               <div className="flex justify-between items-center bg-slate-950/20 p-3 rounded-xl border border-white/5">
                 <div className="text-xs">
                   <span className="text-gray-200 block font-bold font-sans">Possui Férias Vencidas Integrais?</span>
-                  <span className="text-[10px] text-text-secondary font-mono">Caso tenha completado período aquisitivo.</span>
+                  <span className="text-[10px] text-text-secondary font-mono">
+                    {anosTrabalhados === 0 ? "Indisponível (menos de 1 ano de contrato)" : "Caso tenha completado período aquisitivo."}
+                  </span>
                 </div>
                 <button
                   type="button"
+                  disabled={anosTrabalhados === 0}
                   onClick={() => setTemFeriasVencidas(!temFeriasVencidas)}
-                  className={`px-3 py-1 text-xs font-mono font-bold rounded-lg transition-all cursor-pointer ${
-                    temFeriasVencidas ? "bg-accent-primary/20 border border-accent-primary text-accent-primary" : "bg-slate-900 text-gray-500 border border-white/5"
+                  className={`px-3 py-1 text-xs font-mono font-bold rounded-lg transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                    (anosTrabalhados > 0 && temFeriasVencidas) ? "bg-accent-primary/20 border border-accent-primary text-accent-primary" : "bg-slate-900 text-gray-500 border border-white/5"
                   }`}
                 >
-                  {temFeriasVencidas ? "SIM (12/12)" : "NÃO (0/12)"}
+                  {(anosTrabalhados > 0 && temFeriasVencidas) ? "SIM (12/12)" : "NÃO (0/12)"}
                 </button>
               </div>
 

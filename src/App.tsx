@@ -1399,6 +1399,13 @@ Para resolver:
     });
   };
 
+  useEffect(() => {
+    if (selectedPhaseId >= 3 && isFocusedMode) {
+      setIsFocusedMode(false);
+      localStorage.setItem("worksim_focused_mode", "false");
+    }
+  }, [selectedPhaseId, isFocusedMode]);
+
   // Sidebar Collapsed state (persisted)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
     try {
@@ -5709,6 +5716,35 @@ Para resolver:
             </div>
 
             <div className="text-center relative select-none">
+              {/* Modern Minimalist Logomarca 'WorkSim RH' */}
+              <div className="flex flex-col items-center mb-5 mt-2">
+                <div className="relative flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-slate-900 via-slate-950 to-slate-800 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.08)] group overflow-hidden">
+                  {/* Subtle decorative background circles */}
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(16,185,129,0.15),transparent_70%)] animate-pulse" />
+                  
+                  {/* Modern geometric lines representing HR structure, connections, and system intelligence */}
+                  <svg className="w-8 h-8 text-emerald-400 relative z-10 transition-transform duration-500 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    {/* Upper node representing leadership / growth */}
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 2a3 3 0 100 6 3 3 0 000-6z" />
+                    {/* Connected structure representing team / human resources */}
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 18V10a2 2 0 012-2h12a2 2 0 012 2v8" />
+                    {/* Integrated system lines representing simulation / flow */}
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 14h6M8 18h8" />
+                    <circle cx="6" cy="10" r="1" className="fill-emerald-400" />
+                    <circle cx="18" cy="10" r="1" className="fill-emerald-400" />
+                  </svg>
+                  
+                  {/* Inner glow accent line */}
+                  <div className="absolute inset-x-0 bottom-0 h-[3px] bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+                </div>
+                <div className="mt-2 text-center">
+                  <span className="text-[10px] font-sans font-black tracking-[0.3em] text-white uppercase opacity-90">
+                    WORKSIM <span className="text-emerald-400">RH</span>
+                  </span>
+                  <p className="text-[8px] text-gray-500 font-mono uppercase tracking-[0.2em] mt-0.5">HUMAN RESOURCES SIMULATOR</p>
+                </div>
+              </div>
+
               <h1 className="text-3xl font-sans font-black text-white mt-4 uppercase tracking-tighter leading-tight">
                 Simulador Acadêmico de<br/>
                 <span className="text-accent-primary">Legislação de RH</span>
@@ -6086,6 +6122,7 @@ Para resolver:
             onToggleSidebar={handleToggleSidebarCollapse}
             isMobileMenuOpen={isMobileMenuOpen}
             onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            selectedPhaseId={selectedPhaseId}
           />
 
           <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
@@ -7150,77 +7187,79 @@ Para resolver:
             )}
 
             {/* HEADER METRIC BANNER */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-950/20 p-3.5 sm:p-4 rounded-2xl border border-white/5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 bg-accent-primary/10 px-3 py-1 text-[10px] font-mono rounded-bl text-accent-primary uppercase font-bold tracking-widest hidden sm:block">
-                {activeStudent?.timeId 
-                  ? `ESTAÇÃO ATIVA ${activeStudent?.timeId} — SQUAD LOGÍSTICA`
-                  : "ESTAÇÃO INDIVIDUAL — LOGÍSTICA"
-                }
-              </div>
-              <div>
-                <span className="text-[10px] font-mono text-text-secondary uppercase select-none block">
-                  {appLanguage === "en" ? "🎯 DP Career Target Track" : "🎯 Trilha de Trampo do DP"}
-                </span>
-                <h2 className="text-lg font-sans font-bold text-white tracking-tight animate-fade-in">
-                  {currentTab === "challenges" &&
-                    (appLanguage === "en" 
-                      ? `🔥 Active Case: ${translateModuleName(selectedPhaseId, CAREER_PHASES.find((p) => p.id === selectedPhaseId)?.moduloTecnico || "", "en")}`
-                      : `Módulo Ativo: ${CAREER_PHASES.find((p) => p.id === selectedPhaseId)?.moduloTecnico}`)}
-                  {currentTab === "linguajar" && 
-                    (appLanguage === "en" ? "💬 CLT Bilingual Terms & Official Glossary" : "Tradutor e Dicionário CLT Oficial")}
-                  {currentTab === "metrics" && 
-                    (appLanguage === "en" ? "📊 Average XP & e-Social Analytics Progress" : "Métricas Governamentais e-Social")}
-                  {currentTab === "desempenho" && 
-                    (appLanguage === "en" ? "⏱️ Screen Time Monitor & Productivity History" : "Evolução de Produtividade & Desempenho Pessoal")}
-                  {currentTab === "badges" && 
-                    (appLanguage === "en" ? "🎖️ Professional Compliance Badges & Milestones" : "Insígnias de Honra e Marcos de Conformidade")}
-                  {currentTab === "ranking" && 
-                    (appLanguage === "en" ? "🏆 Real-Time Team Placar & Stations" : "Placar de Líderes & Estações de Simulador")}
-                  {currentTab === "sandbox" &&
-                    (appLanguage === "en" ? "🧪 Laboratory of HR Regulations & Rules Sandbox" : "Laboratório Técnico Paramétrico de RH")}
-                  {currentTab === "professor" &&
-                    (appLanguage === "en" ? "Professor's Control Board (Onboarding / Management)" : "Área do Mestre (Gestor Onboarding Automatizado)")}
-                </h2>
-              </div>
-
-              {/* Linear phase slider quick-actions */}
-              {currentTab === "challenges" && (
-                <div className="flex flex-wrap gap-1.5 font-mono text-xs items-center">
-                  {CAREER_PHASES.map((ph) => {
-                    const isPhUnlocked = unlockedPhasesList.includes(ph.id);
-                    return (
-                      <button
-                        id={`fast-phase-nav-${ph.id}`}
-                        key={ph.id}
-                        onClick={() => {
-                          if (!isPhUnlocked && !hasProfessorAccess) {
-                            alert(appLanguage === "en" ? "This phase is currently locked or has not been released by the administrator." : "Esta fase está bloqueada no momento ou ainda não foi liberada pelo administrador.");
-                            return;
-                          }
-                          setSelectedPhaseId(ph.id);
-                          setCurrentTab("challenges");
-                        }}
-                        className={`py-1 px-2.5 rounded text-[10px] uppercase font-bold transition-all select-none flex items-center gap-1 cursor-pointer ${
-                          selectedPhaseId === ph.id
-                            ? "bg-accent-primary text-bg-primary shadow-[0_0_8px_rgba(0,229,255,0.3)]"
-                            : isPhUnlocked
-                              ? "bg-slate-900 text-gray-300 hover:bg-slate-800 hover:text-white"
-                              : "bg-black/40 text-gray-500 hover:text-rose-400 hover:border-rose-500/30 border border-white/5"
-                        }`}
-                        title={
-                          isPhUnlocked
-                            ? `Acessar Fase ${ph.id}: ${ph.cargo}`
-                            : `Fase ${ph.id} Bloqueada: Clique para ver os requisitos de conclusão da Fase ${ph.id - 1} (${CAREER_PHASES.find(p => p.id === ph.id - 1)?.precisaoMinima}% de precisão).`
-                        }
-                      >
-                        {!isPhUnlocked && <span className="text-[9px]">🔒</span>}F
-                        {ph.id}
-                      </button>
-                    );
-                  })}
+            {!isFocusedMode && (
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-950/20 p-3.5 sm:p-4 rounded-2xl border border-white/5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-accent-primary/10 px-3 py-1 text-[10px] font-mono rounded-bl text-accent-primary uppercase font-bold tracking-widest hidden sm:block">
+                  {activeStudent?.timeId 
+                    ? `ESTAÇÃO ATIVA ${activeStudent?.timeId} — SQUAD LOGÍSTICA`
+                    : "ESTAÇÃO INDIVIDUAL — LOGÍSTICA"
+                  }
                 </div>
-              )}
-            </div>
+                <div>
+                  <span className="text-[10px] font-mono text-text-secondary uppercase select-none block">
+                    {appLanguage === "en" ? "🎯 DP Career Target Track" : "🎯 Trilha de Trampo do DP"}
+                  </span>
+                  <h2 className="text-lg font-sans font-bold text-white tracking-tight animate-fade-in">
+                    {currentTab === "challenges" &&
+                      (appLanguage === "en" 
+                        ? `🔥 Active Case: ${translateModuleName(selectedPhaseId, CAREER_PHASES.find((p) => p.id === selectedPhaseId)?.moduloTecnico || "", "en")}`
+                        : `Módulo Ativo: ${CAREER_PHASES.find((p) => p.id === selectedPhaseId)?.moduloTecnico}`)}
+                    {currentTab === "linguajar" && 
+                      (appLanguage === "en" ? "💬 CLT Bilingual Terms & Official Glossary" : "Tradutor e Dicionário CLT Oficial")}
+                    {currentTab === "metrics" && 
+                      (appLanguage === "en" ? "📊 Average XP & e-Social Analytics Progress" : "Métricas Governamentais e-Social")}
+                    {currentTab === "desempenho" && 
+                      (appLanguage === "en" ? "⏱️ Screen Time Monitor & Productivity History" : "Evolução de Produtividade & Desempenho Pessoal")}
+                    {currentTab === "badges" && 
+                      (appLanguage === "en" ? "🎖️ Professional Compliance Badges & Milestones" : "Insígnias de Honra e Marcos de Conformidade")}
+                    {currentTab === "ranking" && 
+                      (appLanguage === "en" ? "🏆 Real-Time Team Placar & Stations" : "Placar de Líderes & Estações de Simulador")}
+                    {currentTab === "sandbox" &&
+                      (appLanguage === "en" ? "🧪 Laboratory of HR Regulations & Rules Sandbox" : "Laboratório Técnico Paramétrico de RH")}
+                    {currentTab === "professor" &&
+                      (appLanguage === "en" ? "Professor's Control Board (Onboarding / Management)" : "Área do Mestre (Gestor Onboarding Automatizado)")}
+                  </h2>
+                </div>
+
+                {/* Linear phase slider quick-actions */}
+                {currentTab === "challenges" && (
+                  <div className="flex flex-wrap gap-1.5 font-mono text-xs items-center">
+                    {CAREER_PHASES.map((ph) => {
+                      const isPhUnlocked = unlockedPhasesList.includes(ph.id);
+                      return (
+                        <button
+                          id={`fast-phase-nav-${ph.id}`}
+                          key={ph.id}
+                          onClick={() => {
+                            if (!isPhUnlocked && !hasProfessorAccess) {
+                              alert(appLanguage === "en" ? "This phase is currently locked or has not been released by the administrator." : "Esta fase está bloqueada no momento ou ainda não foi liberada pelo administrador.");
+                              return;
+                            }
+                            setSelectedPhaseId(ph.id);
+                            setCurrentTab("challenges");
+                          }}
+                          className={`py-1 px-2.5 rounded text-[10px] uppercase font-bold transition-all select-none flex items-center gap-1 cursor-pointer ${
+                            selectedPhaseId === ph.id
+                              ? "bg-accent-primary text-bg-primary shadow-[0_0_8px_rgba(0,229,255,0.3)]"
+                              : isPhUnlocked
+                                ? "bg-slate-900 text-gray-300 hover:bg-slate-800 hover:text-white"
+                                : "bg-black/40 text-gray-500 hover:text-rose-400 hover:border-rose-500/30 border border-white/5"
+                          }`}
+                          title={
+                            isPhUnlocked
+                              ? `Acessar Fase ${ph.id}: ${ph.cargo}`
+                              : `Fase ${ph.id} Bloqueada: Clique para ver os requisitos de conclusão da Fase ${ph.id - 1} (${CAREER_PHASES.find(p => p.id === ph.id - 1)?.precisaoMinima}% de precisão).`
+                          }
+                        >
+                          {!isPhUnlocked && <span className="text-[9px]">🔒</span>}F
+                          {ph.id}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
 
 

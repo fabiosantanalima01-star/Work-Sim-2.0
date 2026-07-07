@@ -39,6 +39,7 @@ interface TopNavbarProps {
   onToggleSidebar: () => void;
   isMobileMenuOpen?: boolean;
   onToggleMobileMenu?: () => void;
+  selectedPhaseId?: number;
 }
 
 export default function TopNavbar({
@@ -54,9 +55,11 @@ export default function TopNavbar({
   isSidebarCollapsed,
   onToggleSidebar,
   isMobileMenuOpen = false,
-  onToggleMobileMenu
+  onToggleMobileMenu,
+  selectedPhaseId
 }: TopNavbarProps) {
   const [isMethodologyOpen, setIsMethodologyOpen] = React.useState(false);
+  const isFocusDisabled = selectedPhaseId !== undefined && selectedPhaseId >= 3;
   const tabs = [
     { id: "challenges", label: appLanguage === "en" ? "Challenges" : "Desafios", icon: BookOpen, color: "text-accent-primary" },
     { id: "tournament", label: appLanguage === "en" ? "WorkSIM" : "WorkSIM", icon: Globe, color: "text-emerald-400" },
@@ -157,17 +160,40 @@ export default function TopNavbar({
               <div className="flex items-center gap-1 sm:gap-1.5 bg-white/5 border border-white/10 rounded-xl p-1">
                 {/* Focus Toggle */}
                 <button
-                  onClick={onToggleFocus}
-                  className={`p-1.5 sm:px-2.5 sm:py-1 rounded-lg transition-all cursor-pointer group flex items-center gap-1 ${
-                    isFocusedMode 
-                      ? "bg-amber-500 text-slate-950 font-bold border border-amber-500 shadow-sm" 
-                      : (themeMode === "light"
-                          ? "text-gray-700 hover:text-gray-900 hover:bg-gray-200 border border-gray-300"
-                          : "text-gray-400 hover:text-white hover:bg-white/5 border border-transparent")
+                  onClick={() => {
+                    if (isFocusDisabled) {
+                      alert(
+                        appLanguage === "en"
+                          ? "Focus mode is disabled starting from Phase 3, because the calculator must be used."
+                          : "O modo foco (escrever documentos) está desativado a partir da Fase 3, pois a calculadora deve ser utilizada."
+                      );
+                      return;
+                    }
+                    onToggleFocus();
+                  }}
+                  className={`p-1.5 sm:px-2.5 sm:py-1 rounded-lg transition-all flex items-center gap-1 group ${
+                    isFocusDisabled
+                      ? "opacity-40 cursor-not-allowed bg-slate-950/45 text-gray-500 border border-white/5"
+                      : isFocusedMode 
+                        ? "bg-amber-500 text-slate-950 font-bold border border-amber-500 shadow-sm cursor-pointer" 
+                        : (themeMode === "light"
+                            ? "text-gray-700 hover:text-gray-900 hover:bg-gray-200 border border-gray-300 cursor-pointer"
+                            : "text-gray-400 hover:text-white hover:bg-white/5 border border-transparent cursor-pointer")
                   }`}
-                  title={isFocusedMode ? "Sair do Modo Foco" : "Entrar no Modo Foco (Olho)"}
+                  title={
+                    isFocusDisabled
+                      ? (appLanguage === "en" ? "Focus Mode Disabled (F3+)" : "Modo Foco Indisponível (F3+)")
+                      : isFocusedMode 
+                        ? (appLanguage === "en" ? "Exit Focus Mode" : "Sair do Modo Foco") 
+                        : (appLanguage === "en" ? "Enter Focus Mode" : "Entrar no Modo Foco")
+                  }
                 >
-                  {isFocusedMode ? (
+                  {isFocusDisabled ? (
+                    <>
+                      <EyeOff className="w-3.5 h-3.5 text-gray-500" />
+                      <span className="hidden sm:inline text-[9px] font-bold tracking-tight uppercase whitespace-nowrap">Foco (N/A)</span>
+                    </>
+                  ) : isFocusedMode ? (
                     <>
                       <Eye className="w-3.5 h-3.5 text-slate-950 group-hover:scale-110 transition-transform" />
                       <span className="hidden sm:inline text-[9px] font-black tracking-tight text-slate-950 uppercase whitespace-nowrap">Foco Ativo</span>

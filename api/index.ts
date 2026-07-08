@@ -12,9 +12,10 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // --- Neon PostgreSQL Integration ---
 let sql: any = null;
-if (process.env.DATABASE_URL) {
+const dbConnectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+if (dbConnectionString) {
   try {
-    sql = postgres(process.env.DATABASE_URL, {
+    sql = postgres(dbConnectionString, {
       ssl: "require",
       max: 10,
       idle_timeout: 20,
@@ -41,7 +42,7 @@ if (process.env.DATABASE_URL) {
       }
     })();
   } catch (err) {
-    console.error("Failed to initialize postgres client with DATABASE_URL:", err);
+    console.error("Failed to initialize postgres client with connection string:", err);
   }
 }
 

@@ -616,6 +616,47 @@ export default function App() {
     }
   }, [firebaseUser, students, activeStudentId]);
 
+  // Load students from Neon PostgreSQL on app mount if available
+  useEffect(() => {
+    const loadNeonStudents = async () => {
+      try {
+        const resStatus = await fetch("/api/db-status");
+        const status = await resStatus.json();
+        if (status.neonEnabled) {
+          console.log("[Neon] PostgreSQL database is active. Loading students...");
+          const resStudents = await fetch("/api/db-students");
+          const data = await resStudents.json();
+          if (data.success && Array.isArray(data.students)) {
+            if (data.students.length > 0) {
+              console.log(`[Neon] Loaded ${data.students.length} students from Postgres.`);
+              setStudents((current) => {
+                const merged = [...current];
+                data.students.forEach((remote: Student) => {
+                  const idx = merged.findIndex(s => s.id === remote.id || (s.matricula && remote.matricula && s.matricula.toUpperCase().trim() === remote.matricula.toUpperCase().trim()));
+                  if (idx === -1) {
+                    merged.push(remote);
+                  } else {
+                    const local = merged[idx];
+                    // Always prioritize the state with higher XP or latest phase
+                    if ((remote.xp || 0) >= (local.xp || 0)) {
+                      merged[idx] = { ...local, ...remote };
+                    }
+                  }
+                });
+                return merged;
+              });
+            }
+            setHasInitialStudentsLoaded(true);
+          }
+        }
+      } catch (err) {
+        console.warn("[Neon] Failed to load students from Neon PostgreSQL:", err);
+      }
+    };
+
+    loadNeonStudents();
+  }, []);
+
   // Sync / Listen to Students from Firestore
   useEffect(() => {
     setIsFirebaseSyncing(true);
@@ -880,6 +921,39 @@ export default function App() {
     }
   }, [activeStudentId]);
 
+  // --- Neon PostgreSQL Sync Helpers ---
+  const syncToNeon = useCallback(async (studentsList: Student[]) => {
+    try {
+      const res = await fetch("/api/db-status");
+      const status = await res.json();
+      if (status.neonEnabled) {
+        await fetch("/api/db-students/bulk-sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ students: studentsList }),
+        });
+        console.log(`[Neon] Synced ${studentsList.length} students to Neon PostgreSQL successfully.`);
+      }
+    } catch (err) {
+      console.warn("[Neon] Failed to sync to Neon PostgreSQL:", err);
+    }
+  }, []);
+
+  const deleteFromNeon = useCallback(async (id: string) => {
+    try {
+      const res = await fetch("/api/db-status");
+      const status = await res.json();
+      if (status.neonEnabled) {
+        await fetch(`/api/db-students/${id}`, {
+          method: "DELETE",
+        });
+        console.log(`[Neon] Deleted student ${id} from Neon PostgreSQL.`);
+      }
+    } catch (err) {
+      console.warn("[Neon] Failed to delete student from Neon PostgreSQL:", err);
+    }
+  }, []);
+
   const syncQueueRef = useRef<{
     critical: Record<string, Student>;
     telemetry: Record<string, Student>;
@@ -895,6 +969,12 @@ export default function App() {
     const queue = syncQueueRef.current[type];
     const studentIds = Object.keys(queue);
     if (studentIds.length === 0) return;
+
+    // Trigger Neon PostgreSQL Sync
+    const studentsToNeon = studentIds.map(id => queue[id]);
+    if (studentsToNeon.length > 0) {
+      syncToNeon(studentsToNeon);
+    }
 
     studentIds.forEach(id => {
       const s = queue[id];
@@ -912,7 +992,7 @@ export default function App() {
     // Clear queue after processing
     syncQueueRef.current[type] = {};
     syncTimersRef.current[type] = null;
-  }, [firebaseUser, activeStudentId]);
+  }, [firebaseUser, activeStudentId, syncToNeon]);
 
   const queueSync = useCallback((student: Student, type: 'critical' | 'telemetry') => {
     syncQueueRef.current[type][student.id] = student;
@@ -3549,6 +3629,13 @@ Para resolver:
         return remaining;
       });
 
+      // Also delete from Neon PostgreSQL
+      try {
+        deletableIds.forEach(id => deleteFromNeon(id));
+      } catch (neonErr) {
+        console.warn("[Neon] Failed to delete from Neon database:", neonErr);
+      }
+
       if (db && firebaseUser) {
         try {
           const deletePromises = deletableIds.map(id => syncDeleteDoc("students", id));
@@ -3940,6 +4027,23 @@ Para resolver:
 
     // 2. Set memory state
     setStudents(INITIAL_STUDENTS);
+
+    // 2b. Reset/Clear Neon PostgreSQL Database
+    try {
+      const resStatus = await fetch("/api/db-status");
+      const status = await resStatus.json();
+      if (status.neonEnabled) {
+        await fetch("/api/db-students/reset", { method: "POST" });
+        await fetch("/api/db-students/bulk-sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ students: INITIAL_STUDENTS }),
+        });
+        console.log("[Neon] Neon PostgreSQL database truncated and reset to initial base students successfully.");
+      }
+    } catch (neonResetErr) {
+      console.warn("[Neon] Failed to reset Neon database during bulk delete:", neonResetErr);
+    }
 
     // 3. Clear/Reset Firestore Database
     if (firebaseUser) {

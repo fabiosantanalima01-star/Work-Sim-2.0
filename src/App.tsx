@@ -436,6 +436,49 @@ export default function App() {
     }
   }, [isProfessorOrAdmin, students, setStudents, firebaseUser]);
 
+  // --- Automated Admin Cleanup for Veterans and 1B Classrooms ---
+  useEffect(() => {
+    const isFabio = firebaseUser?.email?.toLowerCase() === "fabiosantanalima01@gmail.com";
+    if ((isProfessorOrAdmin || isFabio) && students.length > 0) {
+      const targetStudents = students.filter(s => {
+        const id = s.id;
+        const sala = s.sala || "";
+        const isVeterano = !!s.isVeterano;
+        const matricula = s.matricula || "";
+        
+        const is1B = sala.toUpperCase().trim() === "1B" || 
+                     sala.toUpperCase().trim().includes("1º B") || 
+                     sala.toUpperCase().trim().includes("1ºB");
+                     
+        const matchesVeteran = isVeterano || 
+                               sala.toLowerCase() === "veterano" || 
+                               sala.toLowerCase() === "veteranos";
+        
+        const isSelf = id === "adm" || matricula === "ADM2026" || matricula === "PROF2026";
+        
+        return (is1B || matchesVeteran) && !isSelf;
+      });
+
+      if (targetStudents.length > 0) {
+        const targetIds = targetStudents.map(s => s.id);
+        console.log(`[Admin Cleanup] Automatically deleting ${targetIds.length} veterans/1B students from Firestore...`);
+        
+        targetIds.forEach(id => {
+          syncDeleteDoc("students", id).catch(err => {
+            console.error(`[Admin Cleanup] Failed to delete student ${id}:`, err);
+          });
+        });
+
+        setStudents(prev => {
+          const remaining = prev.filter(s => !targetIds.includes(s.id));
+          localStorage.setItem("worksim_students", JSON.stringify(remaining));
+          localStorage.setItem("worksim_students_safety_backup", JSON.stringify(remaining));
+          return remaining;
+        });
+      }
+    }
+  }, [isProfessorOrAdmin, firebaseUser, students, setStudents]);
+
   const [squadLogs, setSquadLogs] = useState<SquadLog[]>(() => {
     const cached = localStorage.getItem("worksim_squad_logs");
     return cached ? JSON.parse(cached) : [];
@@ -719,11 +762,23 @@ export default function App() {
         });
 
         setStudents((localStudents) => {
-          // Local students act as a highly secure, persistent backup. To prevent catastrophic accidental data loss
-          // due to slow networks, quota issues, or database resets, we NEVER automatically delete local students from
-          // state simply because they are missing from the Firestore snapshot.
-          // Real deletions are only triggered explicitly by the admin via handleDeleteStudents or handleDeleteAllStudents.
-          const merged = [...localStudents];
+          // Sync remote deletions: Filter out students that are deleted on the Firestore server (missing from remoteStudents)
+          // to ensure absolute administrative control and prevent "ghost" students returning from localStorage backups.
+          // We always keep the main admin/professor accounts ("adm", ADM2026, PROF2026) and the currently active student locally to prevent sudden session kicks.
+          const remoteIds = new Set(remoteStudents.map(r => r.id));
+          const remoteMatriculas = new Set(remoteStudents.map(r => r.matricula?.toUpperCase().trim()));
+
+          const filteredLocal = localStudents.filter(local => {
+            const isSelf = local.id === activeStudentId;
+            const isAdmin = local.id === "adm" || local.matricula === "ADM2026" || local.matricula === "PROF2026";
+            if (isSelf || isAdmin) return true;
+
+            const existsInRemote = remoteIds.has(local.id) || 
+                                   (local.matricula && remoteMatriculas.has(local.matricula.toUpperCase().trim()));
+            return existsInRemote;
+          });
+
+          const merged = [...filteredLocal];
 
           remoteStudents.forEach((remote) => {
             // Find by ID OR by matricula to prevent duplicates!
@@ -3609,21 +3664,17 @@ Para resolver:
     }
 
     const deletableIds = studentIds.filter(id => {
-      const isAdminEmail = firebaseUser?.email?.toLowerCase() === "fabiosantanalima01@gmail.com";
-      if (isAdminEmail) return true; 
-      
       const student = students.find(s => s.id === id);
-      const isProtected = INITIAL_STUDENTS.some(s => s.id === id) || 
+      const isProtected = student?.id === "adm" || 
                           student?.matricula === "ADM2026" || 
-                          student?.id === "adm" ||
                           student?.matricula === "PROF2026";
       return !isProtected;
     });
     
     if (deletableIds.length === 0) {
       alert(appLanguage === "pt" 
-        ? "Atenção: Os alunos selecionados são protegidos (Daniel, Ana ou Professor) e não podem ser removidos."
-        : "Attention: Selected students are protected (Daniel, Ana or Professor) and cannot be removed.");
+        ? "Atenção: A conta do Professor Administrador é protegida e não pode ser removida."
+        : "Attention: The Professor Administrator account is protected and cannot be removed.");
       return;
     }
 
@@ -8256,7 +8307,9 @@ Para resolver:
                                                 Inelegível para Salário-Família (Remuneração R$ {activeChallenge.gabarito.valoresCorretos.bruto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} &gt; Teto R$ 1.980,38).
                                               </span>
                                             ) : (
-                                              `Elegível para Quota de Salário-Família (${activeChallenge.empregado.dependentes} dependentes) conforme teto previdenciário vigente (R$ 1.980,38).`
+                                              <span>
+                                                Elegível para Quota de Salário-Família ({activeChallenge.empregado.dependentes} dependentes) conforme teto previdenciário vigente (R$ 1.980,38).
+                                              </span>
                                             )}
                                           </span>
                                         </li>
@@ -8344,7 +8397,9 @@ Para resolver:
                                                     <strong className="text-gray-200 text-sm">
                                                       R$ {mediaAdicionais.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                                                     </strong>
-                                                    {activeChallenge.empregado.outrasSomas?.includes("30%") && " (Periculosidade de 30% inclusa)"}
+                                                    {activeChallenge.empregado.outrasSomas?.includes("30%") && (
+                                                      <span className="text-gray-400"> (Periculosidade de 30% inclusa)</span>
+                                                    )}
                                                   </div>
                                                 </div>
                                               </td>

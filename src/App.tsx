@@ -450,6 +450,11 @@ export default function App() {
   const handleBadgePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const isGoldOrAbove = activeStudent && (activeStudent.faseAtual >= 4 || isProfessorOrAdmin);
+      if (!isGoldOrAbove) {
+        alert(appLanguage === "en" ? "Only Gold rank or higher can configure custom badge photo." : "Somente alunos da Patente Ouro ou superior podem configurar foto customizada no crachá.");
+        return;
+      }
       if (file.size > 2 * 1024 * 1024) {
         alert(appLanguage === "en" ? "Image must be under 2MB" : "A imagem deve ter no máximo 2MB");
         return;
@@ -10825,60 +10830,126 @@ Para resolver:
               </button>
             </div>
             
-            <div className="flex flex-col items-center gap-5 py-2">
-               <div className="w-32 h-40 bg-black/40 rounded-xl border border-dashed border-white/20 flex flex-col items-center justify-center relative overflow-hidden group">
-                  {badgePhoto ? (
-                    <img src={badgePhoto} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="text-center space-y-2 opacity-40">
-                      <User className="w-10 h-10 mx-auto text-gray-400" />
-                      <p className="text-[10px] font-mono">SEM FOTO</p>
+            {(() => {
+              const isGoldOrAbove = activeStudent && (activeStudent.faseAtual >= 4 || isProfessorOrAdmin);
+              if (!isGoldOrAbove) {
+                return (
+                  <div className="flex flex-col items-center text-center py-4 space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 animate-pulse">
+                      <Lock className="w-7 h-7" />
                     </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-bold text-yellow-400 uppercase tracking-wider">
+                        {appLanguage === "en" ? "Exclusive Feature" : "Recurso Exclusivo"}
+                      </h4>
+                      <p className="text-xs text-white font-medium">
+                        {appLanguage === "en" 
+                          ? "Requires Gold Rank (Phase 4)" 
+                          : "Requisito: Patente Ouro 🥇 (Fase 4)"}
+                      </p>
+                    </div>
+
+                    <p className="text-[11px] text-text-secondary leading-relaxed px-2">
+                      {appLanguage === "en"
+                        ? "To ensure a highly responsive, high-speed experience for everyone, custom photo upload is unlocked exclusively for advanced students who reach the Gold Rank!"
+                        : "Para manter a plataforma rápida e nossa infraestrutura de servidores sustentável, o upload de foto customizada para o crachá é liberado apenas para alunos de alta patente que alcançaram o nível Ouro!"}
+                    </p>
+
+                    {activeStudent && (
+                      <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 flex items-center gap-2">
+                        <span className="text-[10px] text-text-secondary">
+                          {appLanguage === "en" ? "Your Current Rank:" : "Sua Patente Atual:"}
+                        </span>
+                        {(() => {
+                          const liga = getStudentLiga(activeStudent.faseAtual);
+                          return (
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${liga.colorClass}`}>
+                              <span>{liga.emoji}</span>
+                              <span>{liga.name}</span>
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    )}
+
+                    <p className="text-[10px] text-accent-primary italic font-medium">
+                      {appLanguage === "en"
+                        ? "Keep completing challenges, earning XP, and unlock your photo badge!"
+                        : "Continue superando os desafios do WorkSim, conquiste XP e libere sua foto!"}
+                    </p>
+
+                    <div className="w-full pt-2">
+                      <button 
+                        onClick={() => setIsBadgePhotoModalOpen(false)}
+                        className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                      >
+                        {appLanguage === "en" ? "Got it" : "Entendido!"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <>
+                  <div className="flex flex-col items-center gap-5 py-2">
+                     <div className="w-32 h-40 bg-black/40 rounded-xl border border-dashed border-white/20 flex flex-col items-center justify-center relative overflow-hidden group">
+                        {badgePhoto ? (
+                          <img src={badgePhoto} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="text-center space-y-2 opacity-40">
+                            <User className="w-10 h-10 mx-auto text-gray-400" />
+                            <p className="text-[10px] font-mono">SEM FOTO</p>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <button 
+                            onClick={() => photoInputRef.current?.click()}
+                            className="text-[10px] font-bold text-white bg-accent-primary/80 px-3 py-1.5 rounded-full"
+                          >
+                            Trocar
+                          </button>
+                        </div>
+                     </div>
+                     
+                     <div className="flex flex-col w-full gap-2">
+                       <button 
+                         onClick={() => photoInputRef.current?.click()}
+                         className="w-full text-xs bg-accent-primary/10 text-accent-primary hover:text-white px-3 py-2.5 rounded-xl border border-accent-primary/20 hover:bg-accent-primary hover:border-accent-primary transition-all font-bold flex items-center justify-center gap-2"
+                       >
+                         <Camera className="w-3.5 h-3.5" />
+                         {badgePhoto ? "Alterar sua Foto de Acesso" : "Carregar Foto Formal"}
+                       </button>
+                       
+                       {badgePhoto && (
+                         <button 
+                           onClick={() => setBadgePhoto(null)}
+                           className="w-full text-[10px] text-rose-400/70 hover:text-rose-400 font-bold uppercase transition-all py-1"
+                         >
+                           Remover Foto Atual
+                         </button>
+                       )}
+                     </div>
+                  </div>
+                  
+                  <div className="bg-slate-950/60 p-3 rounded-xl border border-white/5">
+                    <p className="text-[10px] text-text-secondary leading-relaxed text-center">
+                      A foto será integrada ao seu <strong>crachá oficial</strong> no formato 3x4 formal. Evite filtros ou fundos poluídos.
+                    </p>
+                  </div>
+                  
+                  <div className="pt-2">
                     <button 
-                      onClick={() => photoInputRef.current?.click()}
-                      className="text-[10px] font-bold text-white bg-accent-primary/80 px-3 py-1.5 rounded-full"
+                      onClick={() => setIsBadgePhotoModalOpen(false)}
+                      className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all"
                     >
-                      Trocar
+                      Concluir e Salvar Configuração
                     </button>
                   </div>
-               </div>
-               
-               <div className="flex flex-col w-full gap-2">
-                 <button 
-                   onClick={() => photoInputRef.current?.click()}
-                   className="w-full text-xs bg-accent-primary/10 text-accent-primary hover:text-white px-3 py-2.5 rounded-xl border border-accent-primary/20 hover:bg-accent-primary hover:border-accent-primary transition-all font-bold flex items-center justify-center gap-2"
-                 >
-                   <Camera className="w-3.5 h-3.5" />
-                   {badgePhoto ? "Alterar sua Foto de Acesso" : "Carregar Foto Formal"}
-                 </button>
-                 
-                 {badgePhoto && (
-                   <button 
-                     onClick={() => setBadgePhoto(null)}
-                     className="w-full text-[10px] text-rose-400/70 hover:text-rose-400 font-bold uppercase transition-all py-1"
-                   >
-                     Remover Foto Atual
-                   </button>
-                 )}
-               </div>
-            </div>
-            
-            <div className="bg-slate-950/60 p-3 rounded-xl border border-white/5">
-              <p className="text-[10px] text-text-secondary leading-relaxed text-center">
-                A foto será integrada ao seu <strong>crachá oficial</strong> no formato 3x4 formal. Evite filtros ou fundos poluídos.
-              </p>
-            </div>
-            
-            <div className="pt-2">
-              <button 
-                onClick={() => setIsBadgePhotoModalOpen(false)}
-                className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all"
-              >
-                Concluir e Salvar Configuração
-              </button>
-            </div>
+                </>
+              );
+            })()}
           </motion.div>
         </div>
       )}

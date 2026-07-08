@@ -277,7 +277,7 @@ Return the translations in JSON format with exactly these fields:
 // Check if Neon DB is enabled/configured
 app.get("/api/db-status", (req, res) => {
   res.json({
-    neonEnabled: !!process.env.DATABASE_URL,
+    neonEnabled: !!dbConnectionString,
     firestoreEnabled: !!process.env.GEMINI_API_KEY,
   });
 });

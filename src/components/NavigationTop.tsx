@@ -21,7 +21,8 @@ import {
   EyeOff,
   Menu,
   X,
-  Globe
+  Globe,
+  HelpCircle
 } from "lucide-react";
 import MethodologyModal from "./MethodologyModal";
 

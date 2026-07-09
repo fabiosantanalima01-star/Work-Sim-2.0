@@ -452,9 +452,7 @@ export default function App() {
                      sala.toUpperCase().trim().includes("1º B") || 
                      sala.toUpperCase().trim().includes("1ºB");
                      
-        const matchesVeteran = isVeterano || 
-                               sala.toLowerCase() === "veterano" || 
-                               sala.toLowerCase() === "veteranos";
+        const matchesVeteran = false; // Disabled auto-deletion of veterans to preserve progress and allow login as requested
         
         const isSelf = id === "adm" || matricula === "ADM2026" || matricula === "PROF2026";
         
@@ -3510,39 +3508,71 @@ Para resolver:
           {
             id: `${Date.now()}-welcome`,
             remetente: "Sistema",
-            texto: "Bem-vindo ao portal de homologação para veteranos! Todo o seu progresso de testes será salvo localmente.",
+            texto: "Bem-vindo ao portal de homologação para veteranos! Todo o seu progresso de testes será salvo e sincronizado na nuvem.",
             timestamp: new Date().toLocaleTimeString("pt-BR"),
           },
         ],
       };
 
       setStudents((prev) => [...prev, newVeteran]);
+      
+      // Save directly to Firestore for global access and persistence
+      syncSetDoc("students", newVeteran.id, sanitizeForFirestore(newVeteran)).catch(console.error);
+
       setActiveStudentId(newVetId);
       setSelectedPhaseId(-1);
       setShowMatrixIntro(true); // show the matrix dropping effect for veterans too!
       playSoundEffect("success");
     } else {
       // Login Mode
-      const matched = students.find((s) => s.matricula === targetUsuario);
-      if (!matched) {
-        setLoginErrorMessage(
-          "Acesso de veterano não localizado! Crie seu cadastro usando a aba de registro abaixo.",
-        );
-        playSoundEffect("failure");
-        return;
-      }
+      setIsFirebaseSyncing(true);
+      
+      const checkRemoteVeteran = async () => {
+        try {
+          const q = query(collection(db, "students"), where("matricula", "==", targetUsuario));
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            const remoteDoc = snapshot.docs[0];
+            const remoteData = { ...(remoteDoc.data() as Student), id: remoteDoc.id };
+            
+            // Sync local list
+            setStudents(prev => {
+              const filtered = prev.filter(s => s.id !== remoteData.id);
+              return [...filtered, remoteData];
+            });
+            return remoteData;
+          }
+          return null;
+        } catch (err) {
+          console.error("Remote check for veteran failed:", err);
+          return null;
+        }
+      };
 
-      if (!matched.senha || matched.senha !== targetSenha) {
-        setLoginErrorMessage("Senha incorreta para esta conta de Veterano!");
-        playSoundEffect("failure");
-        return;
-      }
+      checkRemoteVeteran().then((remoteMatched) => {
+        setIsFirebaseSyncing(false);
+        const matched = remoteMatched || students.find((s) => s.matricula === targetUsuario);
+        
+        if (!matched) {
+          setLoginErrorMessage(
+            "Acesso de veterano não localizado! Crie seu cadastro usando a aba de registro abaixo.",
+          );
+          playSoundEffect("failure");
+          return;
+        }
 
-      // Allow login
-      setActiveStudentId(matched.id);
-      setSelectedPhaseId(matched.faseAtual);
-      setOnboardingFinished(true);
-      playSoundEffect("success");
+        if (!matched.senha || matched.senha !== targetSenha) {
+          setLoginErrorMessage("Senha incorreta para esta conta de Veterano!");
+          playSoundEffect("failure");
+          return;
+        }
+
+        // Allow login
+        setActiveStudentId(matched.id);
+        setSelectedPhaseId(matched.faseAtual);
+        setOnboardingFinished(true);
+        playSoundEffect("success");
+      });
     }
   };
 

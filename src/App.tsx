@@ -147,7 +147,7 @@ export default function App() {
         const safetyCached = localStorage.getItem("worksim_students_safety_backup");
         if (safetyCached) {
           const parsedSafety = JSON.parse(safetyCached);
-          if (Array.isArray(parsedSafety) && parsedSafety.length > rawList.length) {
+          if (Array.isArray(parsedSafety) && parsedSafety.length > rawList.length && rawList.length <= INITIAL_STUDENTS.length) {
             console.log("[Failsafe] Restoring students from safety backup. Previous count:", rawList.length, "Backup count:", parsedSafety.length);
             rawList = parsedSafety;
             // Also update standard cache immediately
@@ -222,6 +222,9 @@ export default function App() {
     (activeStudent?.matricula === "ADM2026") ||
     firebaseUser?.email?.toLowerCase() === "fabiosantanalima01@gmail.com";
   const isProfessorOrAdmin = activeStudent?.matricula === "ADM2026";
+  const isActualFirebaseProfessor =
+    firebaseUser?.email?.toLowerCase() === "fabiosantanalima01@gmail.com" ||
+    firebaseUser?.uid === "yE9lOgtlWiX0m1OHBxjximYpb9l2";
 
   const [releasedPhases, setReleasedPhases] = useState<number[]>(() => {
     try {
@@ -243,8 +246,8 @@ export default function App() {
           } catch (_) {}
         }
       } else {
-        // If it doesn't exist yet, we can write the default
-        if (hasProfessorAccess) {
+        // If it doesn't exist yet, we can write the default if we are the actual authenticated professor
+        if (isActualFirebaseProfessor) {
           setDoc(doc(db, "settings", "phases"), { released: [-1, 0, 2, 3, 4, 5, 6, 7] })
             .catch(err => console.error("Error setting default phases:", err));
         }
@@ -254,7 +257,7 @@ export default function App() {
       checkAndSetQuota(err);
     });
     return () => unsub();
-  }, [hasProfessorAccess]);
+  }, [isActualFirebaseProfessor]);
 
   const handleUpdateReleasedPhases = async (nextReleased: number[]) => {
     // Keep -1 always released
@@ -264,7 +267,7 @@ export default function App() {
       localStorage.setItem("simulabor_released_phases", JSON.stringify(normalized));
     } catch (_) {}
     
-    if (hasProfessorAccess) {
+    if (isActualFirebaseProfessor) {
       try {
         await setDoc(doc(db, "settings", "phases"), { released: normalized });
       } catch (err) {
@@ -299,7 +302,7 @@ export default function App() {
           idlenessPenaltyEnabled: typeof data.idlenessPenaltyEnabled === "boolean" ? data.idlenessPenaltyEnabled : true,
         }));
       } else {
-        if (hasProfessorAccess) {
+        if (isActualFirebaseProfessor) {
           setDoc(doc(db, "settings", "penalties"), {
             focusLossLimit: 7,
             focusXpPenaltyPercent: 5,
@@ -316,12 +319,12 @@ export default function App() {
       checkAndSetQuota(err);
     });
     return () => unsub();
-  }, [hasProfessorAccess]);
+  }, [isActualFirebaseProfessor]);
 
   const handleUpdatePenaltySettings = async (nextSettings: Partial<PenaltySettings>) => {
     const updated = { ...penaltySettings, ...nextSettings };
     setPenaltySettings(updated);
-    if (hasProfessorAccess) {
+    if (isActualFirebaseProfessor) {
       try {
         await setDoc(doc(db, "settings", "penalties"), updated);
       } catch (err) {
@@ -438,8 +441,7 @@ export default function App() {
 
   // --- Automated Admin Cleanup for Veterans and 1B Classrooms ---
   useEffect(() => {
-    const isFabio = firebaseUser?.email?.toLowerCase() === "fabiosantanalima01@gmail.com";
-    if ((isProfessorOrAdmin || isFabio) && students.length > 0) {
+    if (isActualFirebaseProfessor && students.length > 0) {
       const targetStudents = students.filter(s => {
         const id = s.id;
         const sala = s.sala || "";
@@ -477,7 +479,7 @@ export default function App() {
         });
       }
     }
-  }, [isProfessorOrAdmin, firebaseUser, students, setStudents]);
+  }, [isActualFirebaseProfessor, students, setStudents]);
 
   const [squadLogs, setSquadLogs] = useState<SquadLog[]>(() => {
     const cached = localStorage.getItem("worksim_squad_logs");
@@ -6963,7 +6965,7 @@ Para resolver:
                             <div className="flex justify-between items-center gap-2">
                               <div className="flex items-center gap-1.5 truncate">
                                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusColor}`}></div>
-                                <span className="text-[10px] text-gray-200 font-bold truncate">{s.nomeCompleto.split(' ')[0]}</span>
+                                <span className="text-[10px] text-gray-200 font-bold truncate">{(s.nomeCompleto || "").split(' ')[0]}</span>
                               </div>
                               <span className="text-[9px] text-amber-400 font-mono font-bold shrink-0">{s.xp} XP</span>
                             </div>
@@ -7019,23 +7021,25 @@ Para resolver:
                       title={appLanguage === "en" ? "Click to expand standard leaderboard" : "Clique para ver o placar completo!"}
                     >
                       {rankedLeaderboardStudents.slice(0, 3).map((item, index) => {
-                        const liga = getStudentLiga(item.student.faseAtual);
-                        const leagueColorClass = liga.colorClass.split(" ")[0];
+                        if (!item?.student) return null;
+                        const s = item.student;
+                        const liga = getStudentLiga(s.faseAtual);
+                        const leagueColorClass = (liga.colorClass || "").split(" ")[0];
 
                         // Get short name representation
-                        const nameParts = item.student.nomeCompleto.split(" ");
-                        const displayName = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[1][0]}.` : nameParts[0];
-                        const isS = item.student.id === activeStudentId;
+                        const nameParts = (s.nomeCompleto || "").split(" ");
+                        const displayName = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[1][0]}.` : (nameParts[0] || "");
+                        const isS = s.id === activeStudentId;
 
                         return (
-                          <div key={item.student.id} className="flex items-center gap-1 shrink-0">
+                          <div key={s.id} className="flex items-center gap-1 shrink-0">
                             <span className="text-[10px] font-bold font-mono text-gray-500">
                               {item.rank === 1 ? "🥇" : item.rank === 2 ? "🥈" : "🥉"}
                             </span>
-                            <span className={`text-[10px] truncate max-w-[72px] h-[15px] block font-semibold ${leagueColorClass} ${isS ? "underline decoration-cyan-400" : ""}`} title={`${item.student.nomeCompleto} - ${liga.name}`}>
+                            <span className={`text-[10px] truncate max-w-[72px] h-[15px] block font-semibold ${leagueColorClass} ${isS ? "underline decoration-cyan-400" : ""}`} title={`${s.nomeCompleto || ""} - ${liga.name}`}>
                               {displayName} {liga.emoji}
                             </span>
-                            <span className="text-[7.5px] font-mono text-gray-400">({item.student.xp})</span>
+                            <span className="text-[7.5px] font-mono text-gray-400">({s.xp || 0})</span>
                             {index < 2 && <span className="text-white/5 font-mono select-none">|</span>}
                           </div>
                         );
@@ -7045,10 +7049,11 @@ Para resolver:
                     /* DETAILED EXPANDED MINILIST MODULE */
                     <div id="sidebar-ranking-expanded" className="mt-2 bg-slate-950/25 border border-white/5 rounded-xl p-2 space-y-1.5 animate-fade-in max-h-[220px] overflow-y-auto w-full">
                       {rankedLeaderboardStudents.slice(0, 5).map((item) => {
+                        if (!item?.student) return null;
                         const s = item.student;
                         const isS = s.id === activeStudentId;
                         const liga = getStudentLiga(s.faseAtual);
-                        const leagueColorClass = liga.colorClass.split(" ")[0];
+                        const leagueColorClass = (liga.colorClass || "").split(" ")[0];
 
                         return (
                           <div
@@ -7065,15 +7070,15 @@ Para resolver:
                               </span>
                               <div className="truncate flex flex-col font-sans">
                                 <span className={`${leagueColorClass} text-[11px] font-bold truncate flex items-center gap-1.5`}>
-                                  {s.nomeCompleto} <span className={`text-[8px] px-1 rounded border font-mono font-bold shrink-0 ${liga.colorClass}`}>{liga.abbr}</span>
+                                  {s.nomeCompleto || ""} <span className={`text-[8px] px-1 rounded border font-mono font-bold shrink-0 ${liga.colorClass}`}>{liga.abbr}</span>
                                 </span>
                                 <span className="text-[8px] text-text-secondary font-mono tracking-tighter">
-                                  {s.sala} • {s.matricula}
+                                  {s.sala || ""} • {s.matricula || ""}
                                 </span>
                               </div>
                             </div>
                             <div className="flex items-center gap-0.5 text-[10px] font-mono text-amber-400 font-bold flex-shrink-0">
-                              <span>{s.xp}</span>
+                              <span>{s.xp || 0}</span>
                               <span className="text-[8px] text-yellow-500">XP</span>
                             </div>
                           </div>
@@ -7104,11 +7109,15 @@ Para resolver:
                     <Trophy className="w-4 h-4 text-amber-500 animate-pulse" />
                   </button>
                   <div className="flex flex-col gap-1 text-[9px] font-mono text-text-secondary text-center">
-                    {rankedLeaderboardStudents.slice(0, 3).map((item) => (
-                      <span key={item.student.id} title={`${item.rank}º: ${item.student.nomeCompleto} (${item.student.xp} XP)`}>
-                        {item.rank === 1 ? "🥇" : item.rank === 2 ? "🥈" : "🥉"}
-                      </span>
-                    ))}
+                    {rankedLeaderboardStudents.slice(0, 3).map((item) => {
+                      if (!item?.student) return null;
+                      const s = item.student;
+                      return (
+                        <span key={s.id} title={`${item.rank}º: ${s.nomeCompleto || ""} (${s.xp || 0} XP)`}>
+                          {item.rank === 1 ? "🥇" : item.rank === 2 ? "🥈" : "🥉"}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               )}

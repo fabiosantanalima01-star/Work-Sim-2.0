@@ -264,7 +264,9 @@ export default function ProfessorCockpit({
   const studentsToDisplay = filteredStudentsByClass.filter(s => {
     if (!profSearchQuery.trim()) return true;
     const q = profSearchQuery.toLowerCase();
-    return s.nomeCompleto.toLowerCase().includes(q) || s.matricula.toLowerCase().includes(q) || s.id.toLowerCase().includes(q);
+    return (s.nomeCompleto || "").toLowerCase().includes(q) || 
+           (s.matricula || "").toLowerCase().includes(q) || 
+           (s.id || "").toLowerCase().includes(q);
   });
 
   // --- ANALYTICS CALCULATIONS ---
@@ -3790,7 +3792,9 @@ export default function ProfessorCockpit({
                     .filter(s => {
                       if (!profSearchQuery.trim()) return true;
                       const q = profSearchQuery.toLowerCase();
-                      return s.nomeCompleto.toLowerCase().includes(q) || s.matricula.toLowerCase().includes(q) || s.id.toLowerCase().includes(q);
+                      return (s.nomeCompleto || "").toLowerCase().includes(q) || 
+                             (s.matricula || "").toLowerCase().includes(q) || 
+                             (s.id || "").toLowerCase().includes(q);
                     })
                     .map((student) => {
                       const compNow = Date.now() + clockOffset;
@@ -3935,7 +3939,9 @@ export default function ProfessorCockpit({
                     const analyticalFiltered = filteredStudentsByClass.filter(s => {
                       if (!profSearchQuery.trim()) return true;
                       const q = profSearchQuery.toLowerCase();
-                      return s.nomeCompleto.toLowerCase().includes(q) || s.matricula.toLowerCase().includes(q) || s.id.toLowerCase().includes(q);
+                      return (s.nomeCompleto || "").toLowerCase().includes(q) || 
+                             (s.matricula || "").toLowerCase().includes(q) || 
+                             (s.id || "").toLowerCase().includes(q);
                     });
 
                     if (analyticalFiltered.length === 0) return null;
@@ -4694,7 +4700,7 @@ export default function ProfessorCockpit({
             fases: [0, 1], 
             icon: "📜",
             reforçoPreset: {
-              titulo: `Reforço CLT: Primazia da Realidade - Caso ${student.nomeCompleto.split(' ')[0]}`,
+              titulo: `Reforço CLT: Primazia da Realidade - Caso ${(student.nomeCompleto || "").split(' ')[0]}`,
               tipo: "Justa Causa",
               focoTecnico: "Vínculo de Emprego sob Artigo 9º da CLT",
               queixa: `Marcelo, contratado formalmente como consultor autônomo PJ para auxiliar o setor administrativo chefiado por ${student.nomeCompleto}, cumpre horário rígido, usa crachá e reporta diariamente à diretoria. Após o encerramento do contrato, Marcelo exige as verbas rescisórias da CLT retroativas de um ano. Como preceptor de DP, indique o deslinde legal aplicável.`,
@@ -4720,7 +4726,7 @@ export default function ProfessorCockpit({
             fases: [2, 3], 
             icon: "⏱️",
             reforçoPreset: {
-              titulo: `Reforço Jornada: Abono por Consulta Médica - Caso ${student.nomeCompleto.split(' ')[0]}`,
+              titulo: `Reforço Jornada: Abono por Consulta Médica - Caso ${(student.nomeCompleto || "").split(' ')[0]}`,
               tipo: "Erro",
               focoTecnico: "Abono Legal Art. 473 CLT",
               queixa: `Um colaborador apresentou ao departamento pessoal um atestado médico de acompanhamento de seu filho de 5 anos em consulta de urgência pediátrica. O analista sênior recusou o documento, descontando o dia do funcionário sob alegação de que a CLT só abona faltas de saúde do próprio funcionário. Rogério quer saber a conduta legal com base na CLT.`,
@@ -4746,7 +4752,7 @@ export default function ProfessorCockpit({
             fases: [3], 
             icon: "💸",
             reforçoPreset: {
-              titulo: `Reforço Encargos: Retificação de Desconto de VT - Caso ${student.nomeCompleto.split(' ')[0]}`,
+              titulo: `Reforço Encargos: Retificação de Desconto de VT - Caso ${(student.nomeCompleto || "").split(' ')[0]}`,
               tipo: "Cálculo",
               focoTecnico: "Lei do Vale-Transporte 7.418/1985",
               queixa: `A funcionária Estela recebe salário-base de R$ 3.000,00 e gasta exatamente R$ 120,00 por mês em bilhete municipal de ônibus. No contracheque de maio, o DP descontou R$ 180,00 sob a rubrica comum de Vale-Transporte. A funcionária contesta o valor. Qual retificação o analista de DP sob sua mentoria deve proceder?`,
@@ -4772,7 +4778,7 @@ export default function ProfessorCockpit({
             fases: [4], 
             icon: "🏖️",
             reforçoPreset: {
-              titulo: `Reforço Férias: Abono Pecuniário - Caso ${student.nomeCompleto.split(' ')[0]}`,
+              titulo: `Reforço Férias: Abono Pecuniário - Caso ${(student.nomeCompleto || "").split(' ')[0]}`,
               tipo: "Cálculo",
               focoTecnico: "Artigo 143 da CLT",
               queixa: `Um colaborador solicitou a conversão de 1/3 das suas férias em abono pecuniário (venda de 10 dias). O gestor negou alegando que a empresa não aceita vender férias este ano por corte de custos. O que diz a legislação?`,
@@ -4798,7 +4804,7 @@ export default function ProfessorCockpit({
             fases: [4, 6], 
             icon: "📋",
             reforçoPreset: {
-              titulo: `Reforço Contratos: Estabilidade Gestante em Temporário - Caso ${student.nomeCompleto.split(' ')[0]}`,
+              titulo: `Reforço Contratos: Estabilidade Gestante em Temporário - Caso ${(student.nomeCompleto || "").split(' ')[0]}`,
               tipo: "Misto",
               focoTecnico: "Tema 495 de Repercussão Geral do STF",
               queixa: `Maria foi contratada via agência de trabalho temporário (Lei 6.019/74) por 90 dias. No 60º dia, descobriu gravidez. A empresa quer encerrar o contrato no prazo final. Maria alega estabilidade. O que decide o DP?`,
@@ -4824,7 +4830,7 @@ export default function ProfessorCockpit({
             fases: [5], 
             icon: "⚖️",
             reforçoPreset: {
-              titulo: `Reforço TRCT: Prazo de Quitação Rescisória - Caso ${student.nomeCompleto.split(' ')[0]}`,
+              titulo: `Reforço TRCT: Prazo de Quitação Rescisória - Caso ${(student.nomeCompleto || "").split(' ')[0]}`,
               tipo: "Cálculo",
               focoTecnico: "Artigo 477, § 6º da CLT",
               queixa: `A Global Logística dispensou Carlos sem justa causa com aviso prévio indenizado em uma sexta-feira. O analista de DP agendou a homologação do TRCT e o crédito do pagamento rescisório para 15 dias corridos após o término contratual. O sindicato recusa a assinatura alegando descumprimento do prazo regular. Qual o parecer legal do preceptor?`,
@@ -4850,7 +4856,7 @@ export default function ProfessorCockpit({
             fases: [6, 7], 
             icon: "🛡️",
             reforçoPreset: {
-              titulo: `Reforço Compliance: Desvio de Função - Caso ${student.nomeCompleto.split(' ')[0]}`,
+              titulo: `Reforço Compliance: Desvio de Função - Caso ${(student.nomeCompleto || "").split(' ')[0]}`,
               tipo: "Misto",
               focoTecnico: "Artigo 468 da CLT",
               queixa: `Um auxiliar de escritório está exercendo funções de analista pleno há 6 meses sem alteração salarial ou de CBO. Ele exige equiparação. Qual a conduta preventiva de compliance?`,

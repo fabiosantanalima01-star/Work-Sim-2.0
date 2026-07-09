@@ -1149,7 +1149,7 @@ export default function DesempenhoPessoal({
                                 : "bg-slate-900 text-gray-400 hover:text-white"
                             }`}
                           >
-                            {p.nomeCompleto.split(" ")[0]} ({p.matricula})
+                            {(p.nomeCompleto || "").split(" ")[0]} ({p.matricula || ""})
                           </button>
                         ))}
                       </div>

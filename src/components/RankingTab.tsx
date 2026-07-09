@@ -126,9 +126,10 @@ export default function RankingTab({
   // Filter ranks
   const filteredRankList = rankedStudents.filter((item) => {
     const s = item.student;
+    if (!s) return false;
     const matchesSearch =
-      s.nomeCompleto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.matricula.toLowerCase().includes(searchTerm.toLowerCase());
+      (s.nomeCompleto || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+      (s.matricula || "").toLowerCase().includes((searchTerm || "").toLowerCase());
     
     const matchesClass = effectiveClassFilter === "ALL" || s.sala === effectiveClassFilter;
     

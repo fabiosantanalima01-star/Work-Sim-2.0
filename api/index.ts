@@ -12,6 +12,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // --- Neon PostgreSQL Integration ---
 let sql: any = null;
+let postgresConnected = false;
 const dbConnectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 if (dbConnectionString) {
   try {
@@ -36,12 +37,15 @@ if (dbConnectionString) {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         `;
+        postgresConnected = true;
         console.log("Neon PostgreSQL: worksim_students table verified/created successfully.");
-      } catch (err) {
-        console.error("Neon PostgreSQL init error:", err);
+      } catch (err: any) {
+        postgresConnected = false;
+        console.warn("Neon PostgreSQL connection/init skipped (Database is not active or accessible):", err.message || err);
       }
     })();
   } catch (err) {
+    postgresConnected = false;
     console.error("Failed to initialize postgres client with connection string:", err);
   }
 }
@@ -277,15 +281,15 @@ Return the translations in JSON format with exactly these fields:
 // Check if Neon DB is enabled/configured
 app.get("/api/db-status", (req, res) => {
   res.json({
-    neonEnabled: !!dbConnectionString,
+    neonEnabled: !!dbConnectionString && postgresConnected,
     firestoreEnabled: !!process.env.GEMINI_API_KEY,
   });
 });
 
 // Get all students
 app.get("/api/db-students", async (req, res) => {
-  if (!sql) {
-    return res.json({ students: [], info: "Neon database not connected/configured" });
+  if (!sql || !postgresConnected) {
+    return res.json({ students: [], info: "Neon database not connected/configured", success: false });
   }
 
   try {
@@ -302,8 +306,8 @@ app.get("/api/db-students", async (req, res) => {
 
 // Single student upsert
 app.post("/api/db-students/upsert", async (req, res) => {
-  if (!sql) {
-    return res.status(501).json({ error: "Neon database is not configured." });
+  if (!sql || !postgresConnected) {
+    return res.status(501).json({ error: "Neon database is not connected." });
   }
 
   const { student } = req.body;
@@ -340,8 +344,8 @@ app.post("/api/db-students/upsert", async (req, res) => {
 
 // Bulk sync students
 app.post("/api/db-students/bulk-sync", async (req, res) => {
-  if (!sql) {
-    return res.status(501).json({ error: "Neon database is not configured." });
+  if (!sql || !postgresConnected) {
+    return res.status(501).json({ error: "Neon database is not connected." });
   }
 
   const { students } = req.body;
@@ -384,8 +388,8 @@ app.post("/api/db-students/bulk-sync", async (req, res) => {
 
 // Delete single student
 app.delete("/api/db-students/:id", async (req, res) => {
-  if (!sql) {
-    return res.status(501).json({ error: "Neon database is not configured." });
+  if (!sql || !postgresConnected) {
+    return res.status(501).json({ error: "Neon database is not connected." });
   }
 
   const { id } = req.params;
@@ -402,8 +406,8 @@ app.delete("/api/db-students/:id", async (req, res) => {
 
 // Delete all students (Reset DB)
 app.post("/api/db-students/reset", async (req, res) => {
-  if (!sql) {
-    return res.status(501).json({ error: "Neon database is not configured." });
+  if (!sql || !postgresConnected) {
+    return res.status(501).json({ error: "Neon database is not connected." });
   }
 
   try {
@@ -414,6 +418,111 @@ app.post("/api/db-students/reset", async (req, res) => {
   } catch (error: any) {
     console.error("Error truncating worksim_students:", error);
     res.status(500).json({ error: error.message || "Failed to reset database." });
+  }
+});
+
+// Scraping Google Drive public folder embedded view to list files dynamically
+app.get("/api/drive-folder/:folderId", async (req, res) => {
+  const { folderId } = req.params;
+  try {
+    const url = `https://drive.google.com/embeddedfolderview?hl=en&id=${folderId}`;
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`Google Drive retornou status ${response.status}`);
+    }
+    const html = await response.text();
+    
+    // Parse files from the HTML response
+    const files: { id: string; name: string }[] = [];
+    
+    // Google Drive's embedded folderview uses <div class="flip-entry" id="entry-FILE_ID">...
+    // followed by <div class="flip-entry-title">FILE_NAME</div>
+    const entryBlocks = html.split('class="flip-entry"');
+    for (let i = 1; i < entryBlocks.length; i++) {
+      const block = entryBlocks[i];
+      const idMatch = block.match(/id="entry-([a-zA-Z0-9_-]+)"/);
+      const titleMatch = block.match(/class="flip-entry-title">([^<]+)<\/div>/);
+      
+      if (idMatch && titleMatch) {
+        files.push({
+          id: idMatch[1],
+          name: titleMatch[1].trim()
+        });
+      }
+    }
+    
+    res.json({ success: true, files });
+  } catch (error: any) {
+    console.error("Erro ao raspar pasta do Google Drive:", error);
+    res.status(500).json({ error: error.message || "Erro desconhecido ao ler pasta do Drive." });
+  }
+});
+
+// --- Cloudinary Secure Audio Upload Endpoint ---
+app.post("/api/upload-audio", upload.single("audio"), async (req: any, res: any) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Nenhum arquivo enviado." });
+    }
+
+    const cloudinaryUrl = process.env.CLOUDINARY_URL;
+    if (!cloudinaryUrl) {
+      return res.status(501).json({ error: "Cloudinary não está configurado no servidor (CLOUDINARY_URL ausente)." });
+    }
+
+    // Parse cloudinary://<api_key>:<api_secret>@<cloud_name>
+    const match = cloudinaryUrl.match(/cloudinary:\/\/([^:]+):([^@]+)@(.+)/);
+    if (!match) {
+      return res.status(500).json({ error: "Formato CLOUDINARY_URL inválido." });
+    }
+
+    const apiKey = match[1];
+    const apiSecret = match[2];
+    const cloudName = match[3];
+
+    const timestamp = Math.round(Date.now() / 1000);
+    const folder = "worksim_audios";
+    
+    // Sort parameters alphabetically: folder, timestamp
+    const signatureStr = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
+    const crypto = await import("crypto");
+    const signature = crypto.createHash("sha1").update(signatureStr).digest("hex");
+
+    const base64Data = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+
+    // Cloudinary video/upload handles audio format as well
+    const formData = new URLSearchParams();
+    formData.append("file", base64Data);
+    formData.append("api_key", apiKey);
+    formData.append("timestamp", timestamp.toString());
+    formData.append("folder", folder);
+    formData.append("signature", signature);
+
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json() as any;
+
+    if (!response.ok) {
+      throw new Error(result.error?.message || "Erro no upload do Cloudinary.");
+    }
+
+    // Return the secure URL
+    res.json({
+      success: true,
+      secure_url: result.secure_url,
+      public_id: result.public_id,
+      duration: result.duration,
+    });
+  } catch (error: any) {
+    console.error("Erro no upload do Cloudinary:", error);
+    res.status(500).json({ error: error.message || "Erro ao fazer upload para o Cloudinary." });
   }
 });
 

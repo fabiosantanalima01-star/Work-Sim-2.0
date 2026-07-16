@@ -42,6 +42,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
 import QRScanner from "./components/QRScanner";
+import { TrainingZoneWalkman } from "./components/TrainingZoneWalkman";
 
 // Firebase Integration Client
 import { db, auth, syncSetDoc, syncAddDoc, syncDeleteDoc, syncUpdateDoc, arrayUnion, OperationType, handleFirestoreError, SyncManager, checkQuotaExceeded, setQuotaExceeded } from "./lib/firebase";
@@ -811,7 +812,18 @@ export default function App() {
                      }
                   }
                 }
-                merged[localIdx] = { ...local, ...remote };
+                const mergedMsgs = Array.from(
+                  new Map(
+                    [...(local.mensagensChat || []), ...(remote.mensagensChat || [])]
+                      .filter(Boolean)
+                      .map(m => [m.id, m])
+                  ).values()
+                );
+                merged[localIdx] = { 
+                  ...local, 
+                  ...remote,
+                  mensagensChat: mergedMsgs
+                };
               } else {
                 const remoteMsgCount = remote.mensagensChat?.length || 0;
                 const localMsgCount = local.mensagensChat?.length || 0;
@@ -823,9 +835,18 @@ export default function App() {
                   }
                 }
                 
+                const mergedMsgs = Array.from(
+                  new Map(
+                    [...(local.mensagensChat || []), ...(remote.mensagensChat || [])]
+                      .filter(Boolean)
+                      .map(m => [m.id, m])
+                  ).values()
+                );
+                
                 merged[localIdx] = {
                   ...local,
                   ...remote,
+                  mensagensChat: mergedMsgs,
                   xp: remote.xp !== undefined ? remote.xp : (local.xp || 0),
                   faseAtual: remote.faseAtual !== undefined ? remote.faseAtual : (local.faseAtual ?? -1),
                   precisao: remote.precisao !== undefined ? remote.precisao : local.precisao,
@@ -1874,17 +1895,23 @@ Para resolver:
     setOpenChats(openChats.filter((id) => id !== studentId));
   };
   const handleTypingChange = (studentId: string, isTyping: boolean, remetente: "Professor" | "Estudante") => {
+    const fieldName = remetente === "Professor" ? "profIsTyping" : "isTyping";
     setStudents((prev) =>
       prev.map((s) => {
         if (s.id === studentId) {
           return {
             ...s,
-            [remetente === "Professor" ? "profIsTyping" : "isTyping"]: isTyping,
+            [fieldName]: isTyping,
           };
         }
         return s;
       })
     );
+    if (firebaseUser) {
+      syncUpdateDoc("students", studentId, {
+        [fieldName]: isTyping
+      }).catch(console.error);
+    }
   };
   const handleSendChatMessage = (studentId: string, text: string) => {
     if (!text.trim()) return;
@@ -2438,14 +2465,19 @@ Para resolver:
     
     if (!activeStudent) return [-1];
     
-    const unlocked = [-1]; // Phase -1 is always unlocked for review
-    for (let phaseId = 0; phaseId < 8; phaseId++) {
+    const hasPassedTraining = checkIfPassedPhase(activeStudent, -1);
+    if (!hasPassedTraining) {
+      return [-1]; // Lock everything else until training is passed
+    }
+    
+    const unlocked = [-1, 0];
+    for (let phaseId = 1; phaseId < 8; phaseId++) {
       if (phaseId === -1) continue;
       
       // Phase must be explicitly released by the administrator
       if (!releasedPhases.includes(phaseId)) continue;
       
-      if (phaseId === 0 || phaseId === 1) {
+      if (phaseId === 1) {
         unlocked.push(phaseId);
       } else {
         if (phaseId <= maxAllowedPhase || checkIfPassedPhase(activeStudent, phaseId - 1)) {
@@ -2459,6 +2491,22 @@ Para resolver:
   const isCurrentPhaseLocked = useMemo(() => {
     return !unlockedPhasesList.includes(selectedPhaseId);
   }, [unlockedPhasesList, selectedPhaseId]);
+
+  const passedTrainingZone = useMemo(() => {
+    return activeStudent ? checkIfPassedPhase(activeStudent, -1) : false;
+  }, [activeStudent, allChallenges]);
+
+  const forceTrainingZone = useMemo(() => {
+    if (!activeStudent) return false;
+    if (activeStudent.id === "adm" || activeStudent.matricula === "ADM2026") return false;
+    return !passedTrainingZone;
+  }, [activeStudent, passedTrainingZone]);
+
+  useEffect(() => {
+    if (forceTrainingZone && selectedPhaseId !== -1) {
+      setSelectedPhaseId(-1);
+    }
+  }, [forceTrainingZone, selectedPhaseId]);
 
   // Automatically fall back to Phase -1 if the current selected phase is locked
   useEffect(() => {
@@ -5082,10 +5130,10 @@ Para resolver:
 
         // Apply strict rules based on current phase
         if (currentPhaseId === -1) {
-          // Fase -1: Min 50%. Less than 50% must redo Phase -1
+          // Fase -1: Min 65%. Less than 65% must redo Phase -1
           // Stay in Phase -1, clear answers
           targetPhaseId = -1;
-          textMsg = `⚠️ SIMULADO DE REVISÃO (FASE -1): Sua precisão de ${accuracyInPhase.toFixed(1)}% foi abaixo do mínimo de 50%. Suas respostas para a Fase -1 foram resetadas para que você possa refazer o treinamento.`;
+          textMsg = `⚠️ ZONA DE TREINAMENTO (FASE -1): Sua precisão de ${accuracyInPhase.toFixed(1)}% foi abaixo do mínimo de 65%. Suas respostas para a Zona de Treinamento foram resetadas para que você possa refazer o treinamento obrigatório.`;
         } 
         else if (currentPhaseId === 0) {
           // Fase 0: Min 75%.
@@ -6317,6 +6365,25 @@ Para resolver:
             selectedPhaseId={selectedPhaseId}
           />
 
+          {forceTrainingZone && (
+            <div className="absolute inset-0 z-[9999] flex flex-col bg-slate-950">
+              <TrainingZoneWalkman
+                activeStudent={activeStudent}
+                allChallenges={allChallenges}
+                completedChallenges={completedChallenges}
+                selectedChallengeId={selectedChallengeId}
+                setSelectedChallengeId={setSelectedChallengeId}
+                selectedOptionId={selectedOptionId}
+                setSelectedOptionId={setSelectedOptionId}
+                handleCheckChallengeMCQ={handleCheckChallengeMCQ}
+                challengeFeedback={challengeFeedback}
+                setChallengeFeedback={setChallengeFeedback}
+                isProfessorOrAdmin={isProfessorOrAdmin}
+                playSoundEffect={playSoundEffect}
+              />
+            </div>
+          )}
+
           <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
             {/* Mobile overlay backdrop */}
             {isMobileMenuOpen && (
@@ -7465,7 +7532,22 @@ Para resolver:
             {/* TAB CONTENTS ROUTER */}
             {currentTab === "challenges" && (
               <div className="space-y-6">
-                {isCurrentPhaseLocked ? (
+                {selectedPhaseId === -1 ? (
+                  <TrainingZoneWalkman
+                    activeStudent={activeStudent}
+                    allChallenges={allChallenges}
+                    completedChallenges={completedChallenges}
+                    selectedChallengeId={selectedChallengeId}
+                    setSelectedChallengeId={setSelectedChallengeId}
+                    selectedOptionId={selectedOptionId}
+                    setSelectedOptionId={setSelectedOptionId}
+                    handleCheckChallengeMCQ={handleCheckChallengeMCQ}
+                    challengeFeedback={challengeFeedback}
+                    setChallengeFeedback={setChallengeFeedback}
+                    isProfessorOrAdmin={isProfessorOrAdmin}
+                    playSoundEffect={playSoundEffect}
+                  />
+                ) : isCurrentPhaseLocked ? (
                   <div className="glass-panel p-6 sm:p-10 rounded-2xl border border-rose-500/10 bg-slate-950/40 space-y-8 animate-fade-in text-left relative overflow-hidden shadow-2xl">
                     {/* Background faint red glow */}
                     <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-rose-500/5 blur-3xl pointer-events-none" />
@@ -10462,22 +10544,34 @@ Para resolver:
 
             {/* Backdoor physical override for Professor/Monitoria directly on student keyboard */}
             <div className="pt-4 border-t border-white/10 space-y-2.5 text-left">
-              <p className="text-[10px] text-gray-400 font-mono uppercase font-bold tracking-wider">🔒 Código de Desbloqueio Local (Apenas para o Professor)</p>
+              <p className="text-[10px] text-gray-400 font-mono uppercase font-bold tracking-wider">🔒 Código ou Senha de Desbloqueio (Professor ou Aluno)</p>
               <div className="flex gap-2">
                 <input 
                   type="password"
                   id="professor-backdoor-pass"
-                  placeholder="Código de Desbloqueio..."
+                  placeholder="Senha de acesso ou Código..."
                   className="flex-1 bg-slate-950/90 border border-white/20 rounded-xl px-3 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-rose-500 font-mono shadow-md focus:ring-1 focus:ring-rose-500"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      const val = (e.target as HTMLInputElement).value;
-                      if (val.trim() === "RH2026RH") {
+                      const val = (e.target as HTMLInputElement).value.trim();
+                      const adminStudent = students.find(s => s.id === "adm" || s.matricula === "ADM2026");
+                      const adminPass = adminStudent?.senha || "admin";
+                      const studentPass = activeStudent?.senha || "";
+                      
+                      const isValid = 
+                        val.toUpperCase() === "RH2026RH" || 
+                        val.toLowerCase() === "admin" || 
+                        (adminPass && val === adminPass) || 
+                        (adminPass && val.toLowerCase() === adminPass.toLowerCase()) ||
+                        (studentPass && val === studentPass) ||
+                        (studentPass && val.toLowerCase() === studentPass.toLowerCase());
+
+                      if (isValid) {
                         handleResetStudentFocus(activeStudent.id);
                         (e.target as HTMLInputElement).value = "";
                       } else {
                         playSoundEffect("failure");
-                        alert("Código de desbloqueio incorreto!");
+                        alert("Senha ou Código de desbloqueio incorreto!");
                       }
                     }
                   }}
@@ -10486,12 +10580,27 @@ Para resolver:
                   type="button"
                   onClick={() => {
                     const inputEl = document.getElementById("professor-backdoor-pass") as HTMLInputElement;
-                    if (inputEl && inputEl.value.trim() === "RH2026RH") {
-                      handleResetStudentFocus(activeStudent.id);
-                      inputEl.value = "";
-                    } else {
-                      playSoundEffect("failure");
-                      alert("Código de desbloqueio incorreto!");
+                    if (inputEl) {
+                      const val = inputEl.value.trim();
+                      const adminStudent = students.find(s => s.id === "adm" || s.matricula === "ADM2026");
+                      const adminPass = adminStudent?.senha || "admin";
+                      const studentPass = activeStudent?.senha || "";
+                      
+                      const isValid = 
+                        val.toUpperCase() === "RH2026RH" || 
+                        val.toLowerCase() === "admin" || 
+                        (adminPass && val === adminPass) || 
+                        (adminPass && val.toLowerCase() === adminPass.toLowerCase()) ||
+                        (studentPass && val === studentPass) ||
+                        (studentPass && val.toLowerCase() === studentPass.toLowerCase());
+
+                      if (isValid) {
+                        handleResetStudentFocus(activeStudent.id);
+                        inputEl.value = "";
+                      } else {
+                        playSoundEffect("failure");
+                        alert("Senha ou Código de desbloqueio incorreto!");
+                      }
                     }
                   }}
                   className="bg-rose-500 hover:bg-rose-400 text-slate-950 border border-rose-500/30 px-5 rounded-xl text-xs font-sans font-black uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-95 cursor-pointer shadow-md"

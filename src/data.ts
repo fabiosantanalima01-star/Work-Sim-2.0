@@ -61,7 +61,7 @@ export const CBOS_DATA: CBO[] = [
 
 // Configuration of the career track stages
 export const CAREER_PHASES: CareerPhase[] = [
-  { id: -1, cargo: "Simulado de Revisão", moduloTecnico: "Treinamento / Cadete", focoPrincipal: "Preparação intensiva para a prova final", totalDesafios: 55, precisaoMinima: 50 },
+  { id: -1, cargo: "Zona de Treinamento", moduloTecnico: "Treinamento / Cadete", focoPrincipal: "Treinamento obrigatório com Walkman Trainer", totalDesafios: 55, precisaoMinima: 65 },
   { id: 0, cargo: "Pré-Cadastro", moduloTecnico: "Admissão (ADM)", focoPrincipal: "Vínculo, FGTS e Noções de Direito", totalDesafios: 21, precisaoMinima: 75 },
   { id: 1, cargo: "Estagiário de RH (Primeiranista)", moduloTecnico: "Triagem e Conformidade", focoPrincipal: "Triagem, documentos básicos e regras de contratação", totalDesafios: 26, precisaoMinima: 77 },
   { id: 2, cargo: "Estagiário de RH (Segundoanista)", moduloTecnico: "FGTS & Rescisões (FGTS/RES)", focoPrincipal: "Contas vinculadas, carimbos de saque e verbas rescisórias (TRCT)", totalDesafios: 13, precisaoMinima: 78 },

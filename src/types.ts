@@ -59,6 +59,7 @@ export interface Student {
   email?: string; // Email associado para recuperação externa
   foto?: string; // Base64 picture for security badges
   contratoAssinado?: boolean; // Se o contrato de trabalho foi assinado
+  autorizacaoPais?: boolean; // Se a autorização dos pais foi concedida
   tentativaFraude?: number; // Contador de tentativas de abrir devtools
   contaBloqueada?: boolean; // Se a conta foi bloqueada por fraude
   badges?: string[]; // IDs das insígnias conquistadas

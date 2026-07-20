@@ -32,6 +32,7 @@ import BadgesTab from "./components/BadgesTab";
 import TournamentTab from "./components/TournamentTab";
 import ProfileProgressRing from "./components/ProfileProgressRing";
 import WorkContractModal from "./components/WorkContractModal";
+import ParentalAuthorizationModal from "./components/ParentalAuthorizationModal";
 import NavigationTop from "./components/NavigationTop";
 import { gerarCartaoPonto, getPointParamsForChallenge, getFichaFinanceiraDataForChallenge } from "./utils/timecard";
 import { t, translateChallenge, translateModuleName, CHALLENGE_TRANSLATIONS } from "./utils/translations";
@@ -1412,6 +1413,7 @@ Para resolver:
   const [veteranNome, setVeteranNome] = useState<string>("");
   const [veteranUsuario, setVeteranUsuario] = useState<string>("");
   const [veteranSenha, setVeteranSenha] = useState<string>("");
+  const [veteranAuthCode, setVeteranAuthCode] = useState<string>("");
 
   // Persisted Veteran Feedback Email Simulator
   const [veteranFeedbacks, setVeteranFeedbacks] = useState<any[]>(() => {
@@ -2779,6 +2781,50 @@ Para resolver:
     }
   };
 
+  const handleParentalAuthorize = async (guardianName: string, guardianCpf: string, guardianPhone: string) => {
+    if (!activeStudent) return;
+    
+    const updates = {
+      autorizacaoPais: true,
+      nomeResponsavel: guardianName,
+      cpfResponsavel: guardianCpf,
+      telefoneResponsavel: guardianPhone,
+      dataAutorizacaoPais: new Date().toISOString()
+    };
+    
+    // Persist to overall students state
+    setStudents(prev => prev.map(s => s.id === activeStudent.id ? { ...s, ...updates } : s));
+    
+    // Persist to Firestore
+    try {
+      await syncSetDoc("students", activeStudent.id, updates, { merge: true });
+      playSoundEffect("success");
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `students/${activeStudent.id}`);
+    }
+  };
+
+  const handleExitTrainingZone = async () => {
+    if (!activeStudent) return;
+    
+    const updates = {
+      faseAtual: 0,
+      cargo: "Pré-Cadastro"
+    };
+    
+    // Update local state
+    setStudents(prev => prev.map(s => s.id === activeStudent.id ? { ...s, ...updates } : s));
+    
+    // Persist to Firestore
+    try {
+      await syncSetDoc("students", activeStudent.id, updates, { merge: true });
+      playSoundEffect("success");
+      setSelectedPhaseId(0);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `students/${activeStudent.id}`);
+    }
+  };
+
   const currentPhaseProgress = useMemo(() => {
     if (!activeStudent) return 0;
     const phaseId = activeStudent.faseAtual;
@@ -3515,6 +3561,12 @@ Para resolver:
       // Registration Mode
       if (!targetNome) {
         setLoginErrorMessage("Por favor, preencha o seu nome completo.");
+        playSoundEffect("failure");
+        return;
+      }
+
+      if (veteranAuthCode.trim() !== "Autorizado") {
+        setLoginErrorMessage("Código de autorização inválido! Para se cadastrar como veterano/usuário externo, insira o código único 'Autorizado' fornecido pelo professor Fábio Santana Lima.");
         playSoundEffect("failure");
         return;
       }
@@ -6241,6 +6293,25 @@ Para resolver:
                           className="w-full bg-slate-950/60 border border-white/10 rounded-lg py-2.5 px-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/20 text-gray-200 text-center"
                         />
                       </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-mono text-text-secondary block uppercase">
+                          Código de Autorização do Professor
+                        </label>
+                        <input
+                          id="vet-register-auth-code"
+                          name="authCode"
+                          type="text"
+                          required
+                          value={veteranAuthCode}
+                          onChange={(e) => setVeteranAuthCode(e.target.value)}
+                          placeholder="Digite o código único 'Autorizado'"
+                          className="w-full bg-slate-950/60 border border-white/10 rounded-lg py-2.5 px-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/20 text-emerald-400 font-mono text-center tracking-wider"
+                        />
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          Insira o código único <strong className="text-emerald-400">Autorizado</strong> fornecido pelo professor para validar seu ingresso.
+                        </p>
+                      </div>
                     </>
                   ) : (
                     <>
@@ -6380,6 +6451,8 @@ Para resolver:
                 setChallengeFeedback={setChallengeFeedback}
                 isProfessorOrAdmin={isProfessorOrAdmin}
                 playSoundEffect={playSoundEffect}
+                onExit={handleExitTrainingZone}
+                onLogout={firebaseUser ? handleFirebaseLogout : handleLogout}
               />
             </div>
           )}
@@ -7546,6 +7619,8 @@ Para resolver:
                     setChallengeFeedback={setChallengeFeedback}
                     isProfessorOrAdmin={isProfessorOrAdmin}
                     playSoundEffect={playSoundEffect}
+                    onExit={handleExitTrainingZone}
+                    onLogout={firebaseUser ? handleFirebaseLogout : handleLogout}
                   />
                 ) : isCurrentPhaseLocked ? (
                   <div className="glass-panel p-6 sm:p-10 rounded-2xl border border-rose-500/10 bg-slate-950/40 space-y-8 animate-fade-in text-left relative overflow-hidden shadow-2xl">
@@ -11008,6 +11083,17 @@ Para resolver:
           student={activeStudent} 
           appLanguage={appLanguage} 
           onSign={handleSignContract} 
+        />
+      )}
+    </AnimatePresence>
+
+    <AnimatePresence>
+      {!isProfessorOrAdmin && activeStudent && !activeStudent.autorizacaoPais && (
+        <ParentalAuthorizationModal 
+          student={activeStudent} 
+          appLanguage={appLanguage} 
+          onAuthorize={handleParentalAuthorize} 
+          onLogout={firebaseUser ? handleFirebaseLogout : handleLogout}
         />
       )}
     </AnimatePresence>

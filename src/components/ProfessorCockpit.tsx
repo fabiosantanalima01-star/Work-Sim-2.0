@@ -27,6 +27,7 @@ import {
   Zap,
   AlertTriangle,
   ShieldAlert,
+  ShieldCheck,
   CheckCheck,
   MailOpen,
   Upload,
@@ -371,6 +372,8 @@ export default function ProfessorCockpit({
   const [batchRawInput, setBatchRawInput] = useState<string>("");
   const [batchSuccessMsg, setBatchSuccessMsg] = useState<string>("");
   const [isProcessingBatch, setIsProcessingBatch] = useState<boolean>(false);
+  const [preAuthorizeBatch, setPreAuthorizeBatch] = useState<boolean>(true);
+  const [preAuthorizeOcr, setPreAuthorizeOcr] = useState<boolean>(true);
 
   // --- COLLAPSIBLE PANELS STATE ---
   const [collapsedOcr, setCollapsedOcr] = useState<boolean>(true);
@@ -494,7 +497,12 @@ export default function ProfessorCockpit({
       };
 
       setFolhasPdfs(prev => [newPdf, ...prev]);
-      onAddStudents(extractedStudents);
+      
+      const processedWithAuth = extractedStudents.map(student => ({
+        ...student,
+        autorizacaoPais: preAuthorizeOcr,
+      }));
+      onAddStudents(processedWithAuth);
 
       setIsUploadingPdf(false);
       setPdfSuccessMsg(`✓ Folha "${file.name}" processada com sucesso! ${extractedStudents.length} alunos matriculados via Gemini AI.`);
@@ -1022,6 +1030,7 @@ export default function ProfessorCockpit({
               precisao: 0.0,
               faseAtual: -1, 
               status: "Aguardando Ativação",
+              autorizacaoPais: preAuthorizeOcr,
               respostasDesafios: {},
               chamadaNumero: tempId.slice(0, 2)
             };
@@ -1035,7 +1044,7 @@ export default function ProfessorCockpit({
     }, 800);
   };
 
-  const parseBatchInput = (inputText: string, classroom: string, year: number): Student[] => {
+  const parseBatchInput = (inputText: string, classroom: string, year: number, preAuthorized: boolean): Student[] => {
     const lines = inputText.split("\n").filter((l) => l.trim().length > 0);
     const compactClass = classroom.replace(/[^a-zA-Z0-9]/g, "").toUpperCase(); // "1º B" -> "1B"
     return lines.map((line, idx) => {
@@ -1062,6 +1071,7 @@ export default function ProfessorCockpit({
         precisao: 0.0,
         faseAtual: -1,
         status: "Ativo",
+        autorizacaoPais: preAuthorized,
         respostasDesafios: {},
         chamadaNumero: callNum,
       };
@@ -1071,7 +1081,7 @@ export default function ProfessorCockpit({
   const handleRunBatchEnrollment = () => {
     setIsProcessingBatch(true);
     setTimeout(() => {
-      const generated = parseBatchInput(batchRawInput, batchClassroom, batchYear);
+      const generated = parseBatchInput(batchRawInput, batchClassroom, batchYear, preAuthorizeBatch);
       onAddStudents(generated);
       setIsProcessingBatch(false);
       setBatchSuccessMsg(`✓ Matrícula de Lote integrada! ${generated.length} alunos cadastrados com sucesso.`);
@@ -1850,10 +1860,23 @@ export default function ProfessorCockpit({
                     rows={4}
                     value={ocrInputText}
                     onChange={(e) => setOcrInputText(e.target.value)}
-                    className="w-full bg-slate-950/70 border border-white/10 rounded-lg p-3 text-xs font-mono focus:border-accent-primary focus:outline-none text-accent-primary"
+                    className="w-full bg-slate-950/70 border border-white/10 rounded-lg p-3 text-xs font-mono focus-border-accent-primary focus:outline-none text-accent-primary"
                     placeholder="Digite um nome por linha..."
                     disabled={isProcessingOcr}
                   />
+
+                  <div className="flex items-center gap-2.5 bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none text-[11px] text-gray-300 font-sans">
+                      <input
+                        type="checkbox"
+                        checked={preAuthorizeOcr}
+                        onChange={(e) => setPreAuthorizeOcr(e.target.checked)}
+                        className="rounded border-white/10 text-accent-primary focus:ring-accent-primary focus:ring-offset-bg-primary bg-slate-900 w-4 h-4 cursor-pointer"
+                      />
+                      <span className="font-semibold text-accent-primary uppercase tracking-wider text-[9px] bg-accent-primary/10 px-1.5 py-0.5 rounded border border-accent-primary/15 shrink-0">PAIS AUTORIZADOS</span>
+                      <span>Pré-autorizar todos estes alunos (Termo de autorização física já coletado)</span>
+                    </label>
+                  </div>
 
                   <div className="flex justify-between items-center bg-slate-950/20 p-3 rounded-xl border border-white/5">
                     <div className="flex items-center gap-2 text-xs text-text-secondary">
@@ -2129,13 +2152,26 @@ export default function ProfessorCockpit({
                     </p>
                   </div>
 
+                  <div className="flex items-center gap-2.5 bg-slate-950/40 p-3 rounded-xl border border-white/5 text-left">
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none text-[11px] text-gray-300 font-sans">
+                      <input
+                        type="checkbox"
+                        checked={preAuthorizeBatch}
+                        onChange={(e) => setPreAuthorizeBatch(e.target.checked)}
+                        className="rounded border-white/10 text-cyan-400 focus:ring-cyan-400 focus:ring-offset-bg-primary bg-slate-900 w-4 h-4 cursor-pointer"
+                      />
+                      <span className="font-semibold text-cyan-400 uppercase tracking-wider text-[9px] bg-cyan-400/10 px-1.5 py-0.5 rounded border border-cyan-400/15 shrink-0">PAIS AUTORIZADOS</span>
+                      <span>Pré-autorizar todos estes alunos (Termo de autorização física já coletado)</span>
+                    </label>
+                  </div>
+
                   {/* Live Preview Console */}
                   <div className="bg-slate-950/90 border border-white/5 rounded-xl p-4 space-y-2 text-left">
                     <span className="text-[10px] font-mono text-gray-400 block border-b border-white/5 pb-1">
                       👁️ PRÉ-VISUALIZAÇÃO DE MATRÍCULAS DO LOTE:
                     </span>
                     <div className="max-h-[120px] overflow-y-auto space-y-1.5 pr-1 text-xs">
-                      {parseBatchInput(batchRawInput, batchClassroom, batchYear).map((item, index) => (
+                      {parseBatchInput(batchRawInput, batchClassroom, batchYear, preAuthorizeBatch).map((item, index) => (
                         <div key={index} className="flex justify-between items-center bg-white/5 p-1.5 rounded text-[11px] font-mono">
                           <span className="text-gray-300">
                             <strong className="text-cyan-400">#{item.chamadaNumero}</strong> - {item.nomeCompleto}
@@ -3783,7 +3819,8 @@ export default function ProfessorCockpit({
                     <th className="py-2.5 px-3 text-right">Precisão</th>
                     <th className="py-2.5 px-3 text-center">Resoluções</th>
                     <th className="py-2.5 px-3 text-center">Foco / Presença</th>
-                    <th className="py-2.5 px-3">Metas de Onboarding (Fase 0)</th>
+                    <th className="py-2.5 px-3">Onboarding (F0)</th>
+                    <th className="py-2.5 px-3 text-center">Autorização</th>
                     <th className="py-2.5 px-3 text-right">Ação Analítica</th>
                   </tr>
                 </thead>
@@ -3921,6 +3958,29 @@ export default function ProfessorCockpit({
                             <span className="text-[9px] text-gray-400">{completionRate}%</span>
                           </div>
                         </td>
+                        <td className="py-3 px-3 text-center">
+                          {student.autorizacaoPais ? (
+                            <button
+                              type="button"
+                              onClick={() => onUpdateStudent?.(student.id, { autorizacaoPais: false })}
+                              className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 text-[9px] uppercase font-bold tracking-wider cursor-pointer transition-all inline-flex items-center gap-1.5"
+                              title="Autorizado. Clique para revogar."
+                            >
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                              Autorizado
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => onUpdateStudent?.(student.id, { autorizacaoPais: true })}
+                              className="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20 text-[9px] uppercase font-bold tracking-wider cursor-pointer transition-all inline-flex items-center gap-1.5"
+                              title="Pendente. Clique para autorizar manualmente."
+                            >
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                              Pendente
+                            </button>
+                          )}
+                        </td>
                         <td className="py-3 px-3 text-right">
                           <button
                             type="button"
@@ -3973,6 +4033,7 @@ export default function ProfessorCockpit({
                              <span className="text-[10px] text-accent-primary font-black">{avgCompletion.toFixed(1)}%</span>
                            </div>
                         </td>
+                        <td className="py-4 px-3"></td>
                         <td className="py-4 px-3"></td>
                       </tr>
                     );

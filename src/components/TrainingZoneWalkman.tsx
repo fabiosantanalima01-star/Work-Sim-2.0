@@ -32,7 +32,8 @@ import {
   Loader2,
   Upload,
   Disc,
-  Music2
+  Music2,
+  LogOut
 } from "lucide-react";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { db, syncSetDoc } from "../lib/firebase";
@@ -89,6 +90,7 @@ interface TrainingZoneWalkmanProps {
   isProfessorOrAdmin: boolean;
   playSoundEffect: (sound: string) => void;
   onExit?: () => void; // Used when passed, e.g. for professors or students who already completed it
+  onLogout?: () => void;
 }
 
 // Helper to find a matching file from a public Google Drive folder list for a given challenge
@@ -181,7 +183,8 @@ export const TrainingZoneWalkman: React.FC<TrainingZoneWalkmanProps> = ({
   setChallengeFeedback,
   isProfessorOrAdmin,
   playSoundEffect,
-  onExit
+  onExit,
+  onLogout
 }) => {
   // Filter challenges to Phase -1 (Zona de Treinamento)
   const trainingChallenges = useMemo(() => {
@@ -720,6 +723,17 @@ export const TrainingZoneWalkman: React.FC<TrainingZoneWalkmanProps> = ({
               <Award className="w-4 h-4" />
               <span>Acessar o Cockpit</span>
               <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="px-3 py-2 bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-400 border border-rose-500/20 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2"
+              title="Sair da Conta"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sair</span>
             </button>
           )}
         </div>

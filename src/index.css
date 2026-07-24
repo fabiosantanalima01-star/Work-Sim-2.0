@@ -18,19 +18,19 @@
 }
 
 .theme-light {
-  --bg-primary: #B2FF59;
+  --bg-primary: #F8FAFC;
   --bg-card: #FFFFFF;
-  --accent-primary: #2E7D32;
+  --accent-primary: #059669; /* WorkSim Emerald 600 */
   --accent-error: #DC2626;
   --accent-warning: #D97706;
-  --text-primary: #212121;
-  --text-secondary: #212121;
-  --border-color: #d1d1d1;
+  --text-primary: #0F172A; /* Crisp Slate 900 */
+  --text-secondary: #334155; /* Readable Slate 700 */
+  --border-color: #E2E8F0; /* Slate 200 */
 
   /* Specific variables for glass-panel in Light Mode */
   --glass-bg: #FFFFFF;
-  --glass-border: #d1d1d1;
-  --glass-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --glass-border: #E2E8F0;
+  --glass-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
 }
 
 @theme {
@@ -974,68 +974,71 @@ select option {
    CUSTOM ACADEMIC DAY MODE (MODO DIURNO) STYLING OVERRIDES
    ========================================================================== */
 
-/* Outer solid green border on the screen body and yellow-green background */
+/* Modern clean background and light theme layout */
 body.theme-light {
-  background-color: #B2FF59 !important;
-  border: 8px solid #1B5E20 !important;
+  background-color: #F8FAFC !important;
+  border: none !important;
   min-height: 100vh;
   box-sizing: border-box;
 }
 
 /* Enforce the theme colors on the outer wrapper */
 .theme-light.min-h-screen {
-  background-color: #B2FF59 !important;
+  background-color: #F8FAFC !important;
 }
 
 /* MCQ alternative buttons styling in Day Mode */
 .theme-light [id^="challenge-option-btn-"] {
-  background-color: #F8F9FA !important;
-  border: 2px solid #E9ECEF !important;
-  color: #212121 !important;
-  font-weight: 500 !important;
-  transition: all 0.2s ease-in-out !important;
+  background-color: #FFFFFF !important;
+  border: 1.5px solid #E2E8F0 !important;
+  color: #0F172A !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.03) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .theme-light [id^="challenge-option-btn-"]:hover:not(:disabled) {
-  border-color: #2E7D32 !important;
-  background-color: #E8F5E9 !important;
+  border-color: #059669 !important;
+  background-color: #F0FDF4 !important;
   transform: translateX(4px) !important;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.1) !important;
 }
 
 /* Correct/selected options and status badges inside alternative buttons */
 .theme-light [id^="challenge-option-btn-"].bg-emerald-950\/20,
 .theme-light [id^="challenge-option-btn-"].border-emerald-500\/40 {
-  background-color: #E8F5E9 !important;
-  border-color: #2E7D32 !important;
-  color: #2E7D32 !important;
-  font-weight: bold !important;
+  background-color: #ECFDF5 !important;
+  border-color: #059669 !important;
+  color: #065F46 !important;
+  font-weight: 700 !important;
 }
 
 .theme-light [id^="challenge-option-btn-"].bg-rose-950\/20,
 .theme-light [id^="challenge-option-btn-"].border-rose-500\/40 {
   background-color: #FEF2F2 !important;
   border-color: #DC2626 !important;
-  color: #DC2626 !important;
-  font-weight: bold !important;
+  color: #991B1B !important;
+  font-weight: 700 !important;
 }
 
 /* Option letter circle badge inside alternatives */
 .theme-light [id^="challenge-option-btn-"] span[class*="border-"] {
-  border-color: #9CA3AF !important;
-  background-color: #FFFFFF !important;
-  color: #212121 !important;
+  border-color: #CBD5E1 !important;
+  background-color: #F1F5F9 !important;
+  color: #0F172A !important;
 }
 
 .theme-light [id^="challenge-option-btn-"]:hover:not(:disabled) span[class*="border-"] {
-  border-color: #2E7D32 !important;
-  background-color: #E8F5E9 !important;
-  color: #2E7D32 !important;
+  border-color: #059669 !important;
+  background-color: #ECFDF5 !important;
+  color: #059669 !important;
 }
 
 .theme-light [id^="challenge-option-btn-"].bg-emerald-950\/20 span[class*="border-"],
 .theme-light [id^="challenge-option-btn-"].border-emerald-500\/40 span[class*="border-"] {
-  border-color: #2E7D32 !important;
-  background-color: #2E7D32 !important;
+  border-color: #059669 !important;
+  background-color: #059669 !important;
   color: #FFFFFF !important;
   font-weight: bold !important;
 }
@@ -1051,19 +1054,19 @@ body.theme-light {
 /* Ensure active primary buttons have outstanding legibility and modern design */
 .theme-light #footer-mcq-submit-btn,
 .theme-light .botao-responder {
-  background-color: #16A34A !important; /* Elegant Emerald-600 */
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
   color: #FFFFFF !important;
-  border: 1px solid #15803D !important;
+  border: 1px solid #047857 !important;
   border-radius: 12px !important;
-  box-shadow: 0 4px 12px 0 rgba(22, 163, 74, 0.2) !important;
+  box-shadow: 0 4px 12px 0 rgba(5, 150, 105, 0.25) !important;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .theme-light #footer-mcq-submit-btn:hover:not(:disabled),
 .theme-light .botao-responder:hover {
-  background-color: #15803D !important; /* Emerald-700 */
-  border-color: #166534 !important;
-  box-shadow: 0 6px 16px 0 rgba(22, 163, 74, 0.35) !important;
+  background: linear-gradient(135deg, #047857 0%, #065F46 100%) !important;
+  border-color: #065F46 !important;
+  box-shadow: 0 6px 16px 0 rgba(5, 150, 105, 0.35) !important;
   transform: translateY(-1px);
 }
 
@@ -1088,9 +1091,9 @@ body.theme-light {
 .theme-light .card-content,
 .theme-light .glass-panel,
 .theme-light [class*="glass-panel"] {
-  border: 1px solid #d1d1d1 !important;
-  border-radius: 12px !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 4px 12px -2px rgba(15, 23, 42, 0.03) !important;
 }
 
 

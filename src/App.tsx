@@ -6010,17 +6010,9 @@ Para resolver:
 
             <div className="text-center relative select-none flex flex-col items-center">
               {/* Modern Professional Logomarca 'WorkSim RH' */}
-              <div className="mb-4 mt-2 flex justify-center">
+              <div className="mb-2 mt-2 flex justify-center">
                 <WorkSimLogo variant="login" size="xl" appLanguage={appLanguage} />
               </div>
-
-              <h1 className="text-2xl sm:text-3xl font-sans font-black text-white mt-2 uppercase tracking-tighter leading-tight">
-                Simulador Acadêmico de<br/>
-                <span className="text-accent-primary">Legislação de RH</span>
-              </h1>
-              <p className="text-[10px] text-text-secondary mt-2 font-mono uppercase tracking-widest opacity-70">
-                Mestre Fábio Santana Lima • Alta Performance
-              </p>
             </div>
 
             {/* NEW: Google Login option on Login Gate */}
@@ -6379,7 +6371,7 @@ Para resolver:
 
             {/* Isolated Highlighted Version (Only Login Gate) */}
             <div className="pt-4 flex justify-center">
-               <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
+              <span className="text-[11px] font-mono font-bold text-slate-500 tracking-[0.3em] uppercase">
                 Versão v9.0.2026-RC1
               </span>
             </div>

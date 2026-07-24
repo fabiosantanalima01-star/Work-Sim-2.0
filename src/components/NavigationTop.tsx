@@ -25,6 +25,7 @@ import {
   HelpCircle
 } from "lucide-react";
 import MethodologyModal from "./MethodologyModal";
+import WorkSimLogo from "./WorkSimLogo";
 
 interface TopNavbarProps {
   currentTab: string;
@@ -116,27 +117,8 @@ export default function TopNavbar({
                   </button>
                 )}
 
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                  <div className="relative group hidden xs:block flex-shrink-0">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-accent-primary to-blue-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-                    <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-900 border border-white/20 flex items-center justify-center shadow-2xl">
-                      <BookOpen className="w-5 h-5 sm:w-7 sm:h-7 text-accent-primary" />
-                    </div>
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <h1 className="text-xs sm:text-lg md:text-2xl lg:text-3xl font-black tracking-tight text-white uppercase leading-none sm:leading-tight">
-                      <span className="block sm:inline whitespace-nowrap">
-                        {appLanguage === "en" ? "Academic Simulator" : "Simulador Acadêmico"}
-                      </span>
-                      <span className="text-accent-primary block sm:inline sm:ml-2 whitespace-nowrap">
-                        Legislação de RH
-                      </span>
-                    </h1>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <p className="text-[9px] sm:text-[11px] text-accent-primary/80 font-mono font-bold uppercase tracking-wider">Legislação v9.0.2026-RC1</p>
-                    </div>
-                  </div>
+                <div className="flex items-center min-w-0">
+                  <WorkSimLogo variant="navbar" size="md" appLanguage={appLanguage} />
                 </div>
               </div>
             </div>

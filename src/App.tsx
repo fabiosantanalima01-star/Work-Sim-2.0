@@ -34,6 +34,7 @@ import ProfileProgressRing from "./components/ProfileProgressRing";
 import WorkContractModal from "./components/WorkContractModal";
 import ParentalAuthorizationModal from "./components/ParentalAuthorizationModal";
 import NavigationTop from "./components/NavigationTop";
+import WorkSimLogo from "./components/WorkSimLogo";
 import { gerarCartaoPonto, getPointParamsForChallenge, getFichaFinanceiraDataForChallenge } from "./utils/timecard";
 import { t, translateChallenge, translateModuleName, CHALLENGE_TRANSLATIONS } from "./utils/translations";
 import { exportTRCTToPDF } from "./utils/pdfExport";
@@ -250,7 +251,7 @@ export default function App() {
       } else {
         // If it doesn't exist yet, we can write the default if we are the actual authenticated professor
         if (isActualFirebaseProfessor) {
-          setDoc(doc(db, "settings", "phases"), { released: [-1, 0, 2, 3, 4, 5, 6, 7] })
+          syncSetDoc("settings", "phases", { released: [-1, 0, 2, 3, 4, 5, 6, 7] })
             .catch(err => console.error("Error setting default phases:", err));
         }
       }
@@ -271,7 +272,7 @@ export default function App() {
     
     if (isActualFirebaseProfessor) {
       try {
-        await setDoc(doc(db, "settings", "phases"), { released: normalized });
+        await syncSetDoc("settings", "phases", { released: normalized });
       } catch (err) {
         console.error("Error saving released phases to Firestore:", err);
       }
@@ -305,7 +306,7 @@ export default function App() {
         }));
       } else {
         if (isActualFirebaseProfessor) {
-          setDoc(doc(db, "settings", "penalties"), {
+          syncSetDoc("settings", "penalties", {
             focusLossLimit: 7,
             focusXpPenaltyPercent: 5,
             inactivityTimeoutMinutes: 3,
@@ -328,7 +329,7 @@ export default function App() {
     setPenaltySettings(updated);
     if (isActualFirebaseProfessor) {
       try {
-        await setDoc(doc(db, "settings", "penalties"), updated);
+        await syncSetDoc("settings", "penalties", updated);
       } catch (err) {
         console.error("Error saving penalty settings to Firestore:", err);
         handleFirestoreError(err, OperationType.WRITE, "settings/penalties");
@@ -6007,37 +6008,13 @@ Para resolver:
               </div>
             </div>
 
-            <div className="text-center relative select-none">
-              {/* Modern Minimalist Logomarca 'WorkSim RH' */}
-              <div className="flex flex-col items-center mb-5 mt-2">
-                <div className="relative flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-slate-900 via-slate-950 to-slate-800 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.08)] group overflow-hidden">
-                  {/* Subtle decorative background circles */}
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(16,185,129,0.15),transparent_70%)] animate-pulse" />
-                  
-                  {/* Modern geometric lines representing HR structure, connections, and system intelligence */}
-                  <svg className="w-8 h-8 text-emerald-400 relative z-10 transition-transform duration-500 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                    {/* Upper node representing leadership / growth */}
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 2a3 3 0 100 6 3 3 0 000-6z" />
-                    {/* Connected structure representing team / human resources */}
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 18V10a2 2 0 012-2h12a2 2 0 012 2v8" />
-                    {/* Integrated system lines representing simulation / flow */}
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 14h6M8 18h8" />
-                    <circle cx="6" cy="10" r="1" className="fill-emerald-400" />
-                    <circle cx="18" cy="10" r="1" className="fill-emerald-400" />
-                  </svg>
-                  
-                  {/* Inner glow accent line */}
-                  <div className="absolute inset-x-0 bottom-0 h-[3px] bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
-                </div>
-                <div className="mt-2 text-center">
-                  <span className="text-[10px] font-sans font-black tracking-[0.3em] text-white uppercase opacity-90">
-                    WORKSIM <span className="text-emerald-400">RH</span>
-                  </span>
-                  <p className="text-[8px] text-gray-500 font-mono uppercase tracking-[0.2em] mt-0.5">HUMAN RESOURCES SIMULATOR</p>
-                </div>
+            <div className="text-center relative select-none flex flex-col items-center">
+              {/* Modern Professional Logomarca 'WorkSim RH' */}
+              <div className="mb-4 mt-2 flex justify-center">
+                <WorkSimLogo variant="login" size="xl" appLanguage={appLanguage} />
               </div>
 
-              <h1 className="text-3xl font-sans font-black text-white mt-4 uppercase tracking-tighter leading-tight">
+              <h1 className="text-2xl sm:text-3xl font-sans font-black text-white mt-2 uppercase tracking-tighter leading-tight">
                 Simulador Acadêmico de<br/>
                 <span className="text-accent-primary">Legislação de RH</span>
               </h1>

@@ -8,6 +8,15 @@ import postgres from "postgres";
 dotenv.config();
 
 const app = express();
+
+// Redirecionar automaticamente de HTTP para HTTPS em produção
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === "production" && req.headers["x-forwarded-proto"] === "http") {
+    return res.redirect(301, `https://${req.hostname}${req.url}`);
+  }
+  next();
+});
+
 const upload = multer({ storage: multer.memoryStorage() });
 
 // --- Neon PostgreSQL Integration ---

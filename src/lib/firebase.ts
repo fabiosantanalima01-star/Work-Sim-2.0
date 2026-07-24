@@ -316,6 +316,11 @@ const isQueueableError = (err: any) => {
 };
 
 export async function syncSetDoc(collectionName: string, docId: string, data: any, options: { merge?: boolean } = {}) {
+  if (checkQuotaExceeded()) {
+    console.warn(`[Quota Safe-Guard] Firestore quota exceeded. Bypassing network and direct enqueuing SET for ${collectionName}/${docId}`);
+    SyncManager.enqueue(SyncActionType.SET, collectionName, data, docId, options.merge || (collectionName === "students" ? true : false));
+    return;
+  }
   try {
     let dataToSend = data;
     let finalOptions = options;
@@ -348,6 +353,11 @@ export async function syncSetDoc(collectionName: string, docId: string, data: an
 }
 
 export async function syncAddDoc(collectionName: string, data: any) {
+  if (checkQuotaExceeded()) {
+    console.warn(`[Quota Safe-Guard] Firestore quota exceeded. Bypassing network and direct enqueuing ADD for ${collectionName}`);
+    SyncManager.enqueue(SyncActionType.ADD, collectionName, data);
+    return;
+  }
   try {
     const { addDoc, collection } = await import("firebase/firestore");
     await addDoc(collection(db, collectionName), data);
@@ -362,6 +372,11 @@ export async function syncAddDoc(collectionName: string, data: any) {
 }
 
 export async function syncDeleteDoc(collectionName: string, docId: string) {
+  if (checkQuotaExceeded()) {
+    console.warn(`[Quota Safe-Guard] Firestore quota exceeded. Bypassing network and direct enqueuing DELETE for ${collectionName}/${docId}`);
+    SyncManager.enqueue(SyncActionType.DELETE, collectionName, {}, docId);
+    return;
+  }
   try {
     const { deleteDoc } = await import("firebase/firestore");
     await deleteDoc(doc(db, collectionName, docId));
@@ -376,6 +391,11 @@ export async function syncDeleteDoc(collectionName: string, docId: string) {
 }
 
 export async function syncUpdateDoc(collectionName: string, docId: string, data: any) {
+  if (checkQuotaExceeded()) {
+    console.warn(`[Quota Safe-Guard] Firestore quota exceeded. Bypassing network and direct enqueuing UPDATE for ${collectionName}/${docId}`);
+    SyncManager.enqueue(SyncActionType.UPDATE, collectionName, data, docId);
+    return;
+  }
   try {
     let dataToSend = data;
     if (collectionName === "students") {
